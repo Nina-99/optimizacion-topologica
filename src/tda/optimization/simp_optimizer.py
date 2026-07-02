@@ -195,7 +195,7 @@ class SimpTda2DOptimizer:
 
     def _initialize_rho_base(self):
         """Inicializa la densidad base."""
-        return self.volfrac * np.ones((self.nely, self.nelx))
+        return self.volfrac * np.ones_like(self.volfrac)
 
     def _compute_ce(self, U):
         """Calcula el costo de elementos finitos."""
