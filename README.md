@@ -232,20 +232,4 @@ Una vez ejecutado, abra el navegador web en la dirección indicada por la consol
 2. Añadir ruido de perturbación a nubes de puntos y evaluar en vivo la estabilidad de los códigos de barra y diagramas de persistencia calculados por Ripser.
 3. Exportar resultados visuales en formato PNG y datos analíticos en CSV.
 
----
-
-## 7. Mejoras Recientes
-
-Este README refleja las siguientes mejoras aplicadas al proyecto:
-
-| Mejora | Descripción |
-|---|---|
-| **Validación de dependencias** | `requirements.txt` verificado: 105 paquetes resueltos sin conflictos en Python 3.14 |
-| **Script de instalación Linux/macOS** | `install_package.sh` — distro-agnostic, con manejo de errores, detección de Python, y soporte para recrear el venv |
-| **Script de instalación Windows** | `install_package.bat` — detección de Python sin asumir Chocolatey, uso directo de rutas del venv |
-| **Aislamiento correcto del venv** | Ambos scripts usan `venv/bin/pip` y `venv/bin/streamlit` (o sus equivalentes en Windows) en vez de depender de binarios globales |
-| **Instalación interactiva** | Los scripts preguntan antes de recrear un venv existente y antes de ejecutar la app |
-
----
-
 > **Citación:** Si utilizás este framework en publicaciones académicas, por favor referenciá el repositorio y el proyecto de investigación asociado, disponible en la documentación del repositorio.
