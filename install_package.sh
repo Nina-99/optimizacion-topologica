@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ============================================
 # install_package.sh — Estructura Topológica
-# Versión mejorada: distro-agnostic, segura
+# Versión 2.0 — multiplataforma
 # ============================================
 
 set -euo pipefail
@@ -80,7 +80,6 @@ else
     "$PYTHON" -m venv "$VENV_DIR"
 fi
 
-# Verificar que se creó bien
 if [ ! -f "$VENV_DIR/bin/pip" ]; then
     error "No se pudo crear el entorno virtual en '$VENV_DIR/'"
     exit 1
@@ -94,9 +93,19 @@ VENV_STREAMLIT="$VENV_DIR/bin/streamlit"
 header "Instalando dependencias"
 info "Esto puede tomar unos minutos..."
 
+# Primero las dependencias base (numpy, scipy, etc.)
+info "Instalando dependencias base..."
 if ! "$VENV_PIP" install -r "$REQUIREMENTS"; then
-    error "Falló la instalación de dependencias."
+    error "Falló la instalación de dependencias base."
     info "Revisá el mensaje de error de arriba."
+    exit 1
+fi
+
+# Luego ripser SIN persim (persim no tiene wheels en Windows/ARM).
+# Sus deps reales (numpy, scipy, scikit-learn) ya están instaladas arriba.
+info "Instalando ripser (sin persim)..."
+if ! "$VENV_PIP" install ripser --no-deps; then
+    error "No se pudo instalar ripser."
     exit 1
 fi
 

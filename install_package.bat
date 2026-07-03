@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 
 REM ============================================
 REM install_package.bat — Estructura Topológica
-REM Versión mejorada: robusta para Windows
+REM Versión 2.0 — multiplataforma
 REM ============================================
 
 set VENV_DIR=venv
@@ -76,7 +76,6 @@ if exist "%VENV_DIR%\Scripts\python.exe" (
     %PYTHON_CMD% -m venv "%VENV_DIR%"
 )
 
-REM Verificar que se creo bien
 if not exist "%VENV_DIR%\Scripts\pip.exe" (
     echo [ERROR] No se pudo crear el entorno virtual.
     pause
@@ -92,10 +91,24 @@ echo === Instalando dependencias ===
 echo Esto puede tomar varios minutos...
 echo.
 
+REM NOTA: ripser depende de persim, y persim NO tiene wheels para Windows.
+REM Estrategia:
+REM   1. Instalar requirements.txt (numpy, scipy, scikit-learn, etc.)
+REM   2. Instalar ripser con --no-deps (evita persim, pero ya tiene numpy/scipy)
+
+echo [1/2] Instalando dependencias base...
 %VENV_PIP% install -r %REQUIREMENTS%
 if %errorlevel% neq 0 (
-    echo [ERROR] Fallo la instalacion de dependencias.
+    echo [ERROR] Fallo la instalacion de dependencias base.
     echo   Revisa el mensaje de error de arriba.
+    pause
+    exit /b 1
+)
+
+echo [2/2] Instalando ripser (sin persim)...
+%VENV_PIP% install ripser --no-deps
+if %errorlevel% neq 0 (
+    echo [ERROR] No se pudo instalar ripser.
     pause
     exit /b 1
 )
