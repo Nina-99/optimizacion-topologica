@@ -163,9 +163,12 @@ source venv/bin/activate       # Linux/macOS
 # 3. Instalar dependencias
 pip install -r requirements.txt
 
-# 4. Verificar instalación
+# 4. Instalar paquete local (para imports from tda.*)
+pip install -e .
+
+# 5. Verificar instalación
 python --version
-pip list  # Deberían verse ~105 paquetes instalados
+pip list  # Deberían verse ~60 paquetes instalados
 ```
 
 ### Método alternativo — Conda
@@ -176,9 +179,10 @@ Si preferís Conda, podés crear un entorno similar:
 conda create -n tda-simp python=3.11 -y
 conda activate tda-simp
 pip install -r requirements.txt
+pip install -e .
 ```
 
-> **Nota:** El archivo `requirements.txt` contiene las versiones exactas de las 105 dependencias, **validadas sin conflictos** contra Python 3.14 en el desarrollo. Es la fuente única de verdad de las dependencias.
+> **Nota:** El archivo `requirements.txt` contiene las ~60 dependencias totales (7 explicitas + transitivas), **validadas sin conflictos** contra Python 3.14 en el desarrollo. Es la fuente única de verdad de las dependencias.
 
 ### Verificación de la instalación
 

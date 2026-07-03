@@ -103,6 +103,12 @@ fi
 
 # Luego ripser SIN persim (persim no tiene wheels en Windows/ARM).
 # Sus deps reales (numpy, scipy, scikit-learn) ya están instaladas arriba.
+info "Instalando paquete local..."
+if ! "$VENV_PIP" install -e .; then
+    error "No se pudo instalar el paquete local."
+    exit 1
+fi
+
 info "Instalando ripser (sin persim)..."
 if ! "$VENV_PIP" install ripser --no-deps; then
     error "No se pudo instalar ripser."

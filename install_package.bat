@@ -105,6 +105,14 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
+REM 4c. Instalar el paquete local (tda.* como modulo importable)
+%VENV_PIP% install -e .
+if !errorlevel! neq 0 (
+    echo [ERROR] No se pudo instalar el paquete local.
+    pause
+    exit /b 1
+)
+
 echo [2/2] Instalando ripser (sin persim)...
 %VENV_PIP% install ripser --no-deps
 if %errorlevel% neq 0 (
