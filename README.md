@@ -38,7 +38,7 @@ graph TD
     
     subgraph Orquestación de Simulación
         Pipeline[src/tda/simulation/pipeline.py]
-        Experiment[src/tda/simulation/experiment.py]
+        Experiment[src/tda/simulation/experiment_simp.py]
     end
     
     subgraph Procesamiento de Datos
@@ -72,67 +72,120 @@ El repositorio está organizado como un paquete de Python instalable. A continua
 
 ```text
 EstructuraTopologica/
+├── LICENSE                      # Licencia BSD-3-Clause
 ├── setup.py                     # Archivo de configuración para la instalación del paquete
+├── requirements.txt             # Dependencias exactas del proyecto (105 paquetes validados)
+├── install_package.sh           # Script de instalación automatizada para Linux/macOS
+├── install_package.bat          # Script de instalación automatizada para Windows
 ├── prompt.md                    # Instrucciones de diseño del proyecto
-├── Proy.Investigacion.txt       # Documento de soporte con el proyecto de investigación
 ├── README.md                    # Este archivo de documentación central
+├── docs/
+│   └── optimizacion_topologica.md  # Documentación extendida del marco teórico
 └── src/
     └── tda/
-        ├── __init__.py          # Inicialización del namespace tda
-        ├── app/
+        ├── __init__.py              # Inicialización del namespace tda
+        ├── analysis/                # Análisis topológico y métricas de validación
         │   ├── __init__.py
-        │   └── app_master.py    # Interfaz interactiva en Streamlit (Master App)
-        ├── core/
+        │   ├── metrics.py           # Accuracy de K-Means y verificación de números de Betti
+        │   └── stability.py         # Barrido de ruido gaussiano para validar H.E.1
+        ├── app/                     # Interfaz de usuario (Streamlit)
         │   ├── __init__.py
-        │   └── topology.py      # Homología persistente, filtraciones y números de Betti
-        ├── optimization/
+        │   ├── app_master.py        # App principal interactiva (Master App)
+        │   └── pages/
+        │       ├── __init__.py
+        │       └── page_tda_kmedias.py  # Página: TDA vs K-Medias bajo ruido (H.E.1)
+        ├── core/                    # Núcleo matemático
         │   ├── __init__.py
-        │   └── simp_optimizer.py# Motor FEM y optimizador estructural SIMP 2D
-        ├── processing/
+        │   ├── fem.py               # Motor FEM Q4: ensamble, solver, sensibilidades, OC
+        │   ├── metric.py            # Métrica compuesta μ_α = c + α·β₁ y calibración de α*
+        │   └── topology.py          # Homología persistente, filtraciones y números de Betti
+        ├── optimization/            # Optimización estructural SIMP
         │   ├── __init__.py
-        │   └── preprocessing.py # Ruido gaussiano, normalización y preparación de datos
-        ├── simulation/
+        │   ├── beam_optimizer.py    # Optimización de viga con MDF + SIMP (sin matplotlib)
+        │   ├── metric_simp.py       # Algoritmo 1 completo: preprocesado → SIMP → TDA
+        │   └── simp_optimizer.py    # Motor FEM y optimizador estructural SIMP 2D
+        ├── processing/              # Preprocesamiento de datos
         │   ├── __init__.py
-        │   ├── experiment.py    # Definición de experimentos de estabilidad y optimización
-        │   └── pipeline.py      # Pipeline unificado para la ejecución secuencial de tareas
-        └── visualization/
+        │   ├── preprocessing.py     # Ruido gaussiano, normalización y preparación de datos
+        │   └── sampling.py          # Muestreo sintético: esfera, toro, ruido controlado
+        ├── simulation/              # Orquestación de experimentos
+        │   ├── __init__.py
+        │   ├── experiment_simp.py   # Experimento headless para validar H.E.2 (SIMP)
+        │   └── pipeline.py          # Pipeline unificado de ejecución secuencial
+        └── visualization/           # Visualización científica
             ├── __init__.py
-            └── visualizer.py    # Graficadores de diagramas de persistencia, barcodes y mallas
+            ├── plots_tda.py         # Figuras Plotly listas para Streamlit/exportación
+            └── visualizer.py        # Graficadores de diagramas de persistencia, barcodes y mallas
 ```
 
 ---
 
 ## 5. Instrucciones de Instalación
 
-Se recomienda el uso de un entorno virtual administrado mediante `Conda` para asegurar la reproducibilidad de los experimentos y aislar las dependencias numéricas y topológicas críticas.
+Se recomienda el uso de un **entorno virtual (`venv`)** para aislar las dependencias. El proyecto incluye scripts automatizados para Linux/macOS y Windows, o podés seguir los pasos manuales.
 
 ### Requisitos del Sistema
+
 * **Sistema Operativo:** Linux / macOS / Windows
-* **Administrador de paquetes:** Conda (Miniconda/Anaconda)
-* **Versión de Python:** 3.11
+* **Python:** 3.10 o superior (validado en Python 3.14)
+* **Gestor de paquetes:** `pip` (incluido con Python)
 
-### Creación del Entorno Conda
+### Método rápido — Script automatizado
 
-Ejecute la siguiente secuencia de comandos en su terminal para crear el entorno, instalar las dependencias con sus versiones exactas y configurar el paquete en modo editable:
+**Linux / macOS:**
 
 ```bash
-# 1. Crear el entorno conda con Python 3.11
+# Opción 1: Clonar y ejecutar el script
+git clone <repo-url> && cd EstructuraTopologica
+bash install_package.sh
+```
+
+El script verifica que Python esté instalado, crea el entorno virtual en `venv/`, instala las 105 dependencias y te pregunta si querés ejecutar la app.
+
+**Windows:**
+
+```
+# Haz doble clic en install_package.bat o ejecutá desde cmd:
+install_package.bat
+```
+
+### Método manual — paso a paso
+
+```bash
+# 1. Crear el entorno virtual
+python3 -m venv venv
+
+# 2. Activarlo
+source venv/bin/activate       # Linux/macOS
+# 0 venv\Scripts\activate.bat  # Windows (cmd)
+# 0 .\venv\Scripts\Activate.ps1  # Windows (PowerShell)
+
+# 3. Instalar dependencias
+pip install -r requirements.txt
+
+# 4. Verificar instalación
+python --version
+pip list  # Deberían verse ~105 paquetes instalados
+```
+
+### Método alternativo — Conda
+
+Si preferís Conda, podés crear un entorno similar:
+
+```bash
 conda create -n tda-simp python=3.11 -y
-
-# 2. Activar el entorno
 conda activate tda-simp
+pip install -r requirements.txt
+```
 
-# 3. Instalar las dependencias numéricas y gráficas de los canales oficiales y conda-forge
-conda install -c conda-forge numpy=1.26 scipy=1.12 matplotlib=3.8 scikit-learn=1.4 streamlit=1.35.0 -y
+> **Nota:** El archivo `requirements.txt` contiene las versiones exactas de las 105 dependencias, **validadas sin conflictos** contra Python 3.14 en el desarrollo. Es la fuente única de verdad de las dependencias.
 
-# 4. Instalar PyTorch (versión CPU o GPU según disponibilidad)
-conda install pytorch=2.2.0 cpuonly -c pytorch -y
+### Verificación de la instalación
 
-# 5. Instalar bibliotecas específicas de TDA (Ripser y Persim)
-pip install ripser==0.6.4 persim==0.3.5
-
-# 6. Instalar el framework actual en modo editable
-pip install -e .
+```bash
+# Parado en la raíz del proyecto, con el venv activado:
+python -c "import tda; print(tda.__file__)"  # Verifica que el paquete se encuentra
+pip check                                       # Verifica que no haya conflictos
 ```
 
 ---
@@ -146,22 +199,49 @@ El framework soporta dos modos de ejecución: por línea de comandos (headless) 
 Para ejecutar el pipeline principal y reproducir de forma automática los experimentos y simulaciones definidos en el marco de investigación:
 
 ```bash
-# Ejecutar el pipeline de simulación por defecto (SIMP + Análisis Topológico post hoc)
+# Con el venv activado:
 python -m tda.simulation.pipeline
+
+# 0 sin activar, usando la ruta directa:
+venv/bin/python -m tda.simulation.pipeline      # Linux/macOS
+venv\Scripts\python -m tda.simulation.pipeline   # Windows
 ```
 
 Esto procesará la optimización de una viga en voladizo (cantilever beam), generará los archivos de datos correspondientes en el directorio de salida y computará los números de Betti y diagramas de persistencia de la topología final obtenida.
 
 ### Modo 2: Aplicación Master en Streamlit
 
-Para iniciar el panel de control gráfico e interactivo que permite ajustar parámetros del optimizador SIMP (como la fracción de volumen, el factor de penalización y la resolución de la malla) y del análisis topológico (umbral de filtración, ruido gaussiano) en tiempo real:
+Para iniciar el panel de control gráfico e interactivo:
 
 ```bash
-# Iniciar la aplicación web de Streamlit
+# Con el venv activado:
 streamlit run src/tda/app/app_master.py
+
+# 0 sin activar, usando la ruta directa:
+venv/bin/streamlit run src/tda/app/app_master.py     # Linux/macOS
+venv\Scripts\streamlit run src\tda\app\app_master.py  # Windows
 ```
 
 Una vez ejecutado, abra el navegador web en la dirección indicada por la consola (usualmente `http://localhost:8501`). La interfaz interactiva le permitirá:
+
 1. Configurar y simular la optimización SIMP 2D de vigas bajo diferentes mallas.
 2. Añadir ruido de perturbación a nubes de puntos y evaluar en vivo la estabilidad de los códigos de barra y diagramas de persistencia calculados por Ripser.
 3. Exportar resultados visuales en formato PNG y datos analíticos en CSV.
+
+---
+
+## 7. Mejoras Recientes
+
+Este README refleja las siguientes mejoras aplicadas al proyecto:
+
+| Mejora | Descripción |
+|---|---|
+| **Validación de dependencias** | `requirements.txt` verificado: 105 paquetes resueltos sin conflictos en Python 3.14 |
+| **Script de instalación Linux/macOS** | `install_package.sh` — distro-agnostic, con manejo de errores, detección de Python, y soporte para recrear el venv |
+| **Script de instalación Windows** | `install_package.bat` — detección de Python sin asumir Chocolatey, uso directo de rutas del venv |
+| **Aislamiento correcto del venv** | Ambos scripts usan `venv/bin/pip` y `venv/bin/streamlit` (o sus equivalentes en Windows) en vez de depender de binarios globales |
+| **Instalación interactiva** | Los scripts preguntan antes de recrear un venv existente y antes de ejecutar la app |
+
+---
+
+> **Citación:** Si utilizás este framework en publicaciones académicas, por favor referenciá el repositorio y el proyecto de investigación asociado, disponible en la documentación del repositorio.
