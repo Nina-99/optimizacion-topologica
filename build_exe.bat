@@ -169,7 +169,7 @@ REM Por eso va UNA sola vez, con todos los flags de PyInstaller juntos.
 REM
 REM En Windows, --add-data usa ";" como separador (no ":" como Linux).
 
-%VENV_DIR%\Scripts\streamlit-desktop-app build %APP_SCRIPT% --name %APP_NAME% --pyinstaller-options --onefile --icon OTopologica.ico --noconfirm --collect-all matplotlib --collect-all streamlit --copy-metadata streamlit --hidden-import matplotlib.backends.backend_pdf --hidden-import matplotlib.backends.backend_agg --hidden-import ripser --add-data "src\tda;tda" --paths src
+%VENV_DIR%\Scripts\streamlit-desktop-app build %APP_SCRIPT% --name %APP_NAME% --pyinstaller-options --onefile --icon OTopologica.ico --noconfirm --collect-all matplotlib --collect-all streamlit --copy-metadata streamlit --hidden-import matplotlib.backends.backend_pdf --hidden-import matplotlib.backends.backend_agg --hidden-import ripser --add-data "src\tda;tda" --add-data "src\tda\app\pages;pages" --paths src
 
 if !errorlevel! neq 0 (
     echo.
