@@ -134,6 +134,13 @@ if !errorlevel! neq 0 (
     pause
     exit /b 1
 )
+
+REM 4d.5. Instalar Pillow para generar el icono .ico
+echo  [4d.5] Instalando Pillow...
+%VENV_PIP% install Pillow
+if !errorlevel! neq 0 (
+    echo [WARN] No se pudo instalar Pillow, el icono podria no generarse.
+)
 REM 4e. Generar icono .ico desde OTopologica.jpg
 echo  [4e] Generando icono...
 if exist "OTopologica.jpg" (
