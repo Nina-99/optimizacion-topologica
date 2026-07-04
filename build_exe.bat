@@ -2,8 +2,8 @@
 setlocal enabledelayedexpansion
 
 REM ============================================
-REM build_exe.bat — Empaquetar app Streamlit como
-REM .exe nativo de Windows (streamlit-desktop-app)
+REM build_exe.bat — Generar .exe nativo Windows
+REM con streamlit-desktop-app + PyInstaller
 REM ============================================
 REM
 REM USO:
@@ -11,12 +11,12 @@ REM   .\build_exe.bat  (o doble click)
 REM
 REM REQUISITOS:
 REM   - Windows 10+ (para WebView2 nativo)
-REM   - Python 3.12 o superior instalado
-REM   - Ejecutar desde la raíz del proyecto
-REM     (junto a src/tda/, requirements.txt, etc.)
+REM   - Python 3.12 o superior
+REM   - Ejecutar desde la raiz del proyecto
+REM     (junto a src/tda/, requirements.txt)
 REM
 REM SALIDA:
-REM   dist/EstructuraTopologica.exe
+REM   dist\EstructuraTopologica.exe
 REM ============================================
 
 set VENV_DIR=build_venv
@@ -101,7 +101,7 @@ echo === [4/6] Instalando dependencias ===
 echo  Esto puede tomar varios minutos...
 echo.
 
-REM 4a. Dependencias base (sin ripser)
+REM 4a. Dependencias base
 echo  [4a] Instalando dependencias base...
 %VENV_PIP% install -r %REQUIREMENTS%
 if !errorlevel! neq 0 (
@@ -110,7 +110,7 @@ if !errorlevel! neq 0 (
     exit /b 1
 )
 
-REM 4b. ripser sin persim (persim no tiene wheels Windows)
+REM 4b. ripser sin persim
 echo  [4b] Instalando ripser (sin persim)...
 %VENV_PIP% install ripser --no-deps
 if !errorlevel! neq 0 (
@@ -119,13 +119,14 @@ if !errorlevel! neq 0 (
     exit /b 1
 )
 
-REM 4c. Instalar el paquete local
+REM 4c. Paquete local
+echo  [4c] Instalando paquete local...
 %VENV_PIP% install -e .
 if !errorlevel! neq 0 (
     echo [WARN] No se pudo instalar el paquete local, continuando...
 )
 
-REM 4d. streamlit-desktop-app + pyinstaller
+REM 4d. streamlit-desktop-app
 echo  [4d] Instalando streamlit-desktop-app...
 %VENV_PIP% install streamlit-desktop-app
 if !errorlevel! neq 0 (
@@ -133,6 +134,19 @@ if !errorlevel! neq 0 (
     pause
     exit /b 1
 )
+REM 4e. Generar icono .ico desde OTopologica.jpg
+echo  [4e] Generando icono...
+if exist "OTopologica.jpg" (
+    %VENV_PYTHON% -c "from PIL import Image; img = Image.open('OTopologica.jpg'); img.save('OTopologica.ico', format='ICO', sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])"
+    if !errorlevel! equ 0 (
+        echo   OK - Icono generado: OTopologica.ico
+    ) else (
+        echo   [WARN] No se pudo generar el icono, continuando sin el...
+    )
+) else (
+    echo   [WARN] No se encuentra OTopologica.jpg, se usara el icono por defecto
+)
+
 echo  OK - Dependencias instaladas
 echo.
 
@@ -141,17 +155,14 @@ echo === [5/6] Construyendo %APP_NAME%.exe ===
 echo  Esto puede tomar varios minutos...
 echo.
 
-REM NOTA: Los separadores de ruta en --add-data son con ;
-REM porque esto corre en Windows. Linux/Mac usaria : en su lugar.
+REM IMPORTANTE: streamlit-desktop-app usa nargs=REMAINDER para
+REM --pyinstaller-options, lo que significa que SOLO UNO
+REM --pyinstaller-options se usa y TRAGA todo lo que sigue.
+REM Por eso va UNA sola vez, con todos los flags de PyInstaller juntos.
+REM
+REM En Windows, --add-data usa ";" como separador (no ":" como Linux).
 
-%VENV_DIR%\Scripts\streamlit-desktop-app build %APP_SCRIPT% ^
-    --name %APP_NAME% ^
-    --pyinstaller-options --onefile ^
-    --pyinstaller-options --noconfirm ^
-    --pyinstaller-options --add-data ^
-    --pyinstaller-options "src\tda;tda" ^
-    --pyinstaller-options --paths ^
-    --pyinstaller-options src
+%VENV_DIR%\Scripts\streamlit-desktop-app build %APP_SCRIPT% --name %APP_NAME% --pyinstaller-options --onefile --icon OTopologica.ico --noconfirm --collect-all matplotlib --collect-all streamlit --copy-metadata streamlit --hidden-import matplotlib.backends.backend_pdf --hidden-import matplotlib.backends.backend_agg --hidden-import ripser --add-data "src\tda;tda" --paths src
 
 if !errorlevel! neq 0 (
     echo.
@@ -175,8 +186,8 @@ echo.
 echo  NOTAS:
 echo  - No requiere Python instalado en la PC destino
 echo  - Compatible con Windows 10 y 11
-echo  - Si queres un icono personalizado, agregá:
-echo    --pyinstaller-options --icon ^<archivo.ico^>
+echo  - El icono se genera automaticamente desde OTopologica.jpg (como .ico)
+echo  - Si queres cambiarlo, reemplaza OTopologica.jpg por tu imagen
 echo.
 
 pause
