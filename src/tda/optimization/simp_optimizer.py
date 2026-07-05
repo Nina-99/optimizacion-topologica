@@ -199,3 +199,4 @@ class SimpTda2DOptimizer:
         reduccion_pct = ((self.c_base - c) / self.c_base) * 100
 
         return xPhys, resultado_tda['dgms'], betti_1, c, reduccion_pct
+
