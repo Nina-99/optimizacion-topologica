@@ -200,3 +200,4 @@ class SimpTda2DOptimizer:
 
         return xPhys, resultado_tda['dgms'], betti_1, c, reduccion_pct
 
+
