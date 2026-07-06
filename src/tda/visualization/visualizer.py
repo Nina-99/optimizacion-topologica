@@ -5,14 +5,9 @@ de análisis de datos topológicos, incluyendo pruebas de robustez, comparacione
 entre métodos euclidianos y topológicos, y visualizaciones de nubes de puntos.
 """
 
-import sys
-import os
 import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
-
-# Add project root to sys.path to enable imports
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 # Check for optional dependencies
 try:

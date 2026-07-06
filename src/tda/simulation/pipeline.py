@@ -5,12 +5,8 @@ de diagramas de persistencia, preprocesamiento, y exportación de resultados
 para validar hipótesis topológicas sobre robustez ante ruido.
 """
 
-import sys
-import os
 import numpy as np
 from pathlib import Path
-# Add project root to sys.path to enable imports
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 # Check for required libraries
 try:
