@@ -5,6 +5,7 @@ euclidiana (K-Medias) bajo ruido gaussiano controlado.
 """
 
 import streamlit as st
+from tda.app.download_utils import download_button
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -270,7 +271,7 @@ if st.session_state.get('tda_run', False):
 
     col_tda1, col_tda2, col_tda3, col_tda4 = st.columns(4)
     with col_tda1:
-        st.download_button(
+        download_button(
             label="\U0001f4e5 CSV",
             data=csv_tda,
             file_name="nube_puntos_tda.csv",
@@ -278,7 +279,7 @@ if st.session_state.get('tda_run', False):
             key="btn_download_tda_csv"
         )
     with col_tda2:
-        st.download_button(
+        download_button(
             label="\U0001f4c4 PDF",
             data=pdf_bytes_tda,
             file_name="reporte_analisis_tda.pdf",
@@ -286,7 +287,7 @@ if st.session_state.get('tda_run', False):
             key="btn_download_tda_pdf"
         )
     with col_tda3:
-        st.download_button(
+        download_button(
             label="\U0001f5bc\ufe0f PNG",
             data=png_bytes_tda,
             file_name="graficos_analisis_tda.png",
@@ -294,7 +295,7 @@ if st.session_state.get('tda_run', False):
             key="btn_download_tda_png"
         )
     with col_tda4:
-        st.download_button(
+        download_button(
             label="\U0001f4d0 LaTeX",
             data=latex_bytes_tda,
             file_name="tabla_metricas_tda.tex",

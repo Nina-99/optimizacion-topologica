@@ -5,6 +5,7 @@ Implementa la métrica compuesta μ_α = c + α·β₁.
 """
 
 import streamlit as st
+from tda.app.download_utils import download_button
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -876,7 +877,7 @@ if st.session_state.get('simp_optimized', False):
 
             pdf_bytes = pdf_buf.getvalue()
 
-            st.download_button(
+            download_button(
                 label="📄 PDF",
                 data=pdf_bytes,
                 file_name=f"reporte_TDA-SIMP_{nex_}x{ney_}.pdf",
@@ -940,7 +941,7 @@ if st.session_state.get('simp_optimized', False):
                 plt.close(fig_png)
                 png_bytes = png_buf.getvalue()
 
-            st.download_button(
+            download_button(
                 label="🖼️ PNG",
                 data=png_bytes,
                 file_name=f"figura_resultados_{nex_}x{ney_}.png",
@@ -985,7 +986,7 @@ if st.session_state.get('simp_optimized', False):
 
             latex_bytes = latex_table.encode('utf-8')
 
-            st.download_button(
+            download_button(
                 label="📐 LaTeX",
                 data=latex_bytes,
                 file_name=f"tabla_resultados_{nex_}x{ney_}.tex",
@@ -1020,7 +1021,7 @@ if st.session_state.get('simp_optimized', False):
                 ]
             })
             csv_metrics = df_metrics.to_csv(index=False).encode('utf-8')
-            st.download_button(
+            download_button(
                 label="📥 CSV (Métricas)",
                 data=csv_metrics,
                 file_name=f"metricas_{nex_}x{ney_}.csv",
@@ -1035,7 +1036,7 @@ if st.session_state.get('simp_optimized', False):
                 "Compliance": c_hist
             })
             csv_history = df_history.to_csv(index=False).encode('utf-8')
-            st.download_button(
+            download_button(
                 label="📥 CSV (Historial)",
                 data=csv_history,
                 file_name=f"historial_convergencia_{nex_}x{ney_}.csv",
@@ -1053,7 +1054,7 @@ if st.session_state.get('simp_optimized', False):
                 "Densidad_rho": rho_flat
             })
             csv_dens = df_dens.to_csv(index=False).encode('utf-8')
-            st.download_button(
+            download_button(
                 label="📥 CSV (Densidades)",
                 data=csv_dens,
                 file_name=f"densidades_{nex_}x{ney_}.csv",

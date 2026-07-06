@@ -5,6 +5,7 @@ Minimización de volumen con restricción de rigidez y deflexión.
 """
 
 import streamlit as st
+from tda.app.download_utils import download_button
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -489,7 +490,7 @@ else:
         })
         csv_bytes = df_csv.to_csv(index=False).encode('utf-8')
 
-        st.download_button(
+        download_button(
             label="📥 CSV",
             data=csv_bytes,
             file_name="optimizacion_viga.csv",
@@ -596,7 +597,7 @@ else:
             png_bytes_viga = png_buf_viga.getvalue()
             png_buf_viga.close()
 
-        st.download_button(
+        download_button(
             label="📄 PDF",
             data=pdf_bytes,
             file_name="informe_optimizacion_viga.pdf",
@@ -605,7 +606,7 @@ else:
         )
 
         # ── PNG ──
-        st.download_button(
+        download_button(
             label="🖼️ PNG",
             data=png_bytes_viga,
             file_name="resultados_optimizacion_viga.png",
@@ -631,7 +632,7 @@ Error final & — & {data['final_error']:.6f} & — \\\\
 \\bottomrule
 \\end{{tabular}}
 \\end{{table}}"""
-        st.download_button(
+        download_button(
             label="📐 LaTeX",
             data=latex_table.encode('utf-8'),
             file_name="tabla_resultados_optimizacion.tex",
