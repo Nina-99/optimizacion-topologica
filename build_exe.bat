@@ -173,7 +173,7 @@ echo  [5a] mpl-data detectado en: !MPL_DATA_PATH!
 
 REM En Windows, --add-data usa ";" como separador (no ":" como Linux).
 
-%VENV_DIR%\Scripts\streamlit-desktop-app build %APP_SCRIPT% --name %APP_NAME% --pyinstaller-options --onefile --icon OTopologica.ico --noconfirm --collect-all matplotlib.backends --collect-all streamlit --collect-data matplotlib --copy-metadata streamlit --hidden-import matplotlib.backends.backend_pdf --hidden-import matplotlib.backends.backend_agg --hidden-import matplotlib.font_manager --hidden-import ripser --hidden-import numpy.f2py --hidden-import sklearn.cluster --hidden-import sklearn.metrics --add-data "!MPL_DATA_PATH!;matplotlib/mpl-data" --add-data "src\tda;tda" --add-data "src\tda\app\pages;pages" --paths src
+%VENV_DIR%\Scripts\streamlit-desktop-app build %APP_SCRIPT% --name %APP_NAME% --pyinstaller-options --onefile --icon OTopologica.ico --noconfirm --collect-all matplotlib.backends --collect-all streamlit --collect-all plotly --collect-data matplotlib --copy-metadata streamlit --hidden-import matplotlib.backends.backend_pdf --hidden-import matplotlib.backends.backend_agg --hidden-import matplotlib.font_manager --hidden-import ripser --hidden-import numpy.f2py --hidden-import sklearn.cluster --hidden-import sklearn.metrics --hidden-import scipy.sparse --hidden-import scipy.sparse.linalg --hidden-import scipy.spatial.distance --hidden-import pandas --hidden-import matplotlib.patches --hidden-import io --add-data "!MPL_DATA_PATH!;matplotlib/mpl-data" --add-data "src\tda;tda" --add-data "src\tda\app\pages;pages" --paths src
 
 if !errorlevel! neq 0 (
     echo.
