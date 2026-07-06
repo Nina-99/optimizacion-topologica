@@ -20,7 +20,8 @@ def compute_noise_sweep(
     noise_min: float = 0.0,
     noise_max: float = 0.30,
     n_steps: int = 10,
-    random_seed: int = 42
+    random_seed: int = 42,
+    progress_callback = None,
 ) -> dict:
     """Ejecuta un barrido sistemático de ruido y evalúa TDA vs K-Means.
 
@@ -35,6 +36,8 @@ def compute_noise_sweep(
         noise_max: Nivel de ruido máximo (default 0.30).
         n_steps: Cantidad de pasos en el barrido (default 10).
         random_seed: Semilla para reproducibilidad (default 42).
+        progress_callback: Función opcional para reportar progreso.
+            Se llama con (paso_actual, pasos_totales) después de cada nivel.
 
     Returns:
         Dict con:
@@ -42,6 +45,8 @@ def compute_noise_sweep(
             acc (List[float]): Accuracy K-Means por nivel.
             betti_s (List[Tuple[int,int]]): (β₀, β₁) esfera.
             betti_t (List[Tuple[int,int]]): (β₀, β₁) toro.
+            diagrams_s (List[np.ndarray]): Diagramas de persistencia de esfera.
+            diagrams_t (List[np.ndarray]): Diagramas de persistencia de toro.
     """
     np.random.seed(random_seed)
     noise_vals = np.linspace(noise_min, noise_max, n_steps)
@@ -49,8 +54,10 @@ def compute_noise_sweep(
     sweep_acc: List[float] = []
     sweep_betti_s: List[Tuple[int, int]] = []
     sweep_betti_t: List[Tuple[int, int]] = []
+    sweep_dgms_s: List = []
+    sweep_dgms_t: List = []
     
-    for noise in noise_vals:
+    for i, noise in enumerate(noise_vals):
         # Generar nubes limpias
         pts_s = generate_cloud("sphere", n_points)
         pts_t = generate_cloud("torus", n_points)
@@ -69,14 +76,21 @@ def compute_noise_sweep(
         sweep_acc.append(compute_kmeans_accuracy(y_true, y_pred))
         
         # TDA: homología persistente
-        res_s = ripser(pts_s_n, maxdim=1, verbose=False)['dgms']
-        res_t = ripser(pts_t_n, maxdim=1, verbose=False)['dgms']
+        res_s = ripser(pts_s_n, maxdim=1)['dgms']
+        res_t = ripser(pts_t_n, maxdim=1)['dgms']
         sweep_betti_s.append((len(res_s[0]), len(res_s[1])))
         sweep_betti_t.append((len(res_t[0]), len(res_t[1])))
+        sweep_dgms_s.append(res_s)
+        sweep_dgms_t.append(res_t)
+        
+        if progress_callback is not None:
+            progress_callback(i + 1, n_steps)
     
     return {
         "noise_vals": noise_vals,
         "acc": sweep_acc,
         "betti_s": sweep_betti_s,
         "betti_t": sweep_betti_t,
+        "diagrams_s": sweep_dgms_s,
+        "diagrams_t": sweep_dgms_t,
     }
