@@ -8,10 +8,10 @@ import numpy as np
 
 
 def generate_cloud(shape: str, n_points: int) -> np.ndarray:
-    """Genera una nube de puntos 3D sintética para una esfera o toro.
+    """Genera una nube de puntos 3D sintética para una esfera, toro o cubo.
 
     Args:
-        shape: Forma a generar. "sphere" o "torus".
+        shape: Forma a generar. "sphere", "torus" o "cube".
         n_points: Número de puntos a muestrear.
 
     Returns:
@@ -34,8 +34,45 @@ def generate_cloud(shape: str, n_points: int) -> np.ndarray:
             (R + r * np.cos(phi)) * np.sin(theta),
             r * np.sin(phi)
         ])
+    elif shape == "cube":
+        faces = np.random.randint(0, 6, n_points)
+        uv = np.random.uniform(0, 1, (n_points, 2))
+        points = np.empty((n_points, 3))
+        for i in range(6):
+            mask = faces == i
+            n_face = mask.sum()
+            if n_face == 0:
+                continue
+            if i == 0:
+                points[mask] = np.column_stack([np.zeros(n_face), uv[mask, 0], uv[mask, 1]])
+            elif i == 1:
+                points[mask] = np.column_stack([np.ones(n_face), uv[mask, 0], uv[mask, 1]])
+            elif i == 2:
+                points[mask] = np.column_stack([uv[mask, 0], np.zeros(n_face), uv[mask, 1]])
+            elif i == 3:
+                points[mask] = np.column_stack([uv[mask, 0], np.ones(n_face), uv[mask, 1]])
+            elif i == 4:
+                points[mask] = np.column_stack([uv[mask, 0], uv[mask, 1], np.zeros(n_face)])
+            else:
+                points[mask] = np.column_stack([uv[mask, 0], uv[mask, 1], np.ones(n_face)])
+        return points
     else:
-        raise ValueError(f"Forma desconocida: {shape}. Use 'sphere' o 'torus'.")
+        raise ValueError(f"Forma desconocida: {shape}. Use 'sphere', 'torus' o 'cube'.")
+
+
+def compute_diameter(points: np.ndarray) -> float:
+    """Calcula la distancia máxima entre pares en una nube de puntos.
+
+    Args:
+        points: Coordenadas de la nube de puntos de forma (N, D).
+
+    Returns:
+        Distancia máxima entre pares (diámetro). 0.0 si hay 0 o 1 puntos.
+    """
+    if points.shape[0] < 2:
+        return 0.0
+    from scipy.spatial.distance import pdist
+    return float(pdist(points).max())
 
 
 def add_gaussian_noise(points: np.ndarray, noise_std: float) -> np.ndarray:
@@ -48,6 +85,5 @@ def add_gaussian_noise(points: np.ndarray, noise_std: float) -> np.ndarray:
     Returns:
         Nube de puntos con ruido de forma (N, D).
     """
-    from scipy.spatial.distance import pdist
-    diam = float(pdist(points).max())
+    diam = compute_diameter(points)
     return points + np.random.normal(0, noise_std * diam, points.shape)
