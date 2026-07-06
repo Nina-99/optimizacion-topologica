@@ -9,8 +9,6 @@ import sys
 import os
 import numpy as np
 from pathlib import Path
-from scipy.spatial.distance import pdist
-
 # Add project root to sys.path to enable imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
@@ -24,6 +22,7 @@ except ImportError as e:
 # Import metrics and preprocessing modules
 from tda.core.topology import betti_numbers
 from tda.processing.preprocessing import filter_persistence_diagram, normalize_diagram
+from tda.processing.sampling import generate_cloud, add_gaussian_noise, compute_diameter
 
 # Create data directory if needed
 current_file = Path(__file__).resolve()
@@ -33,84 +32,6 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ============== Helper functions ==============
-
-def generate_cloud(shape: str, n_points: int) -> np.ndarray:
-    """Genera una nube de puntos 3D sintética para la forma especificada.
-
-    Args:
-        shape (str): Tipo de forma a generar. Debe ser 'sphere', 'torus' o 'cube'.
-        n_points (int): Número de puntos a generar.
-
-    Returns:
-        numpy.ndarray: Nube de puntos 3D de forma (n_points, 3).
-
-    Raises:
-        ValueError: Si se proporciona una forma no reconocida.
-    """
-    np.random.seed(None)  # sembrado por quien llama
-    if shape == "sphere":
-        theta = np.random.uniform(0, 2 * np.pi, n_points)
-        phi = np.arccos(np.random.uniform(-1, 1, n_points))
-        x = np.sin(phi) * np.cos(theta)
-        y = np.sin(phi) * np.sin(theta)
-        z = np.cos(phi)
-        return np.column_stack([x, y, z])
-    elif shape == "torus":
-        R, r = 2.0, 1.0
-        theta = np.random.uniform(0, 2 * np.pi, n_points)
-        phi = np.random.uniform(0, 2 * np.pi, n_points)
-        x = (R + r * np.cos(phi)) * np.cos(theta)
-        y = (R + r * np.cos(phi)) * np.sin(theta)
-        z = r * np.sin(phi)
-        return np.column_stack([x, y, z])
-    elif shape == "cube":
-        points = np.zeros((n_points, 3))
-        for i in range(n_points):
-            face = np.random.randint(0, 6)
-            uv = np.random.uniform(0, 1, 2)
-            if face == 0:
-                points[i] = [0, uv[0], uv[1]]
-            elif face == 1:
-                points[i] = [1, uv[0], uv[1]]
-            elif face == 2:
-                points[i] = [uv[0], 0, uv[1]]
-            elif face == 3:
-                points[i] = [uv[0], 1, uv[1]]
-            elif face == 4:
-                points[i] = [uv[0], uv[1], 0]
-            else:
-                points[i] = [uv[0], uv[1], 1]
-        return points
-    else:
-        raise ValueError(f"Unknown shape: {shape}. Choose from 'sphere', 'torus', 'cube'.")
-
-
-def compute_diameter(points: np.ndarray) -> float:
-    """Calcula la distancia máxima entre pares en una nube de puntos.
-
-    Args:
-        points (numpy.ndarray): Coordenadas de la nube de puntos.
-
-    Returns:
-        float: Distancia máxima entre pares (diámetro).
-    """
-    return float(pdist(points).max())
-
-
-def add_gaussian_noise(points: np.ndarray, noise_std: float) -> np.ndarray:
-    """Agrega ruido gaussiano escalado por noise_std (fracción del diámetro).
-
-    Args:
-        points (numpy.ndarray): Coordenadas originales de la nube de puntos.
-        noise_std (float): Desviación estándar del ruido como fracción del diámetro.
-
-    Returns:
-        numpy.ndarray: Coordenadas de la nube de puntos con ruido.
-    """
-    diam = compute_diameter(points)
-    noise = np.random.normal(loc=0.0, scale=noise_std * diam, size=points.shape)
-    return points + noise
-
 
 def compute_persistence_diagram(points: np.ndarray, maxdim: int = 1) -> list:
     """Calcula el diagrama de persistencia usando ripser, filtrando intervalos inválidos.
@@ -149,6 +70,26 @@ def compute_wasserstein_distance(dgm1: np.ndarray, dgm2: np.ndarray) -> float:
         float: Distancia de Wasserstein.
     """
     return float(persim.wasserstein(dgm1, dgm2))
+
+
+def _safe_stack(normalized: list) -> np.ndarray:
+    """Stack diagram dimensions skipping empty ones.
+
+    normalize_diagram returns a list per dimension (e.g. [[[b1,d1],[b2,d2]], []]
+    for H0 with points and H1 empty). np.vstack fails on mixed shapes because
+    [] becomes shape (0,) incompatible with (n, 2). This helper filters out
+    empty dimensions before stacking.
+
+    Args:
+        normalized (list): Lista de dimensiones, cada una con puntos (n, 2) o vacía.
+
+    Returns:
+        np.ndarray: Array concatenado de forma (N, 2) o np.empty((0, 2)) si todas vacías.
+    """
+    non_empty = [np.array(dim) for dim in normalized if dim]
+    if non_empty:
+        return np.vstack(non_empty)
+    return np.empty((0, 2))
 
 
 def compute_bottleneck_distance(dgm1: np.ndarray, dgm2: np.ndarray) -> float:
@@ -203,7 +144,7 @@ def run_tda_experiment(shape: str, noise_levels: list[float] = [0.10, 0.15, 0.20
             clean_filtered = filter_persistence_diagram(clean_dgms, threshold)
             clean_diameter = compute_diameter(clean_pts)
             clean_normalized = normalize_diagram(clean_filtered, clean_diameter)
-            clean_arr = np.vstack(clean_normalized) if any(clean_normalized) else np.empty((0, 2))
+            clean_arr = _safe_stack(clean_normalized)
 
             # Nube de puntos con ruido
             noisy_pts = add_gaussian_noise(clean_pts, noise)
@@ -211,7 +152,7 @@ def run_tda_experiment(shape: str, noise_levels: list[float] = [0.10, 0.15, 0.20
             noisy_filtered = filter_persistence_diagram(noisy_dgms, threshold)
             noisy_diameter = compute_diameter(noisy_pts)
             noisy_normalized = normalize_diagram(noisy_filtered, noisy_diameter)
-            noisy_arr = np.vstack(noisy_normalized) if any(noisy_normalized) else np.empty((0, 2))
+            noisy_arr = _safe_stack(noisy_normalized)
 
             # Números de Betti
             betti0_noisy, betti1_noisy = betti_numbers(np.hstack([noisy_arr, np.zeros((noisy_arr.shape[0], 1))])) if noisy_arr.shape[0] > 0 else (0, 0)
