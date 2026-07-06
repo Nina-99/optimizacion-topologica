@@ -5,7 +5,7 @@ Implementa la métrica compuesta μ_α = c + α·β₁.
 """
 
 import streamlit as st
-from tda.app.download_utils import download_button
+from tda.app.download_utils import download_button, export_settings_ui
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -19,6 +19,9 @@ from tda.app.theme import (
     apply_mpl_theme, apply_plotly_theme, is_dark,
     metric_card, report_header, responsive_style
 )
+
+# ── Configuración de exportación (.exe) ──
+export_settings_ui()
 
 # Aplicar tema matplotlib global
 apply_mpl_theme()

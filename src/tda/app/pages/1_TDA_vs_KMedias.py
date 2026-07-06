@@ -5,7 +5,7 @@ euclidiana (K-Medias) bajo ruido gaussiano controlado.
 """
 
 import streamlit as st
-from tda.app.download_utils import download_button
+from tda.app.download_utils import download_button, export_settings_ui
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -19,6 +19,9 @@ from tda.analysis.metrics import compute_kmeans_accuracy, verify_betti_numbers
 from tda.analysis.stability import compute_noise_sweep
 from tda.visualization.plots_tda import plot_stability_chart, interpret_stability, plot_sweep_persistence_animation
 from tda.app.theme import apply_mpl_theme, apply_plotly_theme, responsive_style
+# ── Configuración de exportación (.exe) ──
+export_settings_ui()
+
 
 # ==========================================
 # CONFIGURACIÓN DE PÁGINA

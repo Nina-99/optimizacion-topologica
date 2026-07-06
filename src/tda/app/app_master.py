@@ -38,6 +38,11 @@ st.set_page_config(
 )
 
 st.markdown(responsive_style(), unsafe_allow_html=True)
+
+# ── Sidebar: configuración de exportación (.exe) ──
+from tda.app.download_utils import export_settings_ui
+export_settings_ui()
+
 # ==========================================
 # LANDING PAGE
 # ==========================================

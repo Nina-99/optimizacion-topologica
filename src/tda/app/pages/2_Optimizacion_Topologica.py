@@ -5,7 +5,7 @@ Minimización de volumen con restricción de rigidez y deflexión.
 """
 
 import streamlit as st
-from tda.app.download_utils import download_button
+from tda.app.download_utils import download_button, export_settings_ui
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -17,6 +17,9 @@ import io
 
 from tda.optimization.beam_optimizer import BeamOptimizer
 from tda.app.theme import apply_mpl_theme, apply_plotly_theme, responsive_style
+# ── Configuración de exportación (.exe) ──
+export_settings_ui()
+
 
 # Aplicar tema matplotlib global
 apply_mpl_theme()
