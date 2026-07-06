@@ -167,9 +167,13 @@ REM --pyinstaller-options, lo que significa que SOLO UNO
 REM --pyinstaller-options se usa y TRAGA todo lo que sigue.
 REM Por eso va UNA sola vez, con todos los flags de PyInstaller juntos.
 REM
+REM Obtener ruta de mpl-data de matplotlib para empaquetarlo
+for /f "delims=" %%i in ('%VENV_PYTHON% -c "import matplotlib; import os; print(os.path.dirname(matplotlib.matplotlib_fname()))"') do set MPL_DATA_PATH=%%i
+echo  [5a] mpl-data detectado en: !MPL_DATA_PATH!
+
 REM En Windows, --add-data usa ";" como separador (no ":" como Linux).
 
-%VENV_DIR%\Scripts\streamlit-desktop-app build %APP_SCRIPT% --name %APP_NAME% --pyinstaller-options --onefile --icon OTopologica.ico --noconfirm --collect-all matplotlib --collect-all streamlit --copy-metadata streamlit --hidden-import matplotlib.backends.backend_pdf --hidden-import matplotlib.backends.backend_agg --hidden-import ripser --add-data "src\tda;tda" --add-data "src\tda\app\pages;pages" --paths src
+%VENV_DIR%\Scripts\streamlit-desktop-app build %APP_SCRIPT% --name %APP_NAME% --pyinstaller-options --onefile --icon OTopologica.ico --noconfirm --collect-all matplotlib.backends --collect-all streamlit --collect-data matplotlib --copy-metadata streamlit --hidden-import matplotlib.backends.backend_pdf --hidden-import matplotlib.backends.backend_agg --hidden-import matplotlib.font_manager --hidden-import ripser --hidden-import numpy.f2py --hidden-import sklearn.cluster --hidden-import sklearn.metrics --add-data "!MPL_DATA_PATH!;matplotlib/mpl-data" --add-data "src\tda;tda" --add-data "src\tda\app\pages;pages" --paths src
 
 if !errorlevel! neq 0 (
     echo.

@@ -10,3 +10,10 @@ jupyter_client>=8.0,<9
 
 # Build tools — compilación de extensiones C/C++
 Cython>=3.0,<4
+
+# Testing
+pytest>=8.0,<9
+pytest-cov>=6.0,<7
+
+# Linting & formating
+ruff>=0.11,<1
