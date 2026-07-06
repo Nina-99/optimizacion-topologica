@@ -5,6 +5,7 @@ para la optimización de topología estructural en vigas 2D, integrado con anál
 topológico de datos para monitorear invariantes como los números de Betti.
 """
 
+import warnings
 import numpy as np
 from scipy.sparse import coo_matrix
 from scipy.sparse.linalg import spsolve
@@ -47,6 +48,12 @@ class SimpTda2DOptimizer:
         self.min_iter = 10
         self.max_iter = 100
         self.E0 = 1.0
+        warnings.warn(
+            "SimpTda2DOptimizer is deprecated. Use MetricaTDA_SIMP from "
+            "tda.optimization.metric_simp instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         self.Emin = 1e-9
         self.nu = 0.3
         self.c_base = 0
