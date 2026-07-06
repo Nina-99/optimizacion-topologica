@@ -5,8 +5,28 @@ Landing page con navegación a las 3 aplicaciones principales:
   2. Optimización Topológica de Vigas — SIMP 1D para hormigón armado
   3. Optimización SIMP + TDA (H.E.2) — Métrica compuesta μ_α
 """
+# ══════════════════════════════════════════════════════════════
+# FIX PyInstaller: forzar backends matplotlib ANTES de cualquier otro import.
+# Sin esto, en el .exe compilado savefig() y PdfPages fallan porque
+# PyInstaller no empaqueta los backends cargados dinámicamente.
+# ══════════════════════════════════════════════════════════════
+import matplotlib
+matplotlib.use("Agg")  # sin GUI, necesario en .exe (también funciona en desarrollo)
+import matplotlib.backends.backend_pdf  # fuerza empaquetado por PyInstaller
+import matplotlib.backends.backend_agg
+import os
+import sys as _sys
+if getattr(_sys, "frozen", False):
+    _mei = _sys._MEIPASS
+    os.environ.setdefault("MATPLOTLIBDATA",
+                          os.path.join(_mei, "matplotlib", "mpl-data"))
+del os, _sys
+
+# ══════════════════════════════════════════════════════════════
 
 import streamlit as st
+
+from tda.app.theme import landing_card, footer_style, hero_section, responsive_style
 
 # ==========================================
 # CONFIGURACIÓN DE PÁGINA (DEBE SER EL PRIMER COMANDO STREAMLIT)
@@ -17,6 +37,7 @@ st.set_page_config(
     page_icon="📐"
 )
 
+st.markdown(responsive_style(), unsafe_allow_html=True)
 # ==========================================
 # LANDING PAGE
 # ==========================================
@@ -24,106 +45,52 @@ st.title("Plataforma de Optimización SIMP y Análisis Topológico (TDA)")
 st.markdown("---")
 
 # ── Hero section ──
-st.markdown("""
-<div style="
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-    padding: 2.5rem 2rem;
-    border-radius: 16px;
-    color: white;
-    margin-bottom: 2rem;
-    text-align: center;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-">
-    <h1 style="margin:0; font-weight:700; font-size:2.2rem;">📐 Bienvenido a la Suite TDA-SIMP</h1>
-    <p style="margin:0.8rem 0 0 0; opacity:0.9; font-size:1.1rem; max-width:700px; margin-left:auto; margin-right:auto;">
-        Optimización Topológica, Homología Persistente y Métricas Compuestas 
-        para el diseño de estructuras eficientes y manufacturables.
-    </p>
-</div>
-""", unsafe_allow_html=True)
+st.markdown(hero_section(
+    "📐 Bienvenido a la Suite TDA-SIMP",
+    "Optimización Topológica, Homología Persistente y Métricas Compuestas "
+    "para el diseño de estructuras eficientes y manufacturables."
+), unsafe_allow_html=True)
 
 # ── Cards de navegación ──
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.markdown("""
-    <div style="
-        background: #f0f4f8;
-        padding: 1.8rem 1.2rem;
-        border-radius: 14px;
-        text-align: center;
-        height: 220px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        border: 2px solid #d5dbdb;
-        transition: all 0.2s;
-    ">
-        <div style="font-size:3rem; margin-bottom:0.5rem;">📊</div>
-        <h3 style="margin:0.3rem 0; color:#2c3e50;">TDA vs K-Medias</h3>
-        <p style="margin:0.3rem 0 0 0; font-size:0.9rem; color:#7f8c8d;">
-            H.E.1 — Robustez de invariantes topológicos<br>frente a ruido gaussiano
-        </p>
-        <p style="margin:1rem 0 0 0; font-size:0.8rem; color:#3498db; font-weight:600;">
-            ← Seleccionar en la barra lateral
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(landing_card(
+        icon="📊",
+        title="TDA vs K-Medias",
+        description="H.E.1 — Robustez de invariantes topológicos<br>frente a ruido gaussiano",
+        variant="info"
+    ), unsafe_allow_html=True)
+    st.page_link("pages/1_TDA_vs_KMedias.py",
+                 label="📊 Abrir TDA vs K-Medias",
+                 use_container_width=True)
 
 with col2:
-    st.markdown("""
-    <div style="
-        background: #fef9e7;
-        padding: 1.8rem 1.2rem;
-        border-radius: 14px;
-        text-align: center;
-        height: 220px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        border: 2px solid #f5d76e;
-        transition: all 0.2s;
-    ">
-        <div style="font-size:3rem; margin-bottom:0.5rem;">🏗️</div>
-        <h3 style="margin:0.3rem 0; color:#2c3e50;">Optimización de Vigas</h3>
-        <p style="margin:0.3rem 0 0 0; font-size:0.9rem; color:#7f8c8d;">
-            SIMP 1D — Minimización de volumen<br>con restricción de rigidez
-        </p>
-        <p style="margin:1rem 0 0 0; font-size:0.8rem; color:#e67e22; font-weight:600;">
-            ← Seleccionar en la barra lateral
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(landing_card(
+        icon="🏗️",
+        title="Optimización de Vigas",
+        description="SIMP 1D — Minimización de volumen<br>con restricción de rigidez",
+        variant="warning"
+    ), unsafe_allow_html=True)
+    st.page_link("pages/2_Optimizacion_Topologica.py",
+                 label="🏗️ Abrir Optimización de Vigas",
+                 use_container_width=True)
 
 with col3:
-    st.markdown("""
-    <div style="
-        background: #eafaf1;
-        padding: 1.8rem 1.2rem;
-        border-radius: 14px;
-        text-align: center;
-        height: 220px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        border: 2px solid #82e0aa;
-        transition: all 0.2s;
-    ">
-        <div style="font-size:3rem; margin-bottom:0.5rem;">🧮</div>
-        <h3 style="margin:0.3rem 0; color:#2c3e50;">SIMP + TDA</h3>
-        <p style="margin:0.3rem 0 0 0; font-size:0.9rem; color:#7f8c8d;">
-            H.E.2 — Métrica compuesta μ_α = c + α·β₁<br>con análisis topológico
-        </p>
-        <p style="margin:1rem 0 0 0; font-size:0.8rem; color:#27ae60; font-weight:600;">
-            ← Seleccionar en la barra lateral
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(landing_card(
+        icon="🧮",
+        title="SIMP + TDA",
+        description="H.E.2 — Métrica compuesta μ_α = c + α·β₁<br>con análisis topológico",
+        variant="success"
+    ), unsafe_allow_html=True)
+    st.page_link("pages/3_Optimizacion_SIMP.py",
+                 label="🧮 Abrir SIMP + TDA",
+                 use_container_width=True)
 
 # ── Footer ──
 st.markdown("---")
-st.markdown("""
-<div style="text-align:center; color:#95a5a6; font-size:0.85rem; padding:1rem 0;">
+st.markdown(f"""
+<div style="{footer_style()}">
     <p style="margin:0;">
         Jorge Larry Copa Cruz · Maestría en Matemática · Universidad Autónoma Gabriel René Moreno · 2026
     </p>

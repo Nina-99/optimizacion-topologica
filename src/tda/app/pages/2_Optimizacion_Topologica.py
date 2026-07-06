@@ -10,28 +10,41 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.patches import Rectangle, Polygon, FancyArrowPatch
+from matplotlib.backends.backend_pdf import PdfPages
 import io
 
 from tda.optimization.beam_optimizer import BeamOptimizer
+from tda.app.theme import apply_mpl_theme, apply_plotly_theme, responsive_style
+
+# Aplicar tema matplotlib global
+apply_mpl_theme()
 
 # ==========================================
 # CONFIGURACIÓN DE PÁGINA
 # ==========================================
 st.set_page_config(page_title="Optimización Topológica de Vigas", layout="wide", page_icon="🏗️")
+
+st.markdown(responsive_style(), unsafe_allow_html=True)
 st.header("📈 Optimización Topológica")
 
 # ── Sidebar ──
 st.sidebar.header("📈 Optimización Topológica")
 
-L = st.sidebar.slider("Longitud de Viga (m)", 6.0, 20.0, 12.0, 0.5, key="beam_length")
-q = st.sidebar.slider("Carga Distribuida (kN/m)", 10.0, 80.0, 30.0, 1.0, key="beam_load")
-E = st.sidebar.number_input("Módulo de Elasticidad (kPa)", value=30000000.0, step=1000000.0, key="beam_E")
-b = st.sidebar.number_input("Base de la Viga (m)", value=0.30, step=0.05, key="beam_b")
-h0 = st.sidebar.number_input("Altura de la Viga (m)", value=0.80, step=0.1, key="beam_h0")
-p = st.sidebar.number_input("Factor de Penalización", value=3, min_value=1, max_value=5, key="beam_p")
-N = st.sidebar.number_input("Número de Nodos", value=101, min_value=50, max_value=200, step=10, key="beam_N")
+L = st.sidebar.slider("Longitud de Viga (m)", 6.0, 20.0, 12.0, 0.5, key="beam_length",
+    help="Longitud total entre apoyos. Afecta directamente el momento flector (M = qL²/8) y la deflexión máxima. Vigas más largas requieren más material en el centro del vano.")
+q = st.sidebar.slider("Carga Distribuida (kN/m)", 10.0, 80.0, 30.0, 1.0, key="beam_load",
+    help="Carga uniformemente distribuida que incluye peso propio más sobrecarga de uso. El momento flector máximo crece linealmente con q.")
+E = st.sidebar.number_input("Módulo de Elasticidad (kPa)", value=30000000.0, step=1000000.0, key="beam_E",
+    help="Módulo de Young del hormigón armado. Valores típicos: 25 GPa (H-25) a 30 GPa (H-30). Un mayor E reduce la deflexión elástica.")
+b = st.sidebar.number_input("Base de la Viga (m)", value=0.30, step=0.05, key="beam_b",
+    help="Ancho de la sección transversal rectangular. En edificación típica: 0.20-0.40 m. La inercia crece linealmente con b.")
+h0 = st.sidebar.number_input("Altura de la Viga (m)", value=0.80, step=0.1, key="beam_h0",
+    help="Canto o altura inicial de la viga (máximo permitido). El optimizador SIMP 1D reducirá h en zonas de bajo momento. La inercia crece con h³.")
+p = st.sidebar.number_input("Factor de Penalización", value=3, min_value=1, max_value=5, key="beam_p",
+    help="Penaliza densidades intermedias para forzar una solución 0/1. p=3 es el valor estándar SIMP. Valores >3 convergen más rápido pero pueden ser inestables.")
+N = st.sidebar.number_input("Número de Nodos", value=101, min_value=50, max_value=200, step=10, key="beam_N",
+    help="Discretización espacial 1D. Más nodos → mayor precisión pero más cómputo. 101 nodos (100 elementos) es suficiente para una viga simplemente apoyada.")
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("Control de Visualización")
@@ -269,6 +282,10 @@ elif running:
         optimizer = BeamOptimizer(b, h0, p, N, E_c=E, max_iter=50)
         final_results = optimizer.optimizar_viga_completo(L, q, callback=beam_callback)
 
+        # Guardar parámetros usados para persistencia al navegar
+        final_results['params_used'] = {
+            "L": L, "q": q, "E": E, "b": b, "h0": h0, "p": p, "N": N,
+        }
         st.session_state.beam_opt_running = False
         st.session_state.beam_opt_data = final_results
         st.rerun()
@@ -287,6 +304,17 @@ else:
     data = st.session_state.beam_opt_data
 
     st.success("✅ Optimización completada exitosamente")
+
+    # ── Banner de parámetros usados (persistencia entre páginas) ──
+    params_used = data.get("params_used", {})
+    if params_used:
+        st.info(
+            f"📋 Mostrando resultados previos — "
+            f"Parámetros: L={params_used['L']}m, q={params_used['q']}kN/m, "
+            f"E={params_used['E']/1e6:.0f}MPa, b={params_used['b']}m, "
+            f"h₀={params_used['h0']}m, p={params_used['p']}, N={params_used['N']} nodos. "
+            f"Cambiá los parámetros en el sidebar y ejecutá una nueva optimización."
+        )
 
     # ── Preparar datos ──
     x = data["x"]
@@ -366,6 +394,7 @@ else:
     fig_final.update_yaxes(title_text="Deflexión (mm)", row=2, col=1)
     fig_final.update_yaxes(title_text="Momento (kN·m)", row=3, col=1)
     fig_final.update_yaxes(title_text="Tensión (MPa)", row=3, col=1, secondary_y=True)
+    apply_plotly_theme(fig_final)
 
     # ── Métricas auxiliares ──
     I0 = b * h0 ** 3 / 12
@@ -461,97 +490,126 @@ else:
         csv_bytes = df_csv.to_csv(index=False).encode('utf-8')
 
         st.download_button(
-            label="📥 Descargar CSV",
+            label="📥 CSV",
             data=csv_bytes,
             file_name="optimizacion_viga.csv",
             mime="text/csv",
             use_container_width=True
         )
 
-        # ── PDF ──
+        # ── PDF (siempre con fondo blanco para exportación) ──
         with io.BytesIO() as pdf_buf:
-            with PdfPages(pdf_buf) as pdf:
-                # Cover page
-                fig_cover, ax_cover = plt.subplots(figsize=(8.27, 11.69))
-                ax_cover.axis('off')
-                ax_cover.text(0.5, 0.85, "Informe de Optimización Topológica",
-                              ha='center', fontsize=22, fontweight='bold', transform=ax_cover.transAxes)
-                ax_cover.text(0.5, 0.78, "Viga de Hormigón Armado — Método SIMP 1D",
-                              ha='center', fontsize=14, transform=ax_cover.transAxes)
-                ax_cover.text(0.5, 0.68, f"L = {data['L']} m    q = {q} kN/m    b×h₀ = {b}×{h0} m",
-                              ha='center', fontsize=12, transform=ax_cover.transAxes)
-                ax_cover.text(0.5, 0.62, f"Iteraciones: {data['iterations']}    Ahorro: {saving:.1f}%    Peso: {weight:.2f} t",
-                              ha='center', fontsize=12, transform=ax_cover.transAxes)
-                ax_cover.text(0.5, 0.55, f"Error final: {data['final_error']:.6f}    Deflexión máx: {np.max(np.abs(Y)) * 1000:.2f} mm",
-                              ha='center', fontsize=12, transform=ax_cover.transAxes)
-                pdf.savefig(fig_cover)
-                plt.close(fig_cover)
+            # Usar estilo default para exportación (fondo blanco)
+            with plt.style.context('default'):
+                with PdfPages(pdf_buf) as pdf:
+                    # Cover page
+                    fig_cover, ax_cover = plt.subplots(figsize=(8.27, 11.69))
+                    fig_cover.patch.set_facecolor('white')
+                    ax_cover.set_facecolor('white')
+                    ax_cover.axis('off')
+                    ax_cover.text(0.5, 0.85, "Informe de Optimización Topológica",
+                                  ha='center', fontsize=22, fontweight='bold', transform=ax_cover.transAxes,
+                                  color='black')
+                    ax_cover.text(0.5, 0.78, "Viga de Hormigón Armado — Método SIMP 1D",
+                                  ha='center', fontsize=14, transform=ax_cover.transAxes,
+                                  color='#333333')
+                    ax_cover.text(0.5, 0.68, f"L = {data['L']} m    q = {q} kN/m    b×h₀ = {b}×{h0} m",
+                                  ha='center', fontsize=12, transform=ax_cover.transAxes,
+                                  color='#333333')
+                    ax_cover.text(0.5, 0.62, f"Iteraciones: {data['iterations']}    Ahorro: {saving:.1f}%    Peso: {weight:.2f} t",
+                                  ha='center', fontsize=12, transform=ax_cover.transAxes,
+                                  color='#333333')
+                    ax_cover.text(0.5, 0.55, f"Error final: {data['final_error']:.6f}    Deflexión máx: {np.max(np.abs(Y)) * 1000:.2f} mm",
+                                  ha='center', fontsize=12, transform=ax_cover.transAxes,
+                                  color='#333333')
+                    pdf.savefig(fig_cover)
+                    plt.close(fig_cover)
 
-                # Results page
-                fig_pdf, axes_pdf = plt.subplots(3, 1, figsize=(8.27, 8), sharex=True)
-                axes_pdf[0].fill_between(x, -h_v / 2, h_v / 2, color='#d5dbdb',
-                                         edgecolor='#2c3e50', linewidth=1.5)
-                axes_pdf[0].set_ylabel("Peralte (m)")
-                axes_pdf[0].set_title("Perfil de la viga optimizada", fontsize=11)
-                axes_pdf[0].grid(True, alpha=0.3)
+                    # Results page
+                    fig_pdf, axes_pdf = plt.subplots(3, 1, figsize=(8.27, 8), sharex=True)
+                    fig_pdf.patch.set_facecolor('white')
+                    for ax in axes_pdf:
+                        ax.set_facecolor('white')
+                    axes_pdf[0].fill_between(x, -h_v / 2, h_v / 2, color='#d5dbdb',
+                                             edgecolor='#2c3e50', linewidth=1.5)
+                    axes_pdf[0].set_ylabel("Peralte (m)")
+                    axes_pdf[0].set_title("Perfil de la viga optimizada", fontsize=11)
+                    axes_pdf[0].grid(True, alpha=0.3)
 
-                axes_pdf[1].plot(x, Y_orig * 1000, 'b--', lw=1.5, label="Original", alpha=0.7)
-                axes_pdf[1].plot(x, Y * 1000, 'r-', lw=2, label="Optimizada")
-                if show_limits and data.get("y_adm", 0) > 0:
-                    axes_pdf[1].axhline(data["y_adm"], color='red', linestyle=':', alpha=0.7,
-                                        label=f"Admisible ({data['y_adm']:.1f} mm)")
-                axes_pdf[1].set_ylabel("Deflexión (mm)")
-                axes_pdf[1].set_title("Deflexión y(x)", fontsize=11)
-                axes_pdf[1].legend(fontsize=8)
-                axes_pdf[1].grid(True, alpha=0.3)
+                    axes_pdf[1].plot(x, Y_orig * 1000, 'b--', lw=1.5, label="Original", alpha=0.7)
+                    axes_pdf[1].plot(x, Y * 1000, 'r-', lw=2, label="Optimizada")
+                    if show_limits and data.get("y_adm", 0) > 0:
+                        axes_pdf[1].axhline(data["y_adm"], color='red', linestyle=':', alpha=0.7,
+                                            label=f"Admisible ({data['y_adm']:.1f} mm)")
+                    axes_pdf[1].set_ylabel("Deflexión (mm)")
+                    axes_pdf[1].set_title("Deflexión y(x)", fontsize=11)
+                    axes_pdf[1].legend(fontsize=8)
+                    axes_pdf[1].grid(True, alpha=0.3)
 
-                axes_pdf[2].plot(x, M, 'g-', lw=1.5, label="Momento M(x)")
-                axes_pdf[2].set_ylabel("Momento (kN·m)", color='g')
-                axes_pdf[2].tick_params(axis='y', labelcolor='g')
-                axes_pdf[2].grid(True, alpha=0.3)
-                axs2 = axes_pdf[2].twinx()
-                axs2.plot(x, sigma, 'darkred', lw=1.5, linestyle='--', label="Tensión σ")
-                if show_limits:
-                    axs2.axhline(11.25, color='red', linestyle=':', alpha=0.5,
-                                 label="σ_adm = 11.25 MPa")
-                axs2.set_ylabel("Tensión (MPa)", color='darkred')
-                axs2.tick_params(axis='y', labelcolor='darkred')
-                l1, lb1 = axes_pdf[2].get_legend_handles_labels()
-                l2, lb2 = axs2.get_legend_handles_labels()
-                axes_pdf[2].legend(l1 + l2, lb1 + lb2, fontsize=8, loc='upper right')
-                axes_pdf[2].set_xlabel("Posición x (m)")
-                axes_pdf[2].set_title("Momento Flector y Tensión", fontsize=11)
-                plt.tight_layout()
-                pdf.savefig(fig_pdf)
-                plt.close(fig_pdf)
+                    axes_pdf[2].plot(x, M, 'g-', lw=1.5, label="Momento M(x)")
+                    axes_pdf[2].set_ylabel("Momento (kN·m)", color='g')
+                    axes_pdf[2].tick_params(axis='y', labelcolor='g')
+                    axes_pdf[2].grid(True, alpha=0.3)
+                    axs2 = axes_pdf[2].twinx()
+                    axs2.plot(x, sigma, 'darkred', lw=1.5, linestyle='--', label="Tensión σ")
+                    if show_limits:
+                        axs2.axhline(11.25, color='red', linestyle=':', alpha=0.5,
+                                     label="σ_adm = 11.25 MPa")
+                    axs2.set_ylabel("Tensión (MPa)", color='darkred')
+                    axs2.tick_params(axis='y', labelcolor='darkred')
+                    l1, lb1 = axes_pdf[2].get_legend_handles_labels()
+                    l2, lb2 = axs2.get_legend_handles_labels()
+                    axes_pdf[2].legend(l1 + l2, lb1 + lb2, fontsize=8, loc='upper right')
+                    axes_pdf[2].set_xlabel("Posición x (m)")
+                    axes_pdf[2].set_title("Momento Flector y Tensión", fontsize=11)
+                    plt.tight_layout()
+                    pdf.savefig(fig_pdf)
+                    # También exportar figura principal como PNG
+                    png_buf_viga = io.BytesIO()
+                    fig_pdf.savefig(png_buf_viga, format='png', dpi=300, bbox_inches='tight')
+                    plt.close(fig_pdf)
 
-                # Metrics summary page
-                fig_met, ax_met = plt.subplots(figsize=(8.27, 5))
-                ax_met.axis('off')
-                metrics_text = (
-                    f"MÉTRICAS DE OPTIMIZACIÓN\n\n"
-                    f"Iteraciones:          {data['iterations']}\n"
-                    f"Ahorro Volumen:      {saving:.1f}%\n"
-                    f"Peso ahorrado:        {weight:.2f} t\n"
-                    f"Deflexión máx. orig.: {np.max(np.abs(Y_orig)) * 1000:.2f} mm\n"
-                    f"Deflexión máx. opt.:  {np.max(np.abs(Y)) * 1000:.2f} mm\n"
-                    f"Límite admisible:     {data.get('y_adm', 0):.2f} mm\n"
-                    f"Inercia máx.:         {np.max(data['I']):.6f} m⁴\n"
-                    f"Tensión máx.:         {np.max(sigma):.2f} MPa\n"
-                    f"Error final:          {data['final_error']:.6f}\n"
-                )
-                ax_met.text(0.1, 0.9, metrics_text, fontsize=12, fontfamily='monospace',
-                            verticalalignment='top', transform=ax_met.transAxes)
-                pdf.savefig(fig_met)
-                plt.close(fig_met)
+                    # Metrics summary page
+                    fig_met, ax_met = plt.subplots(figsize=(8.27, 5))
+                    fig_met.patch.set_facecolor('white')
+                    ax_met.set_facecolor('white')
+                    ax_met.axis('off')
+                    metrics_text = (
+                        f"MÉTRICAS DE OPTIMIZACIÓN\n\n"
+                        f"Iteraciones:          {data['iterations']}\n"
+                        f"Ahorro Volumen:      {saving:.1f}%\n"
+                        f"Peso ahorrado:        {weight:.2f} t\n"
+                        f"Deflexión máx. orig.: {np.max(np.abs(Y_orig)) * 1000:.2f} mm\n"
+                        f"Deflexión máx. opt.:  {np.max(np.abs(Y)) * 1000:.2f} mm\n"
+                        f"Límite admisible:     {data.get('y_adm', 0):.2f} mm\n"
+                        f"Inercia máx.:         {np.max(data['I']):.6f} m⁴\n"
+                        f"Tensión máx.:         {np.max(sigma):.2f} MPa\n"
+                        f"Error final:          {data['final_error']:.6f}\n"
+                    )
+                    ax_met.text(0.1, 0.9, metrics_text, fontsize=12, fontfamily='monospace',
+                                verticalalignment='top', transform=ax_met.transAxes, color='black')
+                    pdf.savefig(fig_met)
+                    plt.close(fig_met)
 
             pdf_bytes = pdf_buf.getvalue()
+            # Obtener PNG guardado del buffer
+            png_bytes_viga = png_buf_viga.getvalue()
+            png_buf_viga.close()
 
         st.download_button(
-            label="📥 Descargar Informe PDF",
+            label="📄 PDF",
             data=pdf_bytes,
             file_name="informe_optimizacion_viga.pdf",
             mime="application/pdf",
+            use_container_width=True
+        )
+
+        # ── PNG ──
+        st.download_button(
+            label="🖼️ PNG",
+            data=png_bytes_viga,
+            file_name="resultados_optimizacion_viga.png",
+            mime="image/png",
             use_container_width=True
         )
 
@@ -574,7 +632,7 @@ Error final & — & {data['final_error']:.6f} & — \\\\
 \\end{{tabular}}
 \\end{{table}}"""
         st.download_button(
-            label="📥 Descargar Tabla LaTeX",
+            label="📐 LaTeX",
             data=latex_table.encode('utf-8'),
             file_name="tabla_resultados_optimizacion.tex",
             mime="text/plain",

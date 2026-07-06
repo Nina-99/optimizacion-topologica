@@ -9,17 +9,25 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
-import plotly.io as pio
 from plotly.subplots import make_subplots
 from matplotlib.backends.backend_pdf import PdfPages
 import io
 
 from tda.optimization.metric_simp import MetricaTDA_SIMP
+from tda.app.theme import (
+    apply_mpl_theme, apply_plotly_theme, is_dark,
+    metric_card, report_header, responsive_style
+)
+
+# Aplicar tema matplotlib global
+apply_mpl_theme()
 
 # ==========================================
 # CONFIGURACIÓN DE PÁGINA
 # ==========================================
 st.set_page_config(page_title="Optimización SIMP + TDA", layout="wide", page_icon="🏗️")
+
+st.markdown(responsive_style(), unsafe_allow_html=True)
 st.header("Optimización Estructural 2D (SIMP + TDA)")
 
 # ── Sidebar ──
@@ -27,12 +35,17 @@ st.sidebar.header("🏗️ Optimización SIMP")
 malla_opcion = st.sidebar.selectbox(
     "Resolución de Malla",
     ["60x30 (Caso Tesis)", "40x40 (1600 elem)", "80x80 (6400 elem)"],
-    key="simp_malla"
+    key="simp_malla",
+    help="Resolución de elementos finitos Q4. 60×30 es el caso de la tesis. Mayor resolución captura detalles más finos pero aumenta el tiempo de cómputo (80×80 ≈ 4× más lento que 60×30)."
 )
-volfrac = st.sidebar.slider("Fracción de Volumen", 0.1, 0.9, 0.5, 0.05, key="simp_volfrac_input")
-penal = st.sidebar.number_input("Factor Penalización (p)", value=3.0, step=1.0, key="simp_penal")
-rmin = st.sidebar.number_input("Radio Filtro", value=1.5, step=0.1, key="simp_rmin")
-alpha = st.sidebar.number_input("Peso α (métrica μ_α)", value=0.012, step=0.001, format="%.3f", key="simp_alpha")
+volfrac = st.sidebar.slider("Fracción de Volumen", 0.1, 0.9, 0.5, 0.05, key="simp_volfrac_input",
+    help="Fracción de volumen permitida respecto al dominio completo. f_V = 0.5 significa que solo el 50% del espacio puede tener material. Valores típicos: 0.3-0.7.")
+penal = st.sidebar.number_input("Factor Penalización (p)", value=3.0, step=1.0, key="simp_penal",
+    help="Penaliza densidades intermedias (material gris) forzando una solución 0/1. p=3 es el estándar SIMP. p>3 converge más rápido pero puede producir mínimos locales.")
+rmin = st.sidebar.number_input("Radio Filtro", value=1.5, step=0.1, key="simp_rmin",
+    help="Radio del filtro de sensibilidad en elementos. Controla el espesor mínimo de las barras/features. rmin mayor → features más gruesas, evita el efecto tablero de ajedrez. Rango típico: 1.2-2.0.")
+alpha = st.sidebar.number_input("Peso α (métrica μ_α)", value=0.012, step=0.001, format="%.3f", key="simp_alpha",
+    help="Peso del término topológico β₁ en μ_α = c + α·β₁. Define cuánto se penaliza cada agujero. α ≈ 0.01-0.02 elimina agujeros espurios sin afectar rigidez. α=0 desactiva el control topológico.")
 
 
 # ==========================================
@@ -45,6 +58,15 @@ def crear_animacion_simp(rho_hist, c_hist, nex, ney, volfrac, penal):
     y gráfico de convergencia sincronizado.
     """
     n_frames = len(rho_hist)
+    dark = is_dark()
+
+    # Colores según tema
+    bg = 'rgba(0,0,0,0)' if dark else '#fafafa'
+    paper_bg = 'rgba(0,0,0,0)' if dark else 'white'
+    grid_c = '#444444' if dark else '#ecf0f1'
+    font_c = '#ecf0f1' if dark else '#2c3e50'
+    annot_bg = 'rgba(30,30,30,0.9)' if dark else 'rgba(255,255,255,0.9)'
+    annot_border = '#555555' if dark else '#bdc3c7'
 
     # Downsample si hay demasiados frames (>50)
     if n_frames > 50:
@@ -154,9 +176,9 @@ def crear_animacion_simp(rho_hist, c_hist, nex, ney, volfrac, penal):
                     x=0.5, y=1.0, xref='paper', yref='paper',
                     text=f'<b>Iteración {iter_real}/{n_frames}</b> | '
                          f'c = {c_k:.4f} | Sólidos: {n_solid}/{len(rho_k)} ({pct_solid:.1f}%)',
-                    showarrow=False, font=dict(size=13, color='#2c3e50'),
-                    align='center', bgcolor='rgba(255,255,255,0.9)',
-                    bordercolor='#bdc3c7', borderwidth=1,
+                    showarrow=False, font=dict(size=13, color=font_c),
+                    align='center', bgcolor=annot_bg,
+                    bordercolor=annot_border, borderwidth=1,
                     xanchor='center', yanchor='bottom'
                 )]
             )
@@ -187,7 +209,7 @@ def crear_animacion_simp(rho_hist, c_hist, nex, ney, volfrac, penal):
         xaxis2=dict(
             title='Iteración',
             range=[0, n_frames + 1],
-            gridcolor='#ecf0f1',
+            gridcolor=grid_c,
             zeroline=False
         ),
         yaxis2=dict(
@@ -197,14 +219,14 @@ def crear_animacion_simp(rho_hist, c_hist, nex, ney, volfrac, penal):
                 np.log10(max(c_min - 0.1 * c_range, 1e-10)),
                 np.log10(c_max + 0.1 * c_range)
             ],
-            gridcolor='#ecf0f1',
+            gridcolor=grid_c,
             zeroline=False
         ),
         # Slider
         sliders=[{
             'currentvalue': {
                 'prefix': 'Iteración: ',
-                'font': {'size': 14, 'color': '#2c3e50'},
+                'font': {'size': 14, 'color': font_c},
                 'xanchor': 'center'
             },
             'len': 0.92,
@@ -265,8 +287,8 @@ def crear_animacion_simp(rho_hist, c_hist, nex, ney, volfrac, penal):
                 }
             ]
         }],
-        plot_bgcolor='#fafafa',
-        paper_bgcolor='white',
+        plot_bgcolor=bg,
+        paper_bgcolor=paper_bg,
     )
 
     return fig
@@ -362,6 +384,8 @@ if ejecutar_simp:
     st.session_state.simp_volfrac = volfrac
     st.session_state.simp_penal_stored = penal
     st.session_state.simp_alpha_stored = alpha
+    st.session_state.simp_rmin_stored = rmin
+    st.session_state.simp_malla_stored = malla_opcion
     st.session_state.simp_nex = nelx
     st.session_state.simp_ney = nely
     st.session_state.simp_history = history
@@ -388,6 +412,20 @@ if st.session_state.get('simp_optimized', False):
     tab_evol, tab_res, tab_tda, tab_report = st.tabs([
         "📈 Evolución", "🏗️ Resultados", "🔬 Análisis TDA", "📊 Reporte"
     ])
+
+    # ── Banner de parámetros usados (persistencia entre páginas) ──
+    malla_str = st.session_state.get("simp_malla_stored", f"{nex_}x{ney_}")
+    volfrac_str = st.session_state.get("simp_volfrac", "—")
+    penal_str = st.session_state.get("simp_penal_stored", "—")
+    alpha_str = st.session_state.get("simp_alpha_stored", "—")
+    rmin_str = st.session_state.get("simp_rmin_stored", "—")
+    st.info(
+        f"📋 Mostrando resultados previos — "
+        f"Malla: {malla_str}, "
+        f"f_V={volfrac_str}, p={penal_str}, "
+        f"α={alpha_str}, r_min={rmin_str}. "
+        f"Cambiá los parámetros en el sidebar y ejecutá una nueva optimización."
+    )
 
     # ═══════════════════════════════════════════════════
     # TAB 1: EVOLUCIÓN INTERACTIVA
@@ -487,48 +525,47 @@ if st.session_state.get('simp_optimized', False):
     with tab_tda:
         st.subheader("Análisis Topológico (TDA)")
 
-        # Métricas TDA en tarjetas visuales
+        # Métricas TDA en tarjetas visuales adaptables al tema
+        b1 = st.session_state.simp_beta1
+        color_b1 = "#27ae60" if b1 == 0 else "#e74c3c"
+        manufacturable = b1 == 0
+        estado = "✅ APTA" if manufacturable else "⚠️ REVISAR"
+        color_est = "#27ae60" if manufacturable else "#e74c3c"
+
         col_t1, col_t2, col_t3, col_t4 = st.columns(4)
         with col_t1:
-            st.markdown("""
-            <div style='background:#e8f4f8;padding:15px;border-radius:10px;text-align:center'>
-                <h3 style='margin:0;color:#2980b9'>β₀</h3>
-                <p style='font-size:2em;font-weight:bold;margin:0;color:#2c3e50'>{}</p>
-                <small>Componentes conexas</small>
-            </div>
-            """.format(st.session_state.simp_beta0), unsafe_allow_html=True)
+            st.markdown(metric_card(
+                value=str(st.session_state.simp_beta0),
+                title="β₀",
+                subtitle="Componentes conexas",
+                variant="beta0"
+            ), unsafe_allow_html=True)
 
         with col_t2:
-            b1 = st.session_state.simp_beta1
-            color = "#27ae60" if b1 == 0 else "#e74c3c"
-            st.markdown("""
-            <div style='background:#fef9e7;padding:15px;border-radius:10px;text-align:center'>
-                <h3 style='margin:0;color:#d35400'>β₁</h3>
-                <p style='font-size:2em;font-weight:bold;margin:0;color:{}'>{}</p>
-                <small>Agujeros topológicos</small>
-            </div>
-            """.format(color, b1), unsafe_allow_html=True)
+            st.markdown(metric_card(
+                value=str(b1),
+                title="β₁",
+                subtitle="Agujeros topológicos",
+                variant="beta1",
+                value_color=color_b1
+            ), unsafe_allow_html=True)
 
         with col_t3:
-            st.markdown("""
-            <div style='background:#eafaf1;padding:15px;border-radius:10px;text-align:center'>
-                <h3 style='margin:0;color:#27ae60'>μ_α</h3>
-                <p style='font-size:2em;font-weight:bold;margin:0;color:#2c3e50'>{:.4f}</p>
-                <small>Métrica compuesta</small>
-            </div>
-            """.format(st.session_state.simp_mu), unsafe_allow_html=True)
+            st.markdown(metric_card(
+                value=f"{st.session_state.simp_mu:.4f}",
+                title="μ_α",
+                subtitle="Métrica compuesta",
+                variant="mu"
+            ), unsafe_allow_html=True)
 
         with col_t4:
-            manufacturable = st.session_state.simp_beta1 == 0
-            estado = "✅ APTA" if manufacturable else "⚠️ REVISAR"
-            color_est = "#27ae60" if manufacturable else "#e74c3c"
-            st.markdown("""
-            <div style='background:#f4f6f7;padding:15px;border-radius:10px;text-align:center'>
-                <h3 style='margin:0;color:#7f8c8d'>Manufactura</h3>
-                <p style='font-size:1.3em;font-weight:bold;margin:0;color:{}'>{}</p>
-                <small>Verificación topológica</small>
-            </div>
-            """.format(color_est, estado), unsafe_allow_html=True)
+            st.markdown(metric_card(
+                value=estado,
+                title="Manufactura",
+                subtitle="Verificación topológica",
+                variant="manufacturing",
+                value_color=color_est
+            ), unsafe_allow_html=True)
 
         st.markdown("---")
 
@@ -595,9 +632,8 @@ if st.session_state.get('simp_optimized', False):
             margin=dict(l=40, r=40, t=40, b=40),
             height=500,
             hovermode='closest',
-            plot_bgcolor='#fafafa',
-            paper_bgcolor='white',
         )
+        apply_plotly_theme(fig_tda)
         st.plotly_chart(fig_tda, use_container_width=True)
 
         st.markdown("---")
@@ -646,15 +682,11 @@ if st.session_state.get('simp_optimized', False):
         eps_star = st.session_state.simp_eps_star
         manufacturable = beta1 == 0
 
-        # ── Información del diseño ────────────────────────────────────────
-        st.markdown("""
-        <div style='background:linear-gradient(135deg,#667eea,#764ba2);padding:20px;border-radius:12px;margin-bottom:20px'>
-            <h3 style='color:white;margin:0;text-align:center'>📦 Paquete de Resultados TDA-SIMP</h3>
-            <p style='color:rgba(255,255,255,0.85);text-align:center;margin:5px 0 0'>
-                Todos los datos necesarios para tu tesis y presentación
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+        # ── Header del reporte ──
+        st.markdown(report_header(
+            "📦 Paquete de Resultados TDA-SIMP",
+            "Todos los datos necesarios para tu tesis y presentación"
+        ), unsafe_allow_html=True)
 
         # ── Fila 1: PDF + PNG + LaTeX ─────────────────────────────────────
         st.markdown("#### 📄 Documentos")
@@ -728,118 +760,124 @@ if st.session_state.get('simp_optimized', False):
                 plt.close(fig_cover)
 
                 # ── Página 2: Figura 2×2 completa ──────────────────────────
-                fig_res_pdf, axes_pdf = plt.subplots(2, 2, figsize=(10, 8))
-                fig_res_pdf.suptitle(
-                    f'Resultados de Optimización | {nex_}×{ney_} | f_V={volfrac} | μ_α={mu:.4f}',
-                    fontsize=14, fontweight='bold')
+                # Usar estilo default para exportación (fondo blanco)
+                with plt.style.context('default'):
+                    fig_res_pdf, axes_pdf = plt.subplots(2, 2, figsize=(10, 8))
+                    fig_res_pdf.patch.set_facecolor('white')
+                    for ax_row in axes_pdf:
+                        for ax in ax_row:
+                            ax.set_facecolor('white')
+                    fig_res_pdf.suptitle(
+                        f'Resultados de Optimización | {nex_}×{ney_} | f_V={volfrac} | μ_α={mu:.4f}',
+                        fontsize=14, fontweight='bold')
 
-                # (0,0) Density
-                rho_2d = rho_final.reshape(ney_, nex_)
-                im = axes_pdf[0, 0].imshow(rho_2d, cmap='gray_r', aspect='equal', vmin=0, vmax=1)
-                axes_pdf[0, 0].set_title(f'Distribución ρ* | c={c_final:.4f}')
-                axes_pdf[0, 0].axis('off')
-                plt.colorbar(im, ax=axes_pdf[0, 0], label='ρ', fraction=0.046, pad=0.04)
+                    # (0,0) Density
+                    rho_2d = rho_final.reshape(ney_, nex_)
+                    im = axes_pdf[0, 0].imshow(rho_2d, cmap='gray_r', aspect='equal', vmin=0, vmax=1)
+                    axes_pdf[0, 0].set_title(f'Distribución ρ* | c={c_final:.4f}')
+                    axes_pdf[0, 0].axis('off')
+                    plt.colorbar(im, ax=axes_pdf[0, 0], label='ρ', fraction=0.046, pad=0.04)
 
-                # (0,1) Persistence diagram
-                if dgm1 is not None and len(dgm1) > 0:
-                    finite = np.isfinite(dgm1[:, 1])
-                    if np.any(finite):
-                        pers = dgm1[finite, 1] - dgm1[finite, 0]
-                        sc = axes_pdf[0, 1].scatter(dgm1[finite, 0], dgm1[finite, 1],
-                                                    c=pers, cmap='RdYlGn', s=40, zorder=5)
-                        plt.colorbar(sc, ax=axes_pdf[0, 1], label='Persistencia', fraction=0.046, pad=0.04)
-                        mv = np.max(dgm1[finite]) * 1.1
-                        axes_pdf[0, 1].plot([0, mv], [0, mv], 'k--', alpha=0.4)
-                        if eps_star:
-                            axes_pdf[0, 1].axhline(eps_star / 2, color='r', ls=':', alpha=0.7, label=f'ε*/2')
-                        axes_pdf[0, 1].legend(fontsize=7)
-                axes_pdf[0, 1].set_title(f'Diagrama H₁ | β₁={beta1}')
-                axes_pdf[0, 1].set_xlabel('Birth');
-                axes_pdf[0, 1].set_ylabel('Death')
-                axes_pdf[0, 1].grid(True, alpha=0.3)
+                    # (0,1) Persistence diagram
+                    if dgm1 is not None and len(dgm1) > 0:
+                        finite = np.isfinite(dgm1[:, 1])
+                        if np.any(finite):
+                            pers = dgm1[finite, 1] - dgm1[finite, 0]
+                            sc = axes_pdf[0, 1].scatter(dgm1[finite, 0], dgm1[finite, 1],
+                                                        c=pers, cmap='RdYlGn', s=40, zorder=5)
+                            plt.colorbar(sc, ax=axes_pdf[0, 1], label='Persistencia', fraction=0.046, pad=0.04)
+                            mv = np.max(dgm1[finite]) * 1.1
+                            axes_pdf[0, 1].plot([0, mv], [0, mv], 'k--', alpha=0.4)
+                            if eps_star:
+                                axes_pdf[0, 1].axhline(eps_star / 2, color='r', ls=':', alpha=0.7, label=f'ε*/2')
+                            axes_pdf[0, 1].legend(fontsize=7)
+                    axes_pdf[0, 1].set_title(f'Diagrama H₁ | β₁={beta1}')
+                    axes_pdf[0, 1].set_xlabel('Birth')
+                    axes_pdf[0, 1].set_ylabel('Death')
+                    axes_pdf[0, 1].grid(True, alpha=0.3)
 
-                # (1,0) Convergence
-                if c_hist is not None and len(c_hist) > 0:
-                    axes_pdf[1, 0].semilogy(range(1, len(c_hist) + 1), c_hist, 'b-', lw=1.5)
-                    axes_pdf[1, 0].axhline(c_final, color='r', ls='--', alpha=0.7, label=f'c*={c_final:.4f}')
-                    axes_pdf[1, 0].legend(fontsize=8)
-                axes_pdf[1, 0].set_title(f'Convergencia | {len(c_hist)} iters')
-                axes_pdf[1, 0].set_xlabel('Iteración k');
-                axes_pdf[1, 0].set_ylabel('Compliance c')
-                axes_pdf[1, 0].grid(True, alpha=0.3)
+                    # (1,0) Convergence
+                    if c_hist is not None and len(c_hist) > 0:
+                        axes_pdf[1, 0].semilogy(range(1, len(c_hist) + 1), c_hist, 'b-', lw=1.5)
+                        axes_pdf[1, 0].axhline(c_final, color='r', ls='--', alpha=0.7, label=f'c*={c_final:.4f}')
+                        axes_pdf[1, 0].legend(fontsize=8)
+                    axes_pdf[1, 0].set_title(f'Convergencia | {len(c_hist)} iters')
+                    axes_pdf[1, 0].set_xlabel('Iteración k')
+                    axes_pdf[1, 0].set_ylabel('Compliance c')
+                    axes_pdf[1, 0].grid(True, alpha=0.3)
 
-                # (1,1) Point cloud
-                if nube is not None and len(nube) > 0:
-                    axes_pdf[1, 1].scatter(nube[:, 0], nube[:, 1], s=5, alpha=0.5, c='navy')
-                axes_pdf[1, 1].set_xlim(0, nex_);
-                axes_pdf[1, 1].set_ylim(0, ney_)
-                axes_pdf[1, 1].set_aspect('equal')
-                axes_pdf[1, 1].set_title(f'Nube X(ρ*) | β₀={beta0} | β₁={beta1} | μ_α={mu:.4f}')
-                axes_pdf[1, 1].set_xlabel('x (elem.)');
-                axes_pdf[1, 1].set_ylabel('y (elem.)')
-                axes_pdf[1, 1].grid(True, alpha=0.3)
+                    # (1,1) Point cloud
+                    if nube is not None and len(nube) > 0:
+                        axes_pdf[1, 1].scatter(nube[:, 0], nube[:, 1], s=5, alpha=0.5, c='navy')
+                    axes_pdf[1, 1].set_xlim(0, nex_)
+                    axes_pdf[1, 1].set_ylim(0, ney_)
+                    axes_pdf[1, 1].set_aspect('equal')
+                    axes_pdf[1, 1].set_title(f'Nube X(ρ*) | β₀={beta0} | β₁={beta1} | μ_α={mu:.4f}')
+                    axes_pdf[1, 1].set_xlabel('x (elem.)')
+                    axes_pdf[1, 1].set_ylabel('y (elem.)')
+                    axes_pdf[1, 1].grid(True, alpha=0.3)
 
-                plt.tight_layout()
-                pdf.savefig(fig_res_pdf, dpi=200)
-                plt.close(fig_res_pdf)
+                    plt.tight_layout()
+                    pdf.savefig(fig_res_pdf, dpi=200)
+                    plt.close(fig_res_pdf)
 
-                # ── Página 3: Tabla de métricas ────────────────────────────
-                fig_tab = plt.figure(figsize=(8.27, 11.69))
-                ax_tab = fig_tab.add_axes([0.1, 0.1, 0.8, 0.8])
-                ax_tab.axis('off')
+                    # ── Página 3: Tabla de métricas ────────────────────────────
+                    fig_tab = plt.figure(figsize=(8.27, 11.69))
+                    fig_tab.patch.set_facecolor('white')
+                    ax_tab = fig_tab.add_axes([0.1, 0.1, 0.8, 0.8])
+                    ax_tab.axis('off')
 
-                ax_tab.text(0.5, 0.95, 'Métricas de la Optimización',
-                            ha='center', fontsize=18, fontweight='bold', color='#2c3e50',
-                            transform=ax_tab.transAxes)
+                    ax_tab.text(0.5, 0.95, 'Métricas de la Optimización',
+                                ha='center', fontsize=18, fontweight='bold', color='#2c3e50',
+                                transform=ax_tab.transAxes)
 
-                # Crear tabla
-                col_labels = ['Métrica', 'Valor', 'Unidad']
-                rows = [
-                    ['Compliance final', f'{c_final:.5f}', 'N·mm'],
-                    ['Reducción vs sólido', f'{reduccion:.2f}', '%'],
-                    ['Fracción de volumen', f'{volfrac}', '—'],
-                    ['Penalización p', f'{penal}', '—'],
-                    ['α (peso topológico)', f'{alpha_val}', '—'],
-                    ['β₀ (componentes)', str(beta0), '—'],
-                    ['β₁ (agujeros)', str(beta1), '—'],
-                    ['μ_α (métrica compuesta)', f'{mu:.5f}', '—'],
-                    ['Manufacturable', 'Sí' if manufacturable else 'No', '—'],
-                    ['Iteraciones', str(n_iter), '—'],
-                    ['Convergió', 'Sí' if converged else 'No', '—'],
-                    ['Tiempo SIMP', f'{t_simp:.2f}', 's'],
-                    ['Tiempo TDA', f'{t_tda:.3f}', 's'],
-                    ['Tiempo total', f'{t_simp + t_tda:.2f}', 's'],
-                    [f'Malla', f'{nex_}×{ney_}', 'elementos'],
-                ]
+                    # Crear tabla
+                    col_labels = ['Métrica', 'Valor', 'Unidad']
+                    rows = [
+                        ['Compliance final', f'{c_final:.5f}', 'N·mm'],
+                        ['Reducción vs sólido', f'{reduccion:.2f}', '%'],
+                        ['Fracción de volumen', f'{volfrac}', '—'],
+                        ['Penalización p', f'{penal}', '—'],
+                        ['α (peso topológico)', f'{alpha_val}', '—'],
+                        ['β₀ (componentes)', str(beta0), '—'],
+                        ['β₁ (agujeros)', str(beta1), '—'],
+                        ['μ_α (métrica compuesta)', f'{mu:.5f}', '—'],
+                        ['Manufacturable', 'Sí' if manufacturable else 'No', '—'],
+                        ['Iteraciones', str(n_iter), '—'],
+                        ['Convergió', 'Sí' if converged else 'No', '—'],
+                        ['Tiempo SIMP', f'{t_simp:.2f}', 's'],
+                        ['Tiempo TDA', f'{t_tda:.3f}', 's'],
+                        ['Tiempo total', f'{t_simp + t_tda:.2f}', 's'],
+                        [f'Malla', f'{nex_}×{ney_}', 'elementos'],
+                    ]
 
-                table = ax_tab.table(cellText=rows, colLabels=col_labels,
-                                     loc='center', cellLoc='center',
-                                     colWidths=[0.35, 0.25, 0.15])
-                table.auto_set_font_size(False)
-                table.set_fontsize(10)
-                table.scale(1, 1.6)
+                    table = ax_tab.table(cellText=rows, colLabels=col_labels,
+                                         loc='center', cellLoc='center',
+                                         colWidths=[0.35, 0.25, 0.15])
+                    table.auto_set_font_size(False)
+                    table.set_fontsize(10)
+                    table.scale(1, 1.6)
 
-                for (row, col), cell in table.get_celld().items():
-                    if row == 0:
-                        cell.set_facecolor('#3498db')
-                        cell.set_text_props(color='white', fontweight='bold')
-                    elif row % 2 == 0:
-                        cell.set_facecolor('#f0f3f5')
-                    cell.set_edgecolor('#dfe6e9')
+                    for (row, col), cell in table.get_celld().items():
+                        if row == 0:
+                            cell.set_facecolor('#3498db')
+                            cell.set_text_props(color='white', fontweight='bold')
+                        elif row % 2 == 0:
+                            cell.set_facecolor('#f0f3f5')
+                        cell.set_edgecolor('#dfe6e9')
 
-                ax_tab.text(0.5, 0.02,
-                            'Generado por Plataforma TDA-SIMP · Jorge Larry Copa Cruz · UAGRM 2026',
-                            ha='center', fontsize=7, color='#bdc3c7',
-                            transform=ax_tab.transAxes, style='italic')
+                    ax_tab.text(0.5, 0.02,
+                                'Generado por Plataforma TDA-SIMP · Jorge Larry Copa Cruz · UAGRM 2026',
+                                ha='center', fontsize=7, color='#bdc3c7',
+                                transform=ax_tab.transAxes, style='italic')
 
-                pdf.savefig(fig_tab, dpi=200)
-                plt.close(fig_tab)
+                    pdf.savefig(fig_tab, dpi=200)
+                    plt.close(fig_tab)
 
             pdf_bytes = pdf_buf.getvalue()
-            pdf_buf.close()
 
             st.download_button(
-                label="📄 PDF Profesional",
+                label="📄 PDF",
                 data=pdf_bytes,
                 file_name=f"reporte_TDA-SIMP_{nex_}x{ney_}.pdf",
                 mime="application/pdf",
@@ -849,57 +887,61 @@ if st.session_state.get('simp_optimized', False):
 
         # ── Exportar PNG 2×2 ───────────────────────────────────────────────
         with col_r2:
-            fig_png, axes_png = plt.subplots(2, 2, figsize=(12, 9))
-            fig_png.suptitle(f'Resultados SIMP-TDA | {nex_}×{ney_} | f_V={volfrac} | μ_α={mu:.4f}',
-                             fontsize=13, fontweight='bold')
+            with plt.style.context('default'):
+                fig_png, axes_png = plt.subplots(2, 2, figsize=(12, 9))
+                fig_png.patch.set_facecolor('white')
+                for ax_row in axes_png:
+                    for ax in ax_row:
+                        ax.set_facecolor('white')
+                fig_png.suptitle(f'Resultados SIMP-TDA | {nex_}×{ney_} | f_V={volfrac} | μ_α={mu:.4f}',
+                                 fontsize=13, fontweight='bold')
 
-            # Density
-            rho_2d = rho_final.reshape(ney_, nex_)
-            axes_png[0, 0].imshow(rho_2d, cmap='gray_r', aspect='equal', vmin=0, vmax=1)
-            axes_png[0, 0].set_title(f'Distribución ρ*')
-            axes_png[0, 0].axis('off')
+                # Density
+                rho_2d = rho_final.reshape(ney_, nex_)
+                axes_png[0, 0].imshow(rho_2d, cmap='gray_r', aspect='equal', vmin=0, vmax=1)
+                axes_png[0, 0].set_title(f'Distribución ρ*')
+                axes_png[0, 0].axis('off')
 
-            # Persistence
-            if dgm1 is not None and len(dgm1) > 0:
-                finite = np.isfinite(dgm1[:, 1])
-                if np.any(finite):
-                    axes_png[0, 1].scatter(dgm1[finite, 0], dgm1[finite, 1], c='orange', marker='^', alpha=0.7)
-                    mv = np.max(dgm1[finite]) * 1.1
-                    axes_png[0, 1].plot([0, mv], [0, mv], 'k--', alpha=0.4)
-                    if eps_star:
-                        axes_png[0, 1].axhline(eps_star / 2, color='r', ls=':', alpha=0.7)
-            axes_png[0, 1].set_title('Diagrama H₁')
-            axes_png[0, 1].set_xlabel('Birth');
-            axes_png[0, 1].set_ylabel('Death')
-            axes_png[0, 1].grid(True, alpha=0.3)
+                # Persistence
+                if dgm1 is not None and len(dgm1) > 0:
+                    finite = np.isfinite(dgm1[:, 1])
+                    if np.any(finite):
+                        axes_png[0, 1].scatter(dgm1[finite, 0], dgm1[finite, 1], c='orange', marker='^', alpha=0.7)
+                        mv = np.max(dgm1[finite]) * 1.1
+                        axes_png[0, 1].plot([0, mv], [0, mv], 'k--', alpha=0.4)
+                        if eps_star:
+                            axes_png[0, 1].axhline(eps_star / 2, color='r', ls=':', alpha=0.7)
+                axes_png[0, 1].set_title('Diagrama H₁')
+                axes_png[0, 1].set_xlabel('Birth')
+                axes_png[0, 1].set_ylabel('Death')
+                axes_png[0, 1].grid(True, alpha=0.3)
 
-            # Convergence
-            if c_hist is not None and len(c_hist) > 0:
-                axes_png[1, 0].semilogy(range(1, len(c_hist) + 1), c_hist, 'b-', lw=1.5)
-                axes_png[1, 0].axhline(c_final, color='r', ls='--', alpha=0.7)
-            axes_png[1, 0].set_title('Convergencia')
-            axes_png[1, 0].set_xlabel('Iteración');
-            axes_png[1, 0].set_ylabel('c')
-            axes_png[1, 0].grid(True, alpha=0.3)
+                # Convergence
+                if c_hist is not None and len(c_hist) > 0:
+                    axes_png[1, 0].semilogy(range(1, len(c_hist) + 1), c_hist, 'b-', lw=1.5)
+                    axes_png[1, 0].axhline(c_final, color='r', ls='--', alpha=0.7)
+                axes_png[1, 0].set_title('Convergencia')
+                axes_png[1, 0].set_xlabel('Iteración')
+                axes_png[1, 0].set_ylabel('c')
+                axes_png[1, 0].grid(True, alpha=0.3)
 
-            # Point cloud
-            if nube is not None and len(nube) > 0:
-                axes_png[1, 1].scatter(nube[:, 0], nube[:, 1], s=5, alpha=0.5, c='navy')
-            axes_png[1, 1].set_title(f'Nube X(ρ*)')
-            axes_png[1, 1].set_xlabel('x');
-            axes_png[1, 1].set_ylabel('y')
-            axes_png[1, 1].set_aspect('equal')
-            axes_png[1, 1].grid(True, alpha=0.3)
+                # Point cloud
+                if nube is not None and len(nube) > 0:
+                    axes_png[1, 1].scatter(nube[:, 0], nube[:, 1], s=5, alpha=0.5, c='navy')
+                axes_png[1, 1].set_title(f'Nube X(ρ*)')
+                axes_png[1, 1].set_xlabel('x')
+                axes_png[1, 1].set_ylabel('y')
+                axes_png[1, 1].set_aspect('equal')
+                axes_png[1, 1].grid(True, alpha=0.3)
 
-            plt.tight_layout()
-            png_buf = io.BytesIO()
-            fig_png.savefig(png_buf, format='png', dpi=300, bbox_inches='tight')
-            plt.close(fig_png)
-            png_bytes = png_buf.getvalue()
-            png_buf.close()
+                plt.tight_layout()
+                png_buf = io.BytesIO()
+                fig_png.savefig(png_buf, format='png', dpi=300, bbox_inches='tight')
+                plt.close(fig_png)
+                png_bytes = png_buf.getvalue()
 
             st.download_button(
-                label="🖼️ PNG Alta Resolución",
+                label="🖼️ PNG",
                 data=png_bytes,
                 file_name=f"figura_resultados_{nex_}x{ney_}.png",
                 mime="image/png",
@@ -944,7 +986,7 @@ if st.session_state.get('simp_optimized', False):
             latex_bytes = latex_table.encode('utf-8')
 
             st.download_button(
-                label="📜 Tabla LaTeX",
+                label="📐 LaTeX",
                 data=latex_bytes,
                 file_name=f"tabla_resultados_{nex_}x{ney_}.tex",
                 mime="text/plain",
@@ -979,7 +1021,7 @@ if st.session_state.get('simp_optimized', False):
             })
             csv_metrics = df_metrics.to_csv(index=False).encode('utf-8')
             st.download_button(
-                label="📥 Métricas (CSV)",
+                label="📥 CSV (Métricas)",
                 data=csv_metrics,
                 file_name=f"metricas_{nex_}x{ney_}.csv",
                 mime="text/csv",
@@ -994,7 +1036,7 @@ if st.session_state.get('simp_optimized', False):
             })
             csv_history = df_history.to_csv(index=False).encode('utf-8')
             st.download_button(
-                label="📥 Historial (CSV)",
+                label="📥 CSV (Historial)",
                 data=csv_history,
                 file_name=f"historial_convergencia_{nex_}x{ney_}.csv",
                 mime="text/csv",
@@ -1012,7 +1054,7 @@ if st.session_state.get('simp_optimized', False):
             })
             csv_dens = df_dens.to_csv(index=False).encode('utf-8')
             st.download_button(
-                label="📥 Densidades (CSV)",
+                label="📥 CSV (Densidades)",
                 data=csv_dens,
                 file_name=f"densidades_{nex_}x{ney_}.csv",
                 mime="text/csv",
