@@ -444,7 +444,8 @@ if st.session_state.get('hg_run', False):
         diag_hg = diagnosticar_hg(
             c_eucl=eucl['c_final'], c_tda=tda['c_final'],
             beta1_eucl=eucl['beta1'], beta1_tda=tda['beta1'],
-            mu_tda=tda['mu'], alpha=res['params']['alpha'],
+            mu_eucl=res['mu_eucl'], mu_tda=tda['mu'],
+            alpha=res['params']['alpha'],
         )
 
         # Badges resumen

@@ -476,15 +476,21 @@ def diagnosticar_he2(reduccion: float, beta1: int, mu: float,
 
 
 def diagnosticar_hg(c_eucl: float, c_tda: float, beta1_eucl: int,
-                     beta1_tda: int, mu_tda: float, alpha: float) -> dict:
+                     beta1_tda: int, mu_eucl: float, mu_tda: float,
+                     alpha: float) -> dict:
     """Diagnóstico de H.G: comparación euclidiano vs TDA.
+
+    La hipótesis general compara la métrica μ_α = c + α·β₁.
+    μ_eucl = c_eucl (porque α=0 en euclidiano).
+    μ_tda = c_tda + α·β₁_tda.
 
     Returns dict con keys:
         badges_html, razones, sugerencias, veredicto
     """
-    mejora_c = c_tda < c_eucl
+    # Comparar μ_α (métrica compuesta), NO compliance directamente
+    mejora_mu = mu_tda < mu_eucl
     mejora_b1 = beta1_tda <= beta1_eucl
-    delta_c = c_tda - c_eucl
+    delta_mu = mu_tda - mu_eucl
     delta_b1 = beta1_tda - beta1_eucl
 
     badges = []
@@ -492,39 +498,42 @@ def diagnosticar_hg(c_eucl: float, c_tda: float, beta1_eucl: int,
     sugerencias = []
 
     # ── Badges ──
-    icon_c = "↓" if mejora_c else "↑" if delta_c > 0 else "="
+    icon_mu = "↓" if mejora_mu else "↑" if delta_mu > 0 else "="
     badges.append(_badge(
-        "✅" if mejora_c else "⚠️" if delta_c == 0 else "❌",
-        f"Compliance {icon_c} {abs(delta_c):.2f}",
-        "#27ae60" if mejora_c else "#f39c12" if delta_c == 0 else "#e74c3c"
+        "✅" if mejora_mu else "⚠️" if delta_mu == 0 else "❌",
+        f"μ_α {icon_mu} {abs(delta_mu):.4f}",
+        "#27ae60" if mejora_mu else "#f39c12" if delta_mu == 0 else "#e74c3c"
     ))
-    icon_b = "↓" if mejora_b1 else "↑" if delta_b1 > 0 else "="
-    badges.append(_badge(
-        "✅" if mejora_b1 else "⚠️" if delta_b1 == 0 else "❌",
-        f"β₁ {icon_b} {abs(delta_b1)}",
-        "#27ae60" if mejora_b1 else "#f39c12" if delta_b1 == 0 else "#e74c3c"
-    ))
-    badges.append(_badge("📊", f"μ_α={mu_tda:.4f}", "#2980b9"))
+    badges.append(_badge("📊", f"μ_eucl={mu_eucl:.4f}", "#7f8c8d"))
+    badges.append(_badge("📊", f"μ_tda={mu_tda:.4f}", "#2980b9"))
 
     # ── Razones ──
-    if mejora_c:
-        pct = (1 - c_tda / c_eucl) * 100 if c_eucl > 0 else 0
+    if mejora_mu:
+        pct = (1 - mu_tda / mu_eucl) * 100 if mu_eucl > 0 else 0
         razones.append(
-            f"SIMP+TDA produce compliance {abs(delta_c):.2f} menor que SIMP euclidiano "
-            f"({pct:.1f}% de mejora). La regularización topológica μ_α guía "
-            f"el OC hacia diseños más eficientes."
+            f"SIMP+TDA produce μ_α {abs(delta_mu):.4f} menor que SIMP euclidiano "
+            f"({pct:.1f}% de mejora en la métrica compuesta). La regularización topológica μ_α guía "
+            f"el OC hacia diseños más eficientes y topológicamente limpios."
         )
-    elif delta_c == 0:
+    elif delta_mu == 0:
         razones.append(
-            "Ambos enfoques producen compliance idéntica. Esto ocurre cuando "
+            "Ambos enfoques producen μ_α idéntica. Esto ocurre cuando "
             "α=0 o cuando la topología converge al mismo diseño sin importar la "
             "regularización topológica."
         )
     else:
         razones.append(
-            f"SIMP euclidiano produce compliance {abs(delta_c):.2f} menor. "
+            f"SIMP euclidiano produce μ_α {abs(delta_mu):.4f} menor. "
             f"Esto sugiere que α={alpha} está over-penalizando la función objetivo, "
             f"forzando una topología más simple a costa de rigidez."
+        )
+
+    # Compliance es igual porque TDA opera post-hoc (sección 6.3 del documento)
+    if abs(c_tda - c_eucl) < 1e-6:
+        razones.append(
+            "ℹ️ Compliance es idéntica en ambos enfoques. Esto es **esperado**: "
+            "TDA opera post hoc (sección 6.3 del documento) y no modifica la "
+            "optimización SIMP. La diferencia está en la métrica compuesta μ_α."
         )
 
     if mejora_b1:
@@ -555,27 +564,27 @@ def diagnosticar_hg(c_eucl: float, c_tda: float, beta1_eucl: int,
     )
 
     # ── Sugerencias ──
-    if not mejora_c and not mejora_b1:
+    if not mejora_mu and not mejora_b1:
         sugerencias.append(
-            f"α={alpha} no produce mejoras. Probar α=0 (euclidiano puro) como baseline, "
+            f"α={alpha} no produce mejoras en μ_α. Probar α=0 (euclidiano puro) como baseline, "
             f"o subir α a ~{min(alpha * 5, 0.5):.3f} para efecto más marcado."
         )
-    elif not mejora_c:
+    elif not mejora_mu:
         sugerencias.append(
-            f"La compliance empeora con TDA. Reducir α de {alpha:.3f} a ~{alpha * 0.5:.3f} "
+            f"μ_α empeora con TDA. Reducir α de {alpha:.3f} a ~{alpha * 0.5:.3f} "
             f"para mitigar la penalización excesiva."
         )
     elif not mejora_b1:
         sugerencias.append(
-            f"Compliance mejora pero β₁ no. Subir α de {alpha:.3f} a ~{min(alpha * 3, 0.3):.3f} "
+            f"μ_α mejora pero β₁ no. Subir α de {alpha:.3f} a ~{min(alpha * 3, 0.3):.3f} "
             f"para forzar supresión de agujeros."
         )
     else:
         sugerencias.append("Ambos criterios se cumplen. Los parámetros son adecuados.")
 
-    if mejora_c and mejora_b1:
+    if mejora_mu and mejora_b1:
         veredicto = "VALIDADA"
-    elif mejora_c or mejora_b1:
+    elif mejora_mu or mejora_b1:
         veredicto = "PARCIAL"
     else:
         veredicto = "NO VALIDADA"
