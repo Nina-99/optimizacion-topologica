@@ -161,15 +161,41 @@ with col3:
                  label="🔬 Abrir H.G.",
                  width='stretch')
 
-with col4:
+# Segunda fila de tarjetas
+st.markdown("<br>", unsafe_allow_html=True)
+col5, col6, col7, _ = st.columns(4)
+
+with col5:
+    st.markdown(landing_card(
+        icon="🌉",
+        title="App 2 — SHM (Fase 1)",
+        description="Teorema de Takens y distancia de Wasserstein para detección topológica de daño en el Puente Z24.",
+        variant="orange"
+    ), unsafe_allow_html=True)
+    st.page_link("pages/5_App2_SHM_Z24.py",
+                 label="🌉 Abrir SHM",
+                 width='stretch')
+
+with col6:
     st.markdown(landing_card(
         icon="🏗️",
+        title="App 2 — Refuerzo (Fase 2)",
+        description="Rediseño post-daño con SIMP y selección del refuerzo óptimo de fibra de carbono mediante μ_α.",
+        variant="orange"
+    ), unsafe_allow_html=True)
+    st.page_link("pages/6_App2_Refuerzo.py",
+                 label="🏗️ Abrir Refuerzo",
+                 width='stretch')
+
+with col7:
+    st.markdown(landing_card(
+        icon="📏",
         title="Ejemplo — Viga 1D",
         description="SIMP simplificado: minimización de volumen<br>con restricción de rigidez (caso ilustrativo)",
         variant="orange"
     ), unsafe_allow_html=True)
     st.page_link("pages/4_Ejemplo_Viga_1D.py",
-                 label="🏗️ Abrir Ejemplo",
+                 label="📏 Abrir Ejemplo",
                  width='stretch')
 
 # ── Footer ──
