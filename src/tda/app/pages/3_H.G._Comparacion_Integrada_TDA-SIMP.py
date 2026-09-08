@@ -38,7 +38,6 @@ st.markdown(page_header(
     "H.G. — Comparación Integrada TDA-SIMP",
     "TDA+SIMP vs Euclidiano: compliance, β₁, μ_α"
 ), unsafe_allow_html=True)
-st.markdown(breadcrumbs(["Tesis", "H.G.", "Resultados"]), unsafe_allow_html=True)
 st.header("H.G. — Comparación Integrada TDA-SIMP")
 st.markdown("""
 *Validación de la Hipótesis General: Los métodos topológicos (TDA + SIMP) 
