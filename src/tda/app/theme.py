@@ -9,7 +9,25 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
 
-# ── Detección de tema ───────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════
+# PALETA DE COLORES — TEMA OSCURO NARANJA
+# ═══════════════════════════════════════════════════════════════
+
+ORANGE = "#FF6B35"
+ORANGE_HOVER = "#ff8555"
+ORANGE_DARK = "#c44b1a"
+DARK_BG = "#121212"
+DARK_CARD = "#1e1e1e"
+DARK_BORDER = "#333333"
+WHITE = "#ffffff"
+WHITE_DIM = "#b0b0b0"
+GREEN_OK = "#27ae60"
+RED_BAD = "#e74c3c"
+BLUE_INFO = "#2980b9"
+GOLD_WARN = "#f39c12"
+
+
+# ── Deteccion de tema ───────────────────────────────────────
 
 def is_dark():
     """Detecta si Streamlit está en modo oscuro."""
