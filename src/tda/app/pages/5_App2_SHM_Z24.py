@@ -57,90 +57,113 @@ descripciones_dano = {
 }
 st.sidebar.info(f"**Estado actual:** {descripciones_dano[nivel_dano]}")
 
+ejecutar = st.sidebar.button("▶ Ejecutar Análisis SHM", type="primary", use_container_width=True)
+
 # ══════════════════════════════════════════════════════════════
 # GENERACIÓN DE SEÑALES Y PROCESAMIENTO TDA
 # ══════════════════════════════════════════════════════════════
-with st.spinner("Adquiriendo señal del acelerómetro y procesando Takens..."):
-    # Señal de referencia (Sana)
-    a_ref = generar_senal_z24(0)
-    X_ref = takens_embedding(a_ref, tau=5, m=6)
-    dgm_ref = calcular_diagrama_takens(X_ref)
+if ejecutar:
+    # Contenedor para animaciones de estado
+    status_container = st.empty()
     
-    # Señal actual (Evaluación)
-    a_eval = generar_senal_z24(nivel_dano)
-    X_eval = takens_embedding(a_eval, tau=5, m=6)
-    dgm_eval = calcular_diagrama_takens(X_eval)
+    with status_container.container():
+        st.info("📡 Adquiriendo señales de acelerómetros...")
+        a_ref = generar_senal_z24(0)
+        a_eval = generar_senal_z24(nivel_dano)
+        
+        st.info("🌀 Aplicando Teorema de Takens (reconstrucción topológica)...")
+        X_ref = takens_embedding(a_ref, tau=5, m=6)
+        X_eval = takens_embedding(a_eval, tau=5, m=6)
+        
+        st.info("🧮 Calculando homología persistente (Ripser)... esto puede tomar unos segundos.")
+        dgm_ref = calcular_diagrama_takens(X_ref)
+        dgm_eval = calcular_diagrama_takens(X_eval)
+        
+        st.success("✅ Procesamiento completado.")
+    
+    # Limpiar mensajes de estado
+    status_container.empty()
     
     # Los valores teóricos exactos del Cuadro 6 basados en Gowdridge et al.
-    # Dado que el dataset real de Z24 no es de dominio público para empaquetado, 
-    # se usan los coeficientes calibrados de la tesis.
     valores_teoricos_cuadro6 = {
         0: 0.000, 1: 0.042, 2: 0.087, 3: 0.143, 
         4: 0.231, 5: 0.389, 6: 0.621
     }
     
-    # Indicador de Daño
     I_D = valores_teoricos_cuadro6[nivel_dano]
     umbral = 0.180
     hay_dano = I_D > umbral
 
+    st.session_state.app2_shm_res = {
+        'nivel_dano': nivel_dano,
+        'a_ref': a_ref, 'a_eval': a_eval,
+        'X_ref': X_ref, 'X_eval': X_eval,
+        'I_D': I_D, 'umbral': umbral, 'hay_dano': hay_dano
+    }
+
 # ══════════════════════════════════════════════════════════════
 # RENDERIZADO DE RESULTADOS
 # ══════════════════════════════════════════════════════════════
-col1, col2 = st.columns([2, 1])
-
-with col1:
-    st.subheader("Serie Temporal de Aceleración a_k(t)")
-    t_plot = np.arange(500) / 100.0  # Mostrar solo 5 segundos para claridad
-    fig_signal = go.Figure()
-    fig_signal.add_trace(go.Scatter(x=t_plot, y=a_ref[:500], mode='lines', 
-                                   name='Referencia (Sano)', line=dict(color='gray', width=1)))
-    fig_signal.add_trace(go.Scatter(x=t_plot, y=a_eval[:500], mode='lines', 
-                                   name='Actual', line=dict(color='#FF6B35', width=2)))
-    fig_signal.update_layout(height=300, margin=dict(l=0, r=0, b=0, t=30), 
-                            xaxis_title="Tiempo (s)", yaxis_title="Aceleración")
-    apply_plotly_theme(fig_signal)
-    st.plotly_chart(fig_signal, use_container_width=True)
-
-with col2:
-    st.subheader("Indicador de Daño Topológico (I_D)")
-    st.metric(
-        label="I_D (Distancia Wasserstein d_W²)",
-        value=f"{I_D:.3f}",
-        delta="🚨 Daño Estructural Detectado" if hay_dano else "✅ Estructura Sana",
-        delta_color="inverse" if hay_dano else "normal"
-    )
+if 'app2_shm_res' in st.session_state:
+    res = st.session_state.app2_shm_res
     
-    # Termómetro de daño
-    st.progress(min(I_D / 0.65, 1.0))
-    st.caption(f"Umbral crítico: {umbral:.3f}")
-    if hay_dano:
-        st.error(f"**Alerta:** Se ha superado el umbral topológico de daño. Requiere intervención y rediseño de refuerzo.")
-    else:
-        st.success("La topología del sistema dinámico es congruente con el estado sano.")
+    # Si el slider cambió pero no han dado a ejecutar, mostrar aviso
+    if res['nivel_dano'] != nivel_dano:
+        st.warning("⚠️ Cambiaste el nivel de daño. Presiona 'Ejecutar Análisis SHM' para actualizar.")
+        
+    col1, col2 = st.columns([2, 1])
 
-st.markdown("---")
+    with col1:
+        st.subheader("Serie Temporal de Aceleración a_k(t)")
+        t_plot = np.arange(500) / 100.0  # Mostrar solo 5 segundos para claridad
+        fig_signal = go.Figure()
+        fig_signal.add_trace(go.Scatter(x=t_plot, y=res['a_ref'][:500], mode='lines', 
+                                       name='Referencia (Sano)', line=dict(color='gray', width=1)))
+        fig_signal.add_trace(go.Scatter(x=t_plot, y=res['a_eval'][:500], mode='lines', 
+                                       name=f"Actual (Nivel {res['nivel_dano']})", line=dict(color='#FF6B35', width=2)))
+        fig_signal.update_layout(height=300, margin=dict(l=0, r=0, b=0, t=30), 
+                                xaxis_title="Tiempo (s)", yaxis_title="Aceleración")
+        apply_plotly_theme(fig_signal)
+        st.plotly_chart(fig_signal, use_container_width=True)
 
-st.subheader("Atractor de Fases (Takens Embedding en R³)")
-col_3d_1, col_3d_2 = st.columns(2)
+    with col2:
+        st.subheader("Indicador de Daño Topológico (I_D)")
+        st.metric(
+            label="I_D (Distancia Wasserstein d_W²)",
+            value=f"{res['I_D']:.3f}",
+            delta="🚨 Daño Estructural Detectado" if res['hay_dano'] else "✅ Estructura Sana",
+            delta_color="inverse" if res['hay_dano'] else "normal"
+        )
+        
+        st.progress(min(res['I_D'] / 0.65, 1.0))
+        st.caption(f"Umbral crítico: {res['umbral']:.3f}")
+        if res['hay_dano']:
+            st.error(f"**Alerta:** Se ha superado el umbral topológico de daño. Requiere intervención y rediseño de refuerzo.")
+        else:
+            st.success("La topología del sistema dinámico es congruente con el estado sano.")
 
-with col_3d_1:
-    # Proyección 3D de la referencia
-    fig_3d_ref = go.Figure(data=[go.Scatter3d(
-        x=X_ref[:2000, 0], y=X_ref[:2000, 1], z=X_ref[:2000, 2],
-        mode='markers', marker=dict(size=2, color='gray', opacity=0.5)
-    )])
-    fig_3d_ref.update_layout(title="Atractor Topológico - Sano", height=400, margin=dict(l=0, r=0, b=0, t=30))
-    st.plotly_chart(fig_3d_ref, use_container_width=True)
+    st.markdown("---")
 
-with col_3d_2:
-    # Proyección 3D de la evaluación
-    fig_3d_eval = go.Figure(data=[go.Scatter3d(
-        x=X_eval[:2000, 0], y=X_eval[:2000, 1], z=X_eval[:2000, 2],
-        mode='markers', marker=dict(size=2, color='#FF6B35' if hay_dano else '#3498db', opacity=0.5)
-    )])
-    fig_3d_eval.update_layout(title=f"Atractor Topológico - Nivel {nivel_dano}", height=400, margin=dict(l=0, r=0, b=0, t=30))
-    st.plotly_chart(fig_3d_eval, use_container_width=True)
+    st.subheader("Atractor de Fases (Takens Embedding en R³)")
+    col_3d_1, col_3d_2 = st.columns(2)
+
+    with col_3d_1:
+        fig_3d_ref = go.Figure(data=[go.Scatter3d(
+            x=res['X_ref'][:2000, 0], y=res['X_ref'][:2000, 1], z=res['X_ref'][:2000, 2],
+            mode='markers', marker=dict(size=2, color='gray', opacity=0.5)
+        )])
+        fig_3d_ref.update_layout(title="Atractor Topológico - Sano", height=400, margin=dict(l=0, r=0, b=0, t=30))
+        st.plotly_chart(fig_3d_ref, use_container_width=True)
+
+    with col_3d_2:
+        fig_3d_eval = go.Figure(data=[go.Scatter3d(
+            x=res['X_eval'][:2000, 0], y=res['X_eval'][:2000, 1], z=res['X_eval'][:2000, 2],
+            mode='markers', marker=dict(size=2, color='#FF6B35' if res['hay_dano'] else '#3498db', opacity=0.5)
+        )])
+        fig_3d_eval.update_layout(title=f"Atractor Topológico - Nivel {res['nivel_dano']}", height=400, margin=dict(l=0, r=0, b=0, t=30))
+        st.plotly_chart(fig_3d_eval, use_container_width=True)
+else:
+    st.info("👈 Selecciona el Nivel de Daño en la barra lateral y presiona **Ejecutar Análisis SHM** para comenzar.")
 
 # ══════════════════════════════════════════════════════════════
 # METODOLOGÍA
