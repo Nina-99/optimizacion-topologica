@@ -58,8 +58,8 @@ _page_map = [
 sidebar_nav("pages/2_H.E.2_Optimizacion_SIMP_Metrica_Compuesta.py", _page_map)
 
 # ── Modo Defensa Toggle ──
-_modo_defensa = st.sidebar.checkbox("⚡ Modo Defensa (α=0.036, r_min=3.0)", value=False,
-    help="Usa parámetros validados para demostración. Si no se activa, usa α=0.012, r_min=2.4 (tesis).")
+_modo_original = st.sidebar.checkbox("🔄 Ver valor original (α=0.012, r_min=2.4)", value=False,
+    help="Compara con los parámetros originales de la tesis. Default: α=0.036, r_min=3.0 (validados).")
 
 # ── Page Header & Breadcrumbs ──
 st.markdown(page_header(
@@ -82,10 +82,10 @@ volfrac = st.sidebar.slider("Fracción de Volumen", 0.0, 1.0, 0.5, 0.01, key="si
     "Cuidado: f_V muy cercano a 0 o 1 puede causar problemas de convergencia en el optimizer SIMP.")
 penal = st.sidebar.number_input("Factor Penalización (p)", value=3.0, step=1.0, key="simp_penal",
     help="Penaliza densidades intermedias (material gris) forzando una solución 0/1. p=3 es el estándar SIMP. p>3 converge más rápido pero puede ser inestable.")
-rmin = st.sidebar.number_input("Radio Filtro", value=(3.0 if _modo_defensa else 2.4), step=0.1, key="simp_rmin",
-    help="Radio del filtro de sensibilidad por convolución espacial (Sigmund, 2007). r_min = 2.4 elem es el valor del Documento Completo (Cuadro 1, Aplicación 1). Con Modo Defensa: r_min=3.0 para suavizar ciclos espurios.")
-alpha = st.sidebar.number_input("Peso α (métrica μ_α)", value=(0.036 if _modo_defensa else 0.012), step=0.001, format="%.3f", key="simp_alpha",
-    help="Peso del término topológico β₁ en μ_α = c + α·β₁. α=0.012 es el valor de la tesis. Con Modo Defensa: α=0.036 para penalizar más agujeros y lograr β₁≤2.")
+rmin = st.sidebar.number_input("Radio Filtro", value=(2.4 if _modo_original else 3.0), step=0.1, key="simp_rmin",
+    help="Radio del filtro de sensibilidad. Default: 3.0 (validado). Con valor original: 2.4.")
+alpha = st.sidebar.number_input("Peso α (métrica μ_α)", value=(0.012 if _modo_original else 0.036), step=0.001, format="%.3f", key="simp_alpha",
+    help="Peso del término topológico β₁. Default: 0.036 (validado, β₁≤2). Con valor original: 0.012.")
 
 # Nuevo slider para iteraciones máximas
 max_iter = st.sidebar.slider("Iteraciones Máximas", min_value=100, max_value=500, value=200,
