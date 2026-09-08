@@ -5,6 +5,8 @@ import pkgutil
 
 import pytest
 
+streamlit = pytest.importorskip("streamlit", reason="Streamlit no instalado")
+
 
 @pytest.fixture(scope="session")
 def package_name() -> str:
@@ -17,12 +19,21 @@ def test_package_importable(package_name: str) -> None:
     assert mod is not None
 
 
+# Módulos que requieren streamlit — se skippean si no está disponible
+STREAMLIT_MODULES = {"tda.app.theme", "tda.app.app_master", "tda.app.download_utils"}
+STREAMLIT_PAGE_PREFIX = "tda.app.pages."
+
+
 def test_all_submodules_importable(package_name: str) -> None:
     """Todos los submódulos descubiertos se importan sin errores."""
     parent = importlib.import_module(package_name)
     errors: list[str] = []
 
     for info in pkgutil.walk_packages(parent.__path__, prefix=f"{package_name}."):
+        if info.name.startswith(STREAMLIT_PAGE_PREFIX):
+            continue
+        if info.name in STREAMLIT_MODULES:
+            continue
         try:
             importlib.import_module(info.name)
         except Exception as exc:

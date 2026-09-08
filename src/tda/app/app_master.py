@@ -25,7 +25,7 @@ del os, _sys
 
 import streamlit as st
 
-from tda.app.theme import landing_card, footer_style, update_hero_orange, responsive_style
+from tda.app.theme import landing_card, footer_style, update_hero_orange, responsive_style, ORANGE
 
 # ==========================================
 # CONFIGURACIÓN DE PÁGINA (DEBE SER EL PRIMER COMANDO STREAMLIT)
@@ -86,13 +86,13 @@ st.markdown(update_hero_orange(f"""
     display:flex;
     align-items:center;
     justify-content:space-between;
-    border-left:5px solid #FF6B35;
+    border-left:5px solid {ORANGE};
 ">
     <div style="flex:0 0 auto;margin-right:1.5rem;">
         {_uagrm_tag}
     </div>
     <div style="flex:1;text-align:center;">
-        <h1 style="margin:0;font-weight:800;font-size:2.2rem;letter-spacing:-0.02em;color:#FF6B35;">Plataforma TDA-SIMP</h1>
+        <h1 style="margin:0;font-weight:800;font-size:2.2rem;letter-spacing:-0.02em;color:{ORANGE};">Plataforma TDA-SIMP</h1>
         <p style="margin:0.6rem 0 0 0;opacity:0.9;font-size:1rem;max-width:600px;margin-left:auto;margin-right:auto;line-height:1.5;">
             Optimización Topológica, Homología Persistente y Métricas Compuestas
             para el diseño de estructuras eficientes y manufacturables.
@@ -176,7 +176,7 @@ with col4:
 st.markdown("---")
 st.markdown(f"""
 <div style="{footer_style()}">
-    <p style="margin:0;color:#FF6B35;font-weight:700;">
+    <p style="margin:0;color:{ORANGE};font-weight:700;">
         Jorge Larry Copa Cruz · Maestría en Matemática · UAGRM · 2026
     </p>
     <p style="margin:0.3rem 0 0 0;">

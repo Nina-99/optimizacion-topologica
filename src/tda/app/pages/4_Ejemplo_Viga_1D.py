@@ -22,8 +22,11 @@ import io
 from tda.optimization.beam_optimizer import BeamOptimizer
 from tda.app.theme import (
     apply_mpl_theme, apply_plotly_theme, responsive_style,
-    sidebar_nav, breadcrumbs, methodology_expander, page_header
+    sidebar_nav, breadcrumbs, methodology_expander, page_header, ORANGE
 )
+
+# Constante de diseño
+SIGMA_ADM = SIGMA_ADM  # MPa - Tensión admisible del hormigón H-20/H-25
 # ── Configuración de exportación (.exe) ──
 export_settings_ui()
 
@@ -124,7 +127,7 @@ if not has_data and not running:
     # ── Gradient header card ──
     st.markdown("""
     <div style="
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        background: linear-gradient(135deg, #2c1a00 0%, #3d2200 50%, #1a0f00 100%);
         padding: 1.5rem 2rem;
         border-radius: 12px;
         color: white;
@@ -281,8 +284,8 @@ elif running:
         ax_stress.plot(x, data["sigma_MPa"], 'darkred', linewidth=1.5,
                        linestyle='--', label="Tensión σ")
         if show_limits:
-            ax_stress.axhline(11.25, color='red', linestyle=':', alpha=0.5,
-                              label="σ_adm = 11.25 MPa")
+            ax_stress.axhline(SIGMA_ADM, color='red', linestyle=':', alpha=0.5,
+                              label="σ_adm = SIGMA_ADM MPa")
         ax_stress.set_ylabel("Tensión (MPa)", color='darkred')
         ax_stress.tick_params(axis='y', labelcolor='darkred')
 
@@ -402,9 +405,9 @@ else:
     ), row=3, col=1, secondary_y=True)
     if show_limits:
         fig_final.add_trace(go.Scatter(
-            x=[0, data["L"]], y=[11.25, 11.25],
+            x=[0, data["L"]], y=[SIGMA_ADM, SIGMA_ADM],
             mode='lines', line=dict(color='red', dash='dot', width=1.5),
-            name="σ_adm = 11.25 MPa"
+            name="σ_adm = SIGMA_ADM MPa"
         ), row=3, col=1, secondary_y=True)
 
     fig_final.update_layout(
@@ -495,7 +498,7 @@ else:
     - **Ahorro de material**: Se redujo el volumen de **{V_orig:.4f} m³** a **{V_opt:.4f} m³**, equivalente a **{weight:.2f} toneladas** de peso menos.
     - **Deflexión**: La deflexión máxima optimizada es de **{def_max_opt:.2f} mm** {'✅ dentro del límite admisible' if cumple_deflexion else '⚠️ supera el límite admisible'} de {def_adm:.2f} mm (L/300).
     - **Inercia**: La inercia máxima aumentó de {I0:.6f} m⁴ a **{np.max(data['I']):.6f} m⁴** ({np.max(data['I']) / I0:.2f}×), concentrando material donde más se necesita.
-    - **Tensiones**: La tensión máxima de compresión es de {np.max(sigma):.2f} MPa {'✅ dentro del límite' if np.max(sigma) <= 11.25 else '⚠️ supera el límite'} de 11.25 MPa del hormigón.
+    - **Tensiones**: La tensión máxima de compresión es de {np.max(sigma):.2f} MPa {'✅ dentro del límite' if np.max(sigma) <= SIGMA_ADM else '⚠️ supera el límite'} de SIGMA_ADM MPa del hormigón.
     - **Convergencia**: El algoritmo alcanzó la convergencia en **{data['iterations']} iteraciones** con un error relativo de **{data['final_error']:.6f}**.
     """)
 
@@ -580,8 +583,8 @@ else:
                     axs2 = axes_pdf[2].twinx()
                     axs2.plot(x, sigma, 'darkred', lw=1.5, linestyle='--', label="Tensión σ")
                     if show_limits:
-                        axs2.axhline(11.25, color='red', linestyle=':', alpha=0.5,
-                                     label="σ_adm = 11.25 MPa")
+                        axs2.axhline(SIGMA_ADM, color='red', linestyle=':', alpha=0.5,
+                                     label="σ_adm = SIGMA_ADM MPa")
                     axs2.set_ylabel("Tensión (MPa)", color='darkred')
                     axs2.tick_params(axis='y', labelcolor='darkred')
                     l1, lb1 = axes_pdf[2].get_legend_handles_labels()

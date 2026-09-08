@@ -21,7 +21,6 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import io
 from sklearn.cluster import KMeans
-from ripser import ripser
 
 from tda.processing.sampling import generate_cloud, add_gaussian_noise
 from tda.analysis.metrics import compute_kmeans_accuracy, verify_betti_numbers

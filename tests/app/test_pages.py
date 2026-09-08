@@ -5,8 +5,11 @@ que los imports resuelven correctamente y el código de módulo no falla.
 """
 
 import importlib
+import os
 
 import pytest
+
+pytest.importorskip("streamlit", reason="Streamlit no instalado")
 
 # Lista de módulos de páginas a verificar (nombres con dígito requieren importlib)
 PAGE_FILENAMES = [
@@ -23,8 +26,6 @@ class TestPagesImport:
     @pytest.mark.parametrize("filename", PAGE_FILENAMES)
     def test_page_imports_without_error(self, filename, pages_path):
         """La página {filename} se puede importar sin errores de sintaxis."""
-        import os
-        import streamlit
         full_path = os.path.join(pages_path, filename)
         spec = importlib.util.spec_from_file_location(filename[:-3], full_path)
         mod = importlib.util.module_from_spec(spec)
@@ -33,7 +34,6 @@ class TestPagesImport:
 
     def test_all_pages_in_pages_path(self, pages_path):
         """Todas las páginas listadas existen en el directorio de páginas."""
-        import os
         for filename in PAGE_FILENAMES:
             full_path = os.path.join(pages_path, filename)
             assert os.path.isfile(full_path), (
@@ -42,5 +42,4 @@ class TestPagesImport:
 
     def test_pages_path_is_directory(self, pages_path):
         """El path de páginas debe ser un directorio existente."""
-        import os
         assert os.path.isdir(pages_path), f"No es directorio: {pages_path}"

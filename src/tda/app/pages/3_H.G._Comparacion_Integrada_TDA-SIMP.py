@@ -15,13 +15,8 @@ import streamlit as st
 from tda.app.download_utils import download_button, export_settings_ui
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import plotly.graph_objects as go
-import plotly.express as px
 from plotly.subplots import make_subplots
-import io
-import json
-from pathlib import Path
 from scipy.stats import wilcoxon
 import warnings
 
@@ -76,10 +71,10 @@ volfrac = st.sidebar.slider("Fracción de volumen (fV)", 0.20, 0.80, 0.50, 0.05,
     help="Porcentaje de material permitido. H.E.2 especifica fV=0.50 (50%).")
 penal = st.sidebar.slider("Penalización (p)", 1.0, 6.0, 3.0, 0.5, key="hg_penal",
     help="Factor de penalización SIMP. H.E.2 especifica p=3.")
-rmin = st.sidebar.slider("Radio filtro (rmin)", 1.0, 5.0, 2.4, 0.2, key="hg_rmin",
-    help="Radio del filtro de sensibilidad en unidades de elemento. Tesis usa 2.4.")
-alpha = st.sidebar.slider("Peso α (métrica compuesta)", 0.001, 1.0, 0.012, 0.001, key="hg_alpha",
-    help="Peso de la métrica compuesta μ_α = c + α·β₁. Calibrado por Prop. 1.1.")
+rmin = st.sidebar.slider("Radio filtro (rmin)", 1.0, 5.0, 3.0, 0.2, key="hg_rmin",
+    help="Radio del filtro de sensibilidad. Default: 3.0 (validado). Original: 2.4.")
+alpha = st.sidebar.slider("Peso α (métrica compuesta)", 0.001, 1.0, 0.036, 0.001, key="hg_alpha",
+    help="Peso de la métrica compuesta μ_α = c + α·β₁. Default: 0.036 (validado). Original: 0.012.")
 max_iter = st.sidebar.number_input("Máx. iteraciones SIMP", 50, 500, 200, 50, key="hg_maxiter")
 
 st.markdown("---")
@@ -89,8 +84,6 @@ ejecutar_hg = st.button("▶ Ejecutar Comparación Integrada", type="primary", k
 
 if ejecutar_hg:
     from tda.optimization.metric_simp import MetricaTDA_SIMP
-    from tda.processing.sampling import generate_cloud
-    from tda.analysis.metrics import compute_kmeans_accuracy, verify_betti_numbers
 
     # Condiciones de borde y carga identicas para ambos:
     # Cantilever viga voladizo: borde izquierdo empotrado (x=0),

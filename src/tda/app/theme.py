@@ -6,7 +6,6 @@ Incluye: tipografía custom, cards premium, progress por fases, badges.
 
 import streamlit as st
 import matplotlib.pyplot as plt
-import plotly.graph_objects as go
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -94,17 +93,6 @@ def apply_mpl_theme():
         plt.style.use("dark_background")
     else:
         plt.style.use("default")
-
-
-def figure_for_export():
-    """Crea una figura matplotlib con fondo blanco siempre (para exportación)."""
-    fig = plt.figure()
-    fig.patch.set_facecolor("white")
-    return fig
-
-
-# ── Plotly ──────────────────────────────────────────────────────────
-
 def apply_plotly_theme(fig):
     """Aplica el template de Plotly según el tema actual."""
     if is_dark():
@@ -351,56 +339,6 @@ def metric_card(value, title, subtitle, variant="beta0", value_color=None):
         f'<p style="{style_small}">{subtitle}</p>'
         f'</div>'
     )
-
-
-def stat_badge(number, label):
-    """Genera un badge de estadística animada para el hero.
-
-    Parameters
-    ----------
-    number : str or int
-        Número a mostrar (ej. "3", "12", "21")
-    label : str
-        Descripción del número (ej. "Hipótesis Validadas")
-
-    Returns
-    -------
-    str
-        HTML listo para st.markdown()
-    """
-    return (
-        f'<div style="display:inline-flex;flex-direction:column;align-items:center;'
-        f'padding:0.8rem 1.5rem;background:rgba(255,255,255,0.1);'
-        f'border-radius:12px;backdrop-filter:blur(4px);'
-        f'border:1px solid rgba(255,255,255,0.15);margin:0 0.5rem;">'
-        f'<span style="font-size:2rem;font-weight:800;color:white;font-family:\'JetBrains Mono\',monospace;">{number}</span>'
-        f'<span style="font-size:0.75rem;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:0.08em;font-weight:500;">{label}</span>'
-        f'</div>'
-    )
-
-
-def phase_progress(fase_actual, total_fases, labels, status_text=""):
-    """Barra de progreso compacta con st.progress() y caption inline.
-
-    Parameters
-    ----------
-    fase_actual : int
-        Fase actual (1-indexed). Si fase_actual > total_fases, muestra 100%.
-    total_fases : int
-        Total de fases
-    labels : list of str
-        Labels para cada fase (se usa solo el de la fase activa)
-    status_text : str, optional
-        Texto de estado adicional debajo de la barra
-    """
-    pct = min(fase_actual, total_fases) / total_fases
-    st.progress(pct)
-    active_label = labels[fase_actual - 1] if 1 <= fase_actual <= total_fases else labels[-1]
-    icon = "✓" if fase_actual > total_fases else "⏳"
-    status = status_text if status_text else active_label
-    st.caption(f"{icon} **{active_label}** — {status}")
-
-
 def footer_style():
     """Devuelve el estilo CSS para el footer según el tema."""
     color = "#7f8c8d" if is_dark() else "#95a5a6"
@@ -648,69 +586,6 @@ def diagnosticar_hg(c_eucl: float, c_tda: float, beta1_eucl: int,
         "sugerencias": sugerencias,
         "veredicto": veredicto,
     }
-
-
-def hero_section(title, subtitle="", badges=None):
-    """Genera HTML para el hero banner premium con gradiente animado.
-
-    Parameters
-    ----------
-    title : str
-        Título principal
-    subtitle : str, optional
-        Subtítulo descriptivo
-    badges : list of tuple, optional
-        Lista de (número, label) para mostrar como badges estadísticos
-        Ej: [("3", "Hipótesis"), ("12", "Mejoras"), ("21", "Tests")]
-    """
-    badges_html = ""
-    if badges:
-        badges_html = '<div style="display:flex;justify-content:center;flex-wrap:wrap;gap:0.5rem;margin-top:1.5rem;">'
-        for num, label in badges:
-            badges_html += stat_badge(num, label)
-        badges_html += '</div>'
-
-    style_hero = (
-        "background:linear-gradient(135deg, #2c1a00 0%, #3d2200 40%, #1a0f00 70%, #2c1a00 100%);"
-        "background-size:200% 200%;"
-        "animation:heroGradient 8s ease infinite;"
-        "padding:3rem 2rem;border-radius:20px;color:white;margin-bottom:2rem;"
-        "text-align:center;box-shadow:0 12px 40px rgba(0,0,0,0.25);"
-        "position:relative;overflow:hidden;"
-        f"border-left:5px solid {ORANGE};"
-    )
-
-    sub = (
-        f'<p style="margin:1rem 0 0 0;opacity:0.9;font-size:1.05rem;'
-        f'max-width:700px;margin-left:auto;margin-right:auto;line-height:1.6;">{subtitle}</p>'
-        if subtitle else ""
-    )
-
-    # CSS keyframes para gradiente animado
-    animation_css = """
-    <style>
-    @keyframes heroGradient {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-    }
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
-    }
-    </style>
-    """
-
-    return (
-        animation_css +
-        f'<div style="{style_hero}">'
-        f'<h1 style="margin:0;font-weight:800;font-size:2.4rem;letter-spacing:-0.02em;">{title}</h1>'
-        f'{sub}'
-        f'{badges_html}'
-        f'</div>'
-    )
-
-
 def report_header(title, subtitle=""):
     """Genera HTML para un header con gradiente violeta (reportes)."""
     style_hdr = (
@@ -729,34 +604,6 @@ def report_header(title, subtitle=""):
         f'{sub}'
         f'</div>'
     )
-
-
-def success_banner(title, text=""):
-    """Genera un banner de éxito con acento naranja."""
-    text_html = f'<p style="margin:4px 0 0;color:{WHITE_DIM};font-size:0.9rem;">{text}</p>' if text else ""
-    return (
-        f'<div style="background:linear-gradient(135deg, #1a3a0a 0%, #0a2a05 100%);'
-        f'border-left:4px solid {ORANGE};border-radius:10px;padding:16px 20px;'
-        f'box-shadow:0 2px 12px rgba(255,107,53,0.15);margin:10px 0;">'
-        f'<p style="margin:0;font-weight:700;color:{ORANGE};">{title}</p>'
-        f'{text_html}</div>'
-    )
-
-
-def warning_banner(title, text=""):
-    """Genera un banner de advertencia con acento naranja."""
-    text_html = f'<p style="margin:4px 0 0;color:{WHITE_DIM};font-size:0.9rem;">{text}</p>' if text else ""
-    return (
-        f'<div style="background:linear-gradient(135deg, #3d2200 0%, #2c1a00 100%);'
-        f'border-left:4px solid {GOLD_WARN};border-radius:10px;padding:16px 20px;'
-        f'box-shadow:0 2px 12px rgba(243,156,18,0.15);margin:10px 0;">'
-        f'<p style="margin:0;font-weight:700;color:{GOLD_WARN};">{title}</p>'
-        f'{text_html}</div>'
-    )
-
-
-# ── Responsive CSS ──────────────────────────────────────────────────
-
 def responsive_style():
     """Inyecta CSS inline para mejorar la visualización en pantallas angostas.
 
@@ -955,32 +802,6 @@ def page_header(title, subtitle=""):
     {f'<p style="margin:0.3rem 0 0 0;color:{WHITE_DIM};font-size:0.95rem;">{subtitle}</p>' if subtitle else ''}
 </div>
 """
-
-
-def orange_banner(title, text=""):
-    """Banner de éxito con acento naranja."""
-    text_html = f'<p style="margin:4px 0 0;color:{WHITE_DIM};font-size:0.9rem;">{text}</p>' if text else ""
-    return (
-        f'<div style="background:linear-gradient(135deg, #3d2200 0%, #2c1a00 100%);'
-        f'border-left:4px solid {ORANGE};border-radius:10px;padding:16px 20px;'
-        f'box-shadow:0 2px 12px rgba(255,107,53,0.15);margin:10px 0;">'
-        f'<p style="margin:0;font-weight:700;color:{ORANGE};">{title}</p>'
-        f'{text_html}</div>'
-    )
-
-
-def orange_success_banner(title, text=""):
-    """Banner de éxito con acento naranja."""
-    text_html = f'<p style="margin:4px 0 0;color:{WHITE_DIM};font-size:0.9rem;">{text}</p>' if text else ""
-    return (
-        f'<div style="background:linear-gradient(135deg, #3d2200 0%, #2c1a00 100%);'
-        f'border-left:4px solid {ORANGE};border-radius:10px;padding:16px 20px;'
-        f'box-shadow:0 2px 12px rgba(255,107,53,0.15);margin:10px 0;">'
-        f'<p style="margin:0;font-weight:700;color:{ORANGE};">{title}</p>'
-        f'{text_html}</div>'
-    )
-
-
 def update_hero_orange(hero_html):
     """Reemplaza el gradiente azul del hero por naranja oscuro."""
     return hero_html.replace(
