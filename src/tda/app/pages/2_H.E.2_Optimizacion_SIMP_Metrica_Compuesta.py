@@ -32,7 +32,7 @@ from tda.optimization.metric_simp import MetricaTDA_SIMP
 from tda.app.theme import (
     apply_mpl_theme, apply_plotly_theme, is_dark,
     metric_card, report_header, responsive_style, diagnosticar_he2,
-    sidebar_nav, breadcrumbs, methodology_expander, page_header
+    methodology_expander, page_header
 )
 
 # ── Configuración de exportación (.exe) ──
@@ -48,25 +48,15 @@ st.set_page_config(page_title="H.E.2 — Optimización SIMP + Métrica Compuesta
 
 st.markdown(responsive_style(), unsafe_allow_html=True)
 
-# ── Sidebar Navigation ──
-_page_map = [
-    ("📊", "H.E.1", "pages/1_H.E.1_Robustez_TDA_vs_Euclidianos.py"),
-    ("🧮", "H.E.2", "pages/2_H.E.2_Optimizacion_SIMP_Metrica_Compuesta.py"),
-    ("🔬", "H.G.", "pages/3_H.G._Comparacion_Integrada_TDA-SIMP.py"),
-    ("🏗️", "Ejemplo", "pages/4_Ejemplo_Viga_1D.py"),
-]
-sidebar_nav("pages/2_H.E.2_Optimizacion_SIMP_Metrica_Compuesta.py", _page_map)
-
 # ── Modo Defensa Toggle ──
 _modo_original = st.sidebar.checkbox("🔄 Ver valor original (α=0.012, r_min=2.4)", value=False,
     help="Compara con los parámetros originales de la tesis. Default: α=0.036, r_min=3.0 (validados).")
 
-# ── Page Header & Breadcrumbs ──
+# ── Page Header ──
 st.markdown(page_header(
     "H.E.2 — Optimización SIMP + Métrica Compuesta μ_α",
     "Algoritmo 1: μ_α = c + α·β₁ | p=3, f_V=0.5, reducción ≥40%"
 ), unsafe_allow_html=True)
-st.markdown(breadcrumbs(["Tesis", "H.E.2", "Configuración"]), unsafe_allow_html=True)
 st.header("H.E.2 — Optimización SIMP + Métrica Compuesta μ_α")
 
 # ── Sidebar ──

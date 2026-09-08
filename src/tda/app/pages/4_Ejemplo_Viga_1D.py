@@ -22,7 +22,7 @@ import io
 from tda.optimization.beam_optimizer import BeamOptimizer
 from tda.app.theme import (
     apply_mpl_theme, apply_plotly_theme, responsive_style,
-    sidebar_nav, breadcrumbs, methodology_expander, page_header, ORANGE
+    methodology_expander, page_header, ORANGE
 )
 
 # Constante de diseño
@@ -41,21 +41,11 @@ st.set_page_config(page_title="Ejemplo de Optimización de Vigas", layout="wide"
 
 st.markdown(responsive_style(), unsafe_allow_html=True)
 
-# ── Sidebar Navigation ──
-_page_map = [
-    ("📊", "H.E.1", "pages/1_H.E.1_Robustez_TDA_vs_Euclidianos.py"),
-    ("🧮", "H.E.2", "pages/2_H.E.2_Optimizacion_SIMP_Metrica_Compuesta.py"),
-    ("🔬", "H.G.", "pages/3_H.G._Comparacion_Integrada_TDA-SIMP.py"),
-    ("🏗️", "Ejemplo", "pages/4_Ejemplo_Viga_1D.py"),
-]
-sidebar_nav("pages/4_Ejemplo_Viga_1D.py", _page_map)
-
-# ── Page Header & Breadcrumbs ──
+# ── Page Header ──
 st.markdown(page_header(
     "Ejemplo — Optimización de Viga 1D",
     "SIMP simplificado con parámetros interactivos"
 ), unsafe_allow_html=True)
-st.markdown(breadcrumbs(["Tesis", "Ejemplo Viga 1D", "Demo"]), unsafe_allow_html=True)
 st.header("Ejemplo — Optimización de Viga 1D")
 
 # ── Sidebar ──

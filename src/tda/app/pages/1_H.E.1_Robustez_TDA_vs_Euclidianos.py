@@ -29,7 +29,7 @@ from tda.analysis.anomaly import compare_anomaly_detection
 from tda.visualization.plots_tda import plot_stability_chart, interpret_stability, plot_sweep_persistence_animation
 from tda.app.theme import (
     apply_mpl_theme, apply_plotly_theme, responsive_style, metric_card,
-    sidebar_nav, breadcrumbs, methodology_expander, page_header
+    methodology_expander, page_header
 )
 
 export_settings_ui()
@@ -40,20 +40,10 @@ export_settings_ui()
 st.set_page_config(page_title="H.E.1 — Robustez TDA vs Euclidianos", layout="wide", page_icon="📊")
 st.markdown(responsive_style(), unsafe_allow_html=True)
 
-# ── Sidebar Navigation ──
-_page_map = [
-    ("📊", "H.E.1", "pages/1_H.E.1_Robustez_TDA_vs_Euclidianos.py"),
-    ("🧮", "H.E.2", "pages/2_H.E.2_Optimizacion_SIMP_Metrica_Compuesta.py"),
-    ("🔬", "H.G.", "pages/3_H.G._Comparacion_Integrada_TDA-SIMP.py"),
-    ("🏗️", "Ejemplo", "pages/4_Ejemplo_Viga_1D.py"),
-]
-sidebar_nav("pages/1_H.E.1_Robustez_TDA_vs_Euclidianos.py", _page_map)
-
-# ── Page Header & Breadcrumbs ──
+# ── Page Header ──
 st.markdown(page_header(
     "H.E.1 — Robustez TDA vs Euclidianos"
 ), unsafe_allow_html=True)
-st.markdown(breadcrumbs(["Tesis", "H.E.1", "Resultados"]), unsafe_allow_html=True)
 st.header("H.E.1 — Robustez Topológica vs Descriptores Euclidianos")
 
 # ── Sidebar ──
