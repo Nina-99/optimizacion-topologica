@@ -62,6 +62,12 @@ rmin = st.sidebar.slider("Radio filtro (rmin)", 1.0, 5.0, 2.4, 0.2, key="hg_rmin
 max_iter = st.sidebar.number_input("Máx. iteraciones SIMP", 50, 500, 200, 50, key="hg_maxiter")
 
 st.sidebar.markdown("---")
+st.sidebar.header("📐 Parámetros Físicos")
+E_acero = st.sidebar.number_input("Módulo Young E₀ (MPa)", value=200000.0, step=1000.0, help="Acero = 200 GPa = 200,000 MPa")
+F_carga = st.sidebar.number_input("Carga F (N)", value=1000.0, step=100.0, help="Carga aplicada = 1 kN = 1000 N")
+espesor = st.sidebar.number_input("Espesor (mm)", value=1.0, step=0.1, help="Espesor de la viga en 2D plano")
+
+st.sidebar.markdown("---")
 st.sidebar.caption("α se usa para calcular μ_α, no para la optimización SIMP (sección 6.3)")
 
 st.markdown("---")
@@ -89,11 +95,13 @@ if ejecutar_hg:
     for p_val in [2, 3, 4]:
         with st.spinner(f"Optimizando SIMP con p={p_val}..."):
             opt = MetricaTDA_SIMP(
-                nex=nelx, ney=nely, f_V=volfrac, p=p_val, r_min=rmin,
+                nex=nelx, ney=nely, E=E_acero, nu=0.3,
+                Lx=120.0, Ly=40.0, t=espesor,
+                f_V=volfrac, p=p_val, r_min=rmin,
                 alpha=ALPHA_FIJO, tol=1e-4, max_iter=max_iter
             )
             F = np.zeros(2 * nnx * (nely + 1))
-            F[dof_load] = -1.0
+            F[dof_load] = -F_carga
             opt.definir_problema(F, dofs_fijos)
             opt.optimizar(verbose=False)
             mu = opt.fase_tda(verbose=False)

@@ -77,6 +77,12 @@ rmin = st.sidebar.number_input("Radio Filtro", value=(2.4 if _modo_original else
 alpha = st.sidebar.number_input("Peso α (métrica μ_α)", value=(0.012 if _modo_original else 0.036), step=0.001, format="%.3f", key="simp_alpha",
     help="Peso del término topológico β₁. Default: 0.036 (validado, β₁≤2). Con valor original: 0.012.")
 
+st.sidebar.markdown("---")
+st.sidebar.header("📐 Parámetros Físicos")
+E_acero = st.sidebar.number_input("Módulo Young E₀ (MPa)", value=200000.0, step=1000.0, help="Acero = 200 GPa = 200,000 MPa")
+F_carga = st.sidebar.number_input("Carga F (N)", value=1000.0, step=100.0, help="Carga aplicada = 1 kN = 1000 N")
+espesor = st.sidebar.number_input("Espesor (mm)", value=1.0, step=0.1, help="Espesor de la viga en 2D plano")
+
 # Nuevo slider para iteraciones máximas
 max_iter = st.sidebar.slider("Iteraciones Máximas", min_value=100, max_value=500, value=200,
     help="Número máximo de iteraciones del bucle SIMP. Valor por defecto (200) sugiere una convergencia más completa. "
@@ -359,10 +365,10 @@ if ejecutar_simp:
     # Empotramiento en borde izquierdo (x=0): todos los nodos columna 0
     dofs_fijos = np.arange(0, 2 * (nely + 1))
 
-    # Carga puntual en centro del borde derecho: nodo (nelx, nely//2), F_y = -1
+    # Carga puntual en centro del borde derecho: nodo (nelx, nely//2)
     node_load = (nely // 2) * nnx + nelx
     F = np.zeros(n_dof)
-    F[2 * node_load + 1] = -1.0
+    F[2 * node_load + 1] = -F_carga
 
     # Callback para Streamlit
     def ui_callback_simp(k, c, delta_c, delta_rho, rho):
@@ -378,10 +384,14 @@ if ejecutar_simp:
             ax.axis('off')
             plot_ph.pyplot(fig)
             plt.close(fig)
-            metric_ph.markdown(f"**Iteración:** {k} | **Compliance:** {c:.4f}")
+            metric_ph.markdown(f"**Iteración:** {k} | **Compliance:** {c:.2f} N·mm")
 
-    # Instancia del optimizador MetricaTDA_SIMP
-    m = MetricaTDA_SIMP(nex=nelx, ney=nely, f_V=volfrac, p=penal, r_min=rmin, alpha=alpha, max_iter=max_iter)
+    # Instancia del optimizador MetricaTDA_SIMP con dimensiones físicas reales
+    m = MetricaTDA_SIMP(
+        nex=nelx, ney=nely, E=E_acero, nu=0.3,
+        Lx=120.0, Ly=40.0, t=espesor,
+        f_V=volfrac, p=penal, r_min=rmin, alpha=alpha, max_iter=max_iter
+    )
 
     m.definir_problema(F, dofs_fijos)
 
@@ -393,10 +403,12 @@ if ejecutar_simp:
 
     st.success("¡Optimización Finalizada!")
 
-    # Referencia 1: bloque sólido (f_V=1.0, una iteración) — solo informativa.
-    # NOTA: el sólido a volumen completo es más rígido que cualquier diseño
-    # al 50%, así que NO sirve de baseline para la reducción de H.E.2.
-    m_sol = MetricaTDA_SIMP(nex=nelx, ney=nely, f_V=1.0, p=penal, r_min=rmin, alpha=alpha, max_iter=1)
+    # Referencia 1: bloque sólido (f_V=1.0, una iteración)
+    m_sol = MetricaTDA_SIMP(
+        nex=nelx, ney=nely, E=E_acero, nu=0.3,
+        Lx=120.0, Ly=40.0, t=espesor,
+        f_V=1.0, p=penal, r_min=rmin, alpha=alpha, max_iter=1
+    )
     m_sol.definir_problema(F, dofs_fijos)
     m_sol.optimizar(verbose=False)
     c_solido = m_sol.c_final
@@ -407,6 +419,9 @@ if ejecutar_simp:
     reduccion_pct = ((c_base - m.c_final) / c_base) * 100
 
     # Guardar resultados en session_state
+    st.session_state.simp_c_solido = c_solido
+    st.session_state.simp_c_base = c_base
+    st.session_state.simp_reduccion_pct = reduccion_pct
     st.session_state.simp_rho_final = m.rho_final
     st.session_state.simp_c_final = m.c_final
     st.session_state.simp_beta1 = m.beta1
@@ -490,10 +505,14 @@ if st.session_state.get('simp_optimized', False):
         # Métricas rápidas siempre visibles
         st.markdown("---")
         col_q1, col_q2, col_q3, col_q4 = st.columns(4)
-        col_q1.metric("Iteraciones", st.session_state.simp_n_iter)
-        col_q2.metric("Compliance Final", f"{st.session_state.simp_c_final:.4f}")
+        c_final = st.session_state.simp_c_final
+        c_solido = st.session_state.get('simp_c_solido', c_final)
+        reduccion = st.session_state.get('simp_reduccion_pct', 0.0)
+        
+        col_q1.metric("Compliance Sólido (100%)", f"{c_solido:.1f} N·mm")
+        col_q2.metric("Compliance SIMP (50%)", f"{c_final:.1f} N·mm", delta=f"{reduccion:.1f}% vs Homogéneo", delta_color="inverse")
         col_q3.metric("β₁ (Agujeros)", st.session_state.simp_beta1)
-        col_q4.metric("μ_α Compuesta", f"{st.session_state.simp_mu:.5f}")
+        col_q4.metric("μ_α Compuesta", f"{st.session_state.simp_mu:.2f}")
 
         # α* calibrado (Proposición 1.1)
         from tda.core.metric import calibrar_alpha_optimo

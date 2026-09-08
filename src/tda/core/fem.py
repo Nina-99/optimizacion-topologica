@@ -17,7 +17,7 @@ import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 
 
-def calcular_K_elemental(E=1.0, nu=0.3):
+def calcular_K_elemental(E=1.0, nu=0.3, dx=1.0, dy=1.0, t=1.0):
     """
     Calcula la matriz de rigidez elemental K_0 (8×8) para un elemento
     cuadrilateral Q4 de 4 nodos bajo estado plano de tensiones.
@@ -29,8 +29,11 @@ def calcular_K_elemental(E=1.0, nu=0.3):
 
     Parámetros
     ──────────
-    E  : float  Módulo de Young del material sólido (normalizado a 1.0)
-    nu : float  Coeficiente de Poisson (típicamente 0.3 para acero)
+    E  : float  Módulo de Young del material sólido
+    nu : float  Coeficiente de Poisson
+    dx : float  Ancho del elemento en X
+    dy : float  Alto del elemento en Y
+    t  : float  Espesor del elemento
 
     Retorna
     ───────
@@ -49,9 +52,9 @@ def calcular_K_elemental(E=1.0, nu=0.3):
     gauss = [(-g, -g), (g, -g), (g, g), (-g, g)]
     w = 1.0
 
-    # Coordenadas nodales del elemento maestro (centrado en origen)
-    xn = np.array([-0.5,  0.5,  0.5, -0.5])
-    yn = np.array([-0.5, -0.5,  0.5,  0.5])
+    # Coordenadas nodales del elemento (centrado en origen)
+    xn = np.array([-dx/2,  dx/2,  dx/2, -dx/2])
+    yn = np.array([-dy/2, -dy/2,  dy/2,  dy/2])
 
     K0 = np.zeros((8, 8))
 
@@ -78,14 +81,16 @@ def calcular_K_elemental(E=1.0, nu=0.3):
         dNdx = Ji[0, 0] * dNdxi + Ji[0, 1] * dNdeta
         dNdy = Ji[1, 0] * dNdxi + Ji[1, 1] * dNdeta
 
-        # Matriz cinemática B (3×8)
+        # Matriz B (deformación-desplazamiento)
         B = np.zeros((3, 8))
-        B[0, 0::2] = dNdx
-        B[1, 1::2] = dNdy
-        B[2, 0::2] = dNdy
-        B[2, 1::2] = dNdx
+        for i in range(4):
+            B[0, 2*i]   = dNdx[i]
+            B[1, 2*i+1] = dNdy[i]
+            B[2, 2*i]   = dNdy[i]
+            B[2, 2*i+1] = dNdx[i]
 
-        K0 += w * (B.T @ D @ B) * detJ
+        # Integración de Gauss
+        K0 += B.T @ D @ B * detJ * t * w
 
     return K0
 

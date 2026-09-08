@@ -48,6 +48,7 @@ class MetricaTDA_SIMP:
     """
 
     def __init__(self, nex, ney, E=1.0, nu=0.3,
+                 Lx=None, Ly=None, t=1.0,
                  f_V=0.5, p=3, r_min=2.4, alpha=0.012,
                  tol=1e-4, max_iter=200):
         """
@@ -58,6 +59,8 @@ class MetricaTDA_SIMP:
         nex     : int    Elementos en x
         ney     : int    Elementos en y
         E, nu   : float  Módulo de Young y coeficiente de Poisson del sólido
+        Lx, Ly  : float  Dimensiones físicas (ej. mm). Si es None, asume = nex, ney
+        t       : float  Espesor del elemento
         f_V     : float  Fracción de volumen objetivo (0 < f_V ≤ 1)
         p       : float  Factor de penalización SIMP (p ≥ 3)
         r_min   : float  Radio del filtro de sensibilidad (en unidades de elemento)
@@ -69,6 +72,11 @@ class MetricaTDA_SIMP:
         # ── Geometría de la malla ─────────────────────────────────────────────
         self.nex   = nex
         self.ney   = ney
+        self.Lx    = Lx if Lx is not None else float(nex)
+        self.Ly    = Ly if Ly is not None else float(ney)
+        self.dx    = self.Lx / nex
+        self.dy    = self.Ly / ney
+        self.t     = t
         self.N_e   = nex * ney
         self.nnx   = nex + 1
         self.nny   = ney + 1
@@ -83,7 +91,7 @@ class MetricaTDA_SIMP:
         self.max_iter = max_iter
 
         # ── Matriz elemental K_0 ──────────────────────────────────────────────
-        self.K0 = calcular_K_elemental(E, nu)
+        self.K0 = calcular_K_elemental(E, nu, self.dx, self.dy, self.t)
 
         # ── Índices de DOF por elemento (precomputados) ───────────────────────
         idx = np.arange(self.N_e)
