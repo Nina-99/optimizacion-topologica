@@ -23,6 +23,7 @@ import io
 import json
 from pathlib import Path
 from scipy.stats import wilcoxon
+import warnings
 
 from tda.app.theme import (
     apply_mpl_theme, apply_plotly_theme, responsive_style, diagnosticar_hg,
@@ -525,7 +526,9 @@ if st.session_state.get('hg_run', False):
         t_tail = np.array(t_hist[-n_compare:])
 
         try:
-            stat_wilcoxon, p_value_wilcoxon = wilcoxon(e_tail, t_tail)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
+                stat_wilcoxon, p_value_wilcoxon = wilcoxon(e_tail, t_tail)
             diff_mean = np.mean(t_tail) - np.mean(e_tail)
 
             c1, c2, c3 = st.columns(3)
@@ -652,7 +655,7 @@ if st.session_state.get('hg_run', False):
 
     **Conclusión para el tribunal:**
     {'✅ La integración TDA+SIMP produce diseños con topología verificada (β₁ controlado) '
-     'y compliance competitiva, validando la Hipótesis General.' if mejora_compliance and mejora_beta1
+     'y compliance competitiva, validando la Hipótesis General.' if diag_hg["veredicto"] == "VALIDADA"
      else '⚠️ Se requieren ajustes de parámetros para validar completamente H.G.'}
     """)
 
