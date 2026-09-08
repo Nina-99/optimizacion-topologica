@@ -1,6 +1,6 @@
 """Métricas de clasificación y verificación topológica para TDA.
 
-Proporciona funciones para evaluar accuracy de K-Means (con manejo de
+Proporciona funciones para evaluar exactitud de K-Means (con manejo de
 etiquetas intercambiadas) y verificar números de Betti esperados.
 """
 
@@ -10,7 +10,7 @@ from sklearn.metrics import accuracy_score
 
 
 def compute_kmeans_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
-    """Calcula accuracy de K-Means manejando el intercambio de etiquetas.
+    """Calcula la exactitud (accuracy) de K-Means manejando el intercambio de etiquetas.
 
     K-Means asigna etiquetas 0/1 arbitrariamente, que pueden estar
     intercambiadas respecto a ground truth. Esta función prueba ambas
@@ -21,7 +21,7 @@ def compute_kmeans_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
         y_pred: Etiquetas predichas por K-Means (0, 1).
 
     Returns:
-        Accuracy en el rango [0, 1].
+        Exactitud en el rango [0, 1].
     """
     acc1 = accuracy_score(y_true, y_pred)
     acc2 = accuracy_score(y_true, 1 - y_pred)

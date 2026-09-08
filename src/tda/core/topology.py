@@ -109,9 +109,11 @@ def escala_adaptativa(nube, N_e):
     Calcula la escala adaptativa ε* para la filtración Vietoris-Rips:
         ε* = diam(X) / √N_e
 
+    Soporta nubes de puntos en任意 dimensión (2D, 3D, etc.).
+
     Parámetros
     ──────────
-    nube : ndarray (n_s, 2)  Centroides de elementos sólidos
+    nube : ndarray (n_s, d)  Centroides de elementos sólidos (d dimensiones)
     N_e  : int               Número total de elementos de la malla
 
     Retorna
@@ -121,9 +123,10 @@ def escala_adaptativa(nube, N_e):
     if len(nube) < 2:
         return 1.0
 
-    xmin, ymin = nube.min(axis=0)
-    xmax, ymax = nube.max(axis=0)
-    diam = np.sqrt((xmax - xmin)**2 + (ymax - ymin)**2)
+    # Diagonal del bounding box (funciona para任意 dimensión)
+    mins = nube.min(axis=0)
+    maxs = nube.max(axis=0)
+    diam = np.sqrt(np.sum((maxs - mins)**2))
 
     return max(diam / np.sqrt(float(N_e)), 0.1)
 

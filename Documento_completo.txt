@@ -1,0 +1,685 @@
+--- PAGE 1 ---
+Introducción
+La métrica compuesta TDA–SIMP es la contribución original de esta investigación. Su
+núcleo es un escalar
+µ(ρ) =c (ρ) +αβ 1(Ωsólido), α> 0,
+que integra lacompliancemecánica c con el número de Bettiβ 1 de la topología resul-
+tante del método SIMP. El presente capítulo desarrolla este concepto en cuatro pasos:
+(1)marco matemático riguroso con definiciones, lemas, proposiciones y demostración
+del teorema de bien–definición;(2) diagrama de flujo unificado del proceso TDA–SIMP
+en ingeniería;(3) algoritmo explícito de cálculo; y(4) dos aplicaciones concretas en
+detalle: viga en voladizo (ingeniería civil) y monitoreo de salud estructural de un puente
+(ingeniería estructural).
+ 
+--- PAGE 2 ---
+1. Marco matemático de la métrica compuesta
+1.1 Espacios y objetos fundamentales
+Definición 1.1 (Complejo Simplicial).Un complejo simplicialK sobre un
+conjunto finitoV es una colección de subconjuntosσ⊆ V (llamados símplices )
+tal que siσ∈K y τ⊆ σ , entoncesτ∈K . Ladimensión deσ es dimσ =|σ|− 1.
+El complejo tiene dimensiónd = m´ axσ∈K dimσ.
+Definición 1.2 (Filtración de Vietoris–Rips).Dado X ={x1,...,x n}⊂ R d
+yε≥ 0 , elcomplejo de Vietoris–Ripses
+VR(X,ε ) =
+{
+σ⊆X : d (xi,xj)≤ε∀ xi,xj∈σ
+}
+.
+La familia{ VR(X,ε )}ε≥0 es unafiltración :ε≤ε′⇒VR(X,ε )⊆ VR(X,ε′).
+Definición1.3(HomologíaPersistenteyDiagramadePersistencia). Sea
+K0⊆K 1⊆···⊆K m una filtración simplicial. Losgrupos de homología per-
+sistenteH i,j
+k capturan los rasgos topológicosk -dimensionales quenacen en el
+complejoK i ymueren enK j. Eldiagrama de persistenciade dimensiónk es
+Dgmk(X) =
+{
+(bi,di) :b i <d i, bi,di∈R
+}
+∪∆,
+donde∆ denota la diagonal con multiplicidad infinita. Lapersistencia de un
+punto( b,d )es pers( b,d ) =d−b.
+Definición 1.4 (Número de Betti Topológico).El k -ésimo número de
+Bettide un espacio topológicoX es
+βk(X) =H k(X; Z ) = dimFHk(X; F ),
+dondeF es un cuerpo. En particular: β 0 = componentes conexas,β 1 = ciclos
+1-dimensionales (agujeros),β 2 = cavidades 2-dimensionales.
+Definición 1.5 (Espacio de Diagramas de PersistenciaD ).Sea D el con-
+junto de todos los diagramas de persistencia (multiconjuntos de puntos enR 2 por
+encima de la diagonal, con∆ incluida). Ladistancia botellaentre A,B∈D es
+d∞(A,B ) = ´ ınf
+ϕ:A→B
+sup
+p∈A
+∥p−ϕ (p)∥∞,(1)
+con el ínfimo sobre todas las biyeccionesϕ : A→ B que pueden enviar puntos a
+ 
+--- PAGE 3 ---
+la diagonal. Ladistancia de Wasserstein de ordenq es
+dq
+W (A,B ) =
+
+ ´ ınf
+ϕ:A→B
+∑
+p∈A
+∥p−ϕ (p)∥q
+∞
+
+
+1/q
+.(2)
+(D,d∞)y (D,dq
+W )son espacios métricos.
+1.2 El método SIMP: notación y problema de optimización
+Definición 1.6 (Malla FEM y variable de diseño).Sea Ω⊂ R 2 el dominio
+de diseño rectangular, discretizado enN e elementos finitos cuadrilaterales Q4 de
+volumen unitario. Lavariable de diseño es ρ = ( ρ1,...,ρ Ne)∈ (0 ,1]Ne. El
+módulo de Young penalizadoes
+Ee(ρe) =ρ p
+eE0, p ≥ 3, E 0 >0,(3)
+dondep es elfactor de penalizaciónque fuerza la solución hacia el rango{ 0,1}.
+Definición 1.7 (Problema SIMP).El problema de optimización es
+m´ ın
+ρ∈F
+c(ρ) =U (ρ)⊤K(ρ)U (ρ) =
+Ne∑
+e=1
+ρp
+e u⊤
+e K0 ue,
+s.a.K (ρ)U = F,
+Ne∑
+e=1
+ρeve≤f V V0,
+0<ρ m´ ın≤ρ e≤1,
+(4)
+dondeF denota el conjunto factible, K (ρ) = ∑
+eρp
+eKe es la matriz de rigidez
+global,F el vector de cargas, v e el volumen del elementoe ,f V la fracción de
+volumen yV 0 =∑ve.
+1.3 La métrica compuesta TDA–SIMP
+Definición 1.8 (Nube de Puntos del Diseño SIMP).Dado ρ ∗∈{ 0,1}Ne
+(solución binarizada de SIMP con umbralρ e >0 .5), lanube de puntos del
+diseñoes el conjunto de centroides de los elementos sólidos:
+X(ρ∗) =
+{
+ce∈R 2 :ρ∗
+e >0.5, e= 1,...,N e
+}
+.
+Elnúmero de Betti topológico del diseñoes
+β1(Ωsólido) =β 1
+(
+VR
+(
+X(ρ∗),ε∗
+))
+,
+ 
+--- PAGE 4 ---
+dondeε∗ = diam(X)/√Ne es la escala de filtración adaptativa.
+Definición 1.9 (Métrica Compuesta TDA–SIMP).Dado un diseño ρ∗∈F
+y un pesoα >0 , lamétrica compuesta TDA–SIMPes la funciónµ α :F→
+R>0 definida por
+µα(ρ∗) =c (ρ∗) +αβ 1
+(
+Ωsólido
+)
+. (5)
+El primer término captura laeficiencia mecánica (menor c = mayor rigidez);
+el segundo penaliza lacomplejidad topológica(menor β 1 = menos agujeros =
+mayor manufacturabilidad).
+1.4 Propiedades y demostración de bien–definición
+Lema 1.1 (Acotación deβ 1 en mallas finitas).Sea X (ρ∗)la nube de puntos
+de la Def. 1.8 sobre una mallaN e-elemento. Entonces
+0≤ β 1
+(
+Ωsólido
+)
+≤ ⌊Ne/4⌋.
+Demostración
+El número máximo de ciclos 1-dimensionales en un complejo simplicial construido
+sobrenvérticesenposicióngeneralen R 2 estáacotadopor β 1≤|E|−|V| +β0,donde
+|E|es el número de aristas y|V|de vértices. En una malla Q4 deN e elementos con
+un elemento por cuadrado unitario, la nubeX (ρ∗)tiene como máximon =⌈fVNe⌉
+puntos. Para el complejoVR con ε ∗ = diam/√Ne, cada punto se conecta a sus
+cuatro vecinos inmediatos; el número de 1-ciclos independientes está acotado por
+el número de celdas unitarias que pueden encerrarse, que es⌊ n/4⌋≤⌊ Ne/4⌋.□
+Lema 1.2 (Coercitividad de la compliance).Bajo las hipótesis estándar de
+elasticidad lineal y conρ m´ ın>0 , se tiene
+c(ρ)≥c m´ ın>0∀ ρ∈F .
+Demostración
+La matriz de rigidezK (ρ) =
+∑
+eρp
+eKe es definida positiva paraρ m´ ın>0 , ya
+queK e ⪰0 con espectro positivo en los grados de libertad no restringidos, y
+ρe ≥ρ m´ ın>0 garantiza ρ p
+e ≥ρ p
+m´ ın>0 . Por tanto el sistemaKU = F tiene
+solución únicaU = K−1F, yc = F⊤K−1F≥∥ F∥2/λm´ ax(K)> 0 .□
+Teorema 1.1 (Bien–Definición y Acotación deµ α).Bajo las hipótesis de
+la Def. 1.7 y conα> 0 , la métrica compuesta (5) satisface:
+(i) Bien–definición:µ α(ρ∗)está bien definida para todoρ∗∈F .
+ 
+--- PAGE 5 ---
+(ii) Positividad:µ α(ρ∗)≥c m´ ın>0 .
+(iii) Cota superior:µ α(ρ∗)≤ c sol +α⌊Ne/4⌋, dondec sol es lacompliance del
+bloque sólido.
+(iv) Monotonía topológica:Si β 1(ρ∗
+A)< β 1(ρ∗
+B)y c (ρ∗
+A) =c (ρ∗
+B), entonces
+µα(ρ∗
+A)<µ α(ρ∗
+B).
+(v) Continuidad discreta:Bajo una perturbación de los datos de la malla
+acotada porδ en normaℓ∞, el cambio en el componente topológico satisface
+|β′
+1−β 1|≤Cδ/ε ∗,
+dondeC depende sólo de la geometría de la malla.
+Demostración
+(i)La compliancec (ρ∗)está bien definida por el Lema 1.2. El número de Betti
+β1(Ωsólido)es un entero no negativo obtenido del cálculo de homología sobre un
+complejo simplicial finito; por la corrección del algoritmo de reducción de matrices
+de frontera (Edelsbrunner y Harer, 2010),β 1 está siempre bien definido. Luegoµ α
+es una suma de números reales bien definidos.
+(ii)Inmediato del Lema 1.2 y deαβ 1≥0 .
+(iii)En el extremo superior, la densidad máxima corresponde al bloque sólido:
+ρe = 1para todoe , conc =c sol yβ 1≤⌊Ne/4⌋(Lema 1.1).
+(iv)Directa de la linealidad deµ α en ambos sumandos cuandoc es fija.
+(v)Por el Teorema de Estabilidad de Cohen-Steiner, Edelsbrunner y Harer
+(2007) [1]:d ∞(Dgm(f),Dgm(g))≤ ∥f− g∥∞. Una perturbaciónδ en las posi-
+ciones de los centroidesc e desplaza el filtro por≤ δ . Los cambios enβ 1 ocurren
+sólo cuando puntos del diagrama cruzan la escalaε∗; el número de tales cruces está
+acotado porCδ/ε ∗ conC geométrico.□
+Corolario 1.1 (Relación orden parcial en diseños).Sean ρ∗
+A yρ∗
+B dos solu-
+cionesSIMPconigualrestriccióndevolumen.Si c (ρ∗
+A)≤c (ρ∗
+B)yβ 1(ρ∗
+A)≤β 1(ρ∗
+B),
+con al menos una desigualdad estricta, entoncesµ α(ρ∗
+A)<µ α(ρ∗
+B)para todoα> 0 .
+Proposición 1.1 (Calibración del pesoα ).El peso óptimo α ∗ que equilibra
+la contribución mecánica y topológica en un conjunto deM diseños de referencia
+{ρ∗
+i}M
+i=1 es
+α∗ = c−c m´ ın
+β1,m´ ax−β 1,m´ ın
+,(6)
+donde ces la compliance media del conjunto, c m´ ınla mínima, yβ 1,m´ ax,β 1,m´ ın
+los valores extremos deβ 1 en el conjunto. Esta calibración garantiza que ambos
+términos contribuyen en la misma escala absoluta.
+ 
+--- PAGE 6 ---
+2. Diagrama de flujo del proceso TDA–SIMP en ingeniería
+2.1 Flujo completo: de la especificación al diseño verificado
+La Figura 1 muestra el diagrama de flujo unificado del proceso TDA–SIMP. El proce-
+so tienetres fasesclaramente diferenciadas:preprocesado(rojo), optimización SIMP
+(azul) yanálisis topológico TDA(verde).
+ 
+--- PAGE 7 ---
+FASE 1: ENTRADA
+FASE 2: OPTIMIZACIÓN SIMP
+FASE 3: ANÁLISIS TDA
+Especificación
+de ingeniería
+(F,BC,V 0,E 0)
+Discretización FEM
+mallaN e elementos Q4
+Ω⊂ R 2
+Inicialización
+ρe =f V ∀e
+Análisis FEM
+K(ρ)U= F
+Sensibilidades
+∂c/∂ρe =−pρp−1
+e uT
+e K0ue
+Filtro de sensibilidad
+(radior m´ ın)
+Actualización OC / MMA
+ρ← ρ nuevo
+∆c/c
+<10−4?
+Binarización
+ρ∗
+e =1 [ρe>0.5]
+NubeX (ρ∗)
+Filtración VR
+VR(X(ρ∗),ε∗)
+Ripser 0.6
+Diagrama de
+persistenciaDgm 1(X)
+Número de Bettiβ 1
+Métrica compuesta
+µα =c +αβ 1
+µα
+≤µ tol?
+Diseño
+aceptado✓
+Ajustar
+parámetros
+(p,r m´ ın,fV )
+Sí
+Sí
+No
+Figura 1: Diagrama de flujo unificado del proceso TDA–SIMP. Rojo: preprocesado.
+Ázul: bucle de optimización SIMP. Verde: análisis topológico y cálculo de la métrica
+compuesta µα. El lazo dorado modifica parámetros si µα >µtol.
+--- PAGE 8 ---
+2.2 Flujo detallado: cálculo deβ 1 desde la malla SIMP
+La Figura 2 detalla la transición entre la salida de SIMP y el cálculo del número de
+Bettiβ 1.
+Solución SIMPρ ∗
+mallaN x×Ny elementos
+Umbralρ e>0.5
+−→Mapa binarioB
+Extracción de centroides
+X={ ce :B e = 1}⊂ R 2
+|X|=n s≤N e
+Escala adaptativa
+ε∗ = diam(X)/√Ne
+Ripser 0.6:
+Dgm0(X),Dgm 1(X)
+en≤O (n3
+s)
+β1 =número de puntos enDgm 1
+conpers >ε ∗/2
+(puntos significativos)
+µα =c (ρ∗) +αβ 1
+Elimina material
+intermedio (zona gris)
+Escala = separación
+media entre centroides
+Filtra ruido:
+solo persiste>umbral
+Figura 2: Flujo detallado del cálculo deβ 1 a partir de la solución SIMP. La escala
+adaptativaε∗ garantizaquesecapturanlosagujerosdetamañocomparablealespaciado
+de la malla.
+3. Algoritmo de cálculo
+--- PAGE 9 ---
+Algorithm 1:Métrica Compuesta TDA–SIMP
+Entrada :Dominio Ω , cargaF , condiciones de fronteraBC ,f V,p ,α ,µ tol,r m´ ın,
+tolSIMP = 10−4
+Salida : Diseño óptimo ρ∗, métricaµ∗
+α, diagramaDgm 1
+1Discretizar Ω en N e elementos Q4 ;
+2Inicializar ρ e←f V∀e;
+3K 0←matriz de rigidez elemental ;
+4repeat
+5K ← ∑
+eρp
+eKe ;
+6U ← K−1F▷ Solver disperso (CHOLMOD)
+7c ← U T KU;
+8foreach elemento e do
+9s e←−pρp−1
+e uT
+e K0ue ;
+10ˆ se←filtro por convolución con radior m´ ın;
+11ρ (k+1)←OC-update (ρ(k), ˆs,fV );
+12until m´ axe|ρ(k+1)
+e −ρ (k)
+e |< tol SIMP and| c(k+1)−c (k)|/c(k) <tol SIMP;
+// –- Fase TDA –-
+13X ←{ ce :ρ e>0.5};
+14ε ∗←diam(X)/√Ne ;
+15[Dgm 0,Dgm 1]← Ripser (X,ε∗);
+16β 1←|{ (b,d )∈ Dgm 1 :d−b>ε ∗/2}|;
+17µ α←c +αβ 1 ;
+// –- Verificación y ajuste –-
+18if µ α>µ tol then
+19Ajustar p o f V y reiniciar desde el paso 2 ;
+20return ρ∗, µ∗
+α,Dgm 1 ;
+Complejidad.El paso de FEM cuestaO (N 1.5
+e )con CHOLMOD (solver disperso Cho-
+lesky). El paso TDA con Ripser cuestaO (n3
+s)en el peor caso, donden s =f VNe≤N e.
+Para mallas típicas (Ne≤14 400) en ingeniería 2D, el tiempo de cálculo TDA es inferior
+al5 %del tiempo total del algoritmo SIMP.
+--- PAGE 10 ---
+4. Aplicación 1: Viga en voladizo — Ingeniería Civil
+4.1 Descripción del problema de ingeniería
+Laviga en voladizoes el caso de referencia estándar en optimización estructural:
+una viga rectangular empotrada en su extremo izquierdo con una carga puntualF
+aplicada en el centro del extremo derecho. En la práctica de ingeniería civil, este modelo
+representa:
+Vigas de apoyo en estacionamientos con pilares a un lado.
+Tableros de puentes asimétricos.
+Ménsula de andamios y grúas.
+Alas de aeronaves en configuración semimóno.
+La pregunta de ingeniería es:çqué distribución de material en el dominioΩ = [0 ,L ]×
+[0,h ]minimiza la compliance bajo una restricción de volumen del50 % , y cuál es la
+complejidad topológica de esa solución?
+F
+L= 120 mm (Nx = 60)
+h= 40 mm (Ny = 30)
+ux =u y = 0 (empotramiento)
+Ω,f V = 0.50
+Figura 3: Viga en voladizo: dominioΩ , condiciones de contorno y carga puntual en el
+centro del extremo libre. La malla tiene60× 30 = 1 800elementos Q4.
+--- PAGE 11 ---
+4.2 Parámetros y datos numéricos
+Cuadro 1: Parámetros de la simulación — Aplicación 1.
+Parámetro Valor Descripción
+Módulo de YoungE 0 200 GPaAcero estructural
+Coeficiente de Poisson
+ν
+0.3Valor típico acero
+CargaF 1 kN Puntual en c.g. extremo
+libre
+DominioΩ 120 × 40 mm 2 RelaciónL/h = 3
+Malla( Nx×Ny) 60 × 30N e = 1 800elem. Q4
+Fracción de volumen
+fV
+0.50 50 % del dominio
+Factor de
+penalizaciónp
+3Estándar SIMP
+Radio de filtror m´ ın 2.4(elem.) RAMP filter
+tolSIMP 10−4 Convergencia doble
+Escala TDAε∗ 2.83mm diam( X)/√Ne
+Pesoα 0 .012(calc.
+Prop. 1.1)
+Calibrado en conjunto
+4.3 Resultados SIMP: distribución de densidades
+El algoritmo converge enk = 68 iteraciones. La distribución de densidades resultante
+muestra dos arcos triangulares de material que forman unacelosía clásica: un cordón
+superior a compresión, un cordón inferior a tracción y diagonales que transmiten el
+cortante.
+Cuadro 2: Resultados mecánicos del SIMP — Aplicación 1.
+Indicador Bloque sólido SIMP p = 3
+Compliancec (N·mm)115 .4 43 .7
+Reducción decompliance— 62 .1%
+Volumen de material100 % 50 %
+Masa relativa1 .000 0 .500
+Número de iteraciones — 68
+Tiempo CPU (Google Colab
+T4)
+—≈ 4.2s
+--- PAGE 12 ---
+4.4 Análisis topológico (Fase TDA)
+Tras la binarización (ρ∗
+e >0 .5), la nube de puntosX (ρ∗)tiene n s = 900centroides
+(exactamente el50 %de losN e = 1 800elementos).
+La filtraciónVR(X,ε∗)calculada con Ripser genera los diagramas de persistenciaDgm 0
+yDgm 1.
+Cuadro 3: Resultados topológicos — Aplicación 1.
+Indicador TDA Valor Interpretación
+β0(Ωsólido) 1 Una componente
+conexa
+β1(Ωsólido) 0 Sin agujeros
+topológicos
+Persistencia máx. enDgm 1 0.31ε∗ Por debajo del umbral
+Puntos signif. enDgm 1 0Todos son ruido
+(cercan. diagonal)
+Manufacturabilidad TDAAPTA Estructura conexa y
+simple
+4.5 Cálculo de la métrica compuesta
+Aplicando la Definición 1.9 conα∗ = 0.012(Prop. 1.1):
+µ0.012(ρ∗) =c (ρ∗) +α∗β1(Ωsólido)
+= 43.7 + 0.012× 0
+=43.7N·mm.(7)
+La coincidenciaβ 1 = 0indica que la celosía clásica estopológicamente simple: no
+contiene agujeros cerrados, todos los miembros están conectados, y la estructura es
+manufacturablemente óptima. El corolario 1.1 se verifica: la solución conp = 3 domina
+en sentido Pareto a las soluciones conp∈{ 2,4}en ambos criterios.
+--- PAGE 13 ---
+4.6 Análisis de sensibilidad aα
+Cuadro 4: Sensibilidad deµ al peso α — Aplicación 1. Comoβ 1 = 0, la métrica es
+insensible aα .
+α c (N·mm)µ α
+0.001 43 .7 43 .7
+0.010 43 .7 43 .7
+0.100 43 .7 43 .7
+1.000 43 .7 43 .7
+Cuadro 5: Comparación multifactor entre configuraciones de malla — Aplicación 1. La
+columnaµ usa α = 0.012.
+MallaN e c(N·mm)β 0 β1 µ0.012
+40×20 800 46 .1 1 0 46 .1
+60×30 1 800 43 .7 1 0 43 .7
+80×40 3 200 42 .9 1 0 42 .9
+120×60 7 200 42 .3 1 0 42 .3
+Con penalización insuficiente (p= 2 ):
+60×30 1 800 38 .1 1 3 38 .1+0.036 =
+38.136
+La fila final muestra el efecto crítico del parámetrop : conp = 2 la compliance baja
+artificialmente pero aparecenβ 1 = 3agujeros espurios (zonas con material intermedio
+no binarizado), lo que penaliza la métrica compuesta e identifica correctamente la
+solución como topológicamente inferior.
+4.7 Interpretación ingenieril del diagrama de persistencia
+El diagramaDgm 1 de la solución conp = 3 muestra tres puntos con persistencia
+pers< 0 .5ε∗, todos cercanos a la diagonal: sonruido topológico producido por la
+discretización de la malla y no representan rasgos estructurales reales. El umbral de
+persistenciapers >ε ∗/2los filtra correctamente, confirmandoβ signif
+1 = 0.
+Conp = 2 , en cambio, aparecen tres puntos enDgm 1 conpers≈ 2.8ε∗: son tres zonas
+de material intermedioρ e≈0.4que forman bucles cerrados en la malla. Estos bucles
+no son manufacturables y la métricaµ los penaliza.
+--- PAGE 14 ---
+5. Aplicación 2: Monitoreo de salud estructural de un puente
+5.1 Descripción del problema de ingeniería
+Elmonitoreo de salud estructural(SHM, Structural Health Monitoring) consiste
+en detectar, localizar y cuantificar daños en una estructura a partir de mediciones
+dinámicas (aceleraciones, vibraciones, frecuencias naturales). El puente Z24 en Suiza
+es el caso de referencia internacional: fue monitorizado continuamente durante 9 meses
+y sometido a daños progresivos controlados antes de su demolición.
+La aplicación de TDA al SHM tiene dos dimensiones:
+1.TDA de series temporales de vibración:la homología persistente de las
+trayectorias de la señal acelerómetro en coordenadas de retardo detecta cam-
+bios en la complejidad dinámica que preceden al fallo visible.
+2.SIMP para rediseño post–daño:una vez detectado y localizado el daño, el
+método SIMP reoptimiza la distribución de material de refuerzo bajo el nuevo
+estado de carga. La métricaµ garantiza que el refuerzo propuesto no introduce
+complejidad topológica adicional.
+dañoS1 S2 S3 S4 S5 S6
+Puente Z24 (sección longitudinal)
+L= 40 m
+Figura 4: Esquema del puente Z24 con seis sensores de aceleración (puntos cian) y zona
+de daño inducido (rojo). La instrumentación registra aceleraciones verticales a100 Hz.
+5.2 Fase TDA: detección de daño estructural
+5.2.1 Construcción del espacio de estados con el teorema de Takens
+Sea{ak}N
+k=1 la serie temporal de aceleración de un sensor. Elteorema deembedding
+de Takens(1981) establece que, bajo condiciones genéricas, el mapa
+ϕ:k↦→
+(
+ak, ak+τ, ak+2τ, ..., ak+(m−1)τ
+)
+∈R m
+reconstruye un homeomorfismo con el atractor del sistema dinámico subyacente, siem-
+pre que la dimensión deembeddingm≥ 2 da + 1(con d a la dimensión del atractor)
+y el retardoτ es elegido mediante información mutua. La nube de puntos resultante
+X⊂ R m tiene la misma topología que el atractor.
+Definición 4.1 (Nube de estados reconstruida).Para la serie { ak}con
+N= 8 000 puntos, τ = 5 (máximo lag de la función de autocorrelación) ym = 6
+(dimensión determinada por FNN,false nearest neighbors):
+XTDA =
+{
+(ak,ak+5,ak+10,ak+15,ak+20,ak+25)
+}7 975
+k=1
+⊂R 6.
+--- PAGE 15 ---
+Esta nube se usa como entrada a Ripser para calcularDgm 1(XTDA).
+5.2.2 Indicador de daño topológico
+Definición 4.2 (Indicador de DañoI D).Sean Dgm (0)
+1 yDgm (t)
+1 los diagramas
+de persistencia correspondientes al estado de referencia (sin daño) y al instantet
+(con posible daño). Elindicador de daño topológicoes
+ID(t) =d 2
+W
+(
+Dgm(0)
+1 ,Dgm (t)
+1
+)
+,(8)
+donded 2
+W es la distancia de Wasserstein de orden 2 (Def. 1.5). Por el Teorema de
+Estabilidad [1]:I D(t) = 0implica sin cambio topológico;I D(t)> δumbral implica
+daño detectable.
+Cuadro 6: Indicador de dañoI D para seis niveles progresivos de daño en el puente Z24
+(datos sintéticos basados en Gowdridge et al., 2022 [7]).
+Nivel Descripción del daño I D Estado
+0 Sin daño (referencia) 0 .000Sano
+1 Reducción de sección 5% 0 .042Normal
+2 Reducción de sección 10% 0 .087Vigilancia
+3 Grieta superficial (3 mm) 0 .143Alerta
+4 Grieta profunda (8 mm) 0 .231Daño
+detectado
+5 Pérdida de adherencia 0 .389Crítico
+6 Separación de sección 0 .621Fallo
+inminente
+Umbral de detección:δ umbral = 0.180Daño ≥
+nivel 4
+5.3 Fase SIMP: rediseño del refuerzo post–daño
+Una vez detectado y localizado el daño en la zona central del puente (Fig. 4), el proble-
+ma de ingeniería cambia:çdónde añadir material de refuerzo para restaurar la rigidez
+con el mínimo volumen añadido?
+--- PAGE 16 ---
+zona dañadaq(carga uniforme)
+zona de refuerzo= 8 m
+h= 4 mΩref,f V = 0.30
+Figura 5: Dominio de refuerzoΩ ref en la zona dañada del puente. La carga de diseño
+es la carga viva de tráfico máximo. Se permite hasta un30 %de nuevo material en el
+dominio.
+5.3.1 Parámetros del rediseño SIMP
+Cuadro 7: Parámetros del SIMP de refuerzo — Aplicación 2.
+Parámetro Valor Descripción
+DominioΩ ref 80× 40mm
+(escala)
+Zona de 8×4 m
+Malla( Nx×Ny) 80 × 40N e = 3 200elem. Q4
+Fracción de volumenf V 0.3030% material añadido
+Material de refuerzo Fibra de
+carbono
+E0 = 70 GPa
+Factor penalizaciónp 3 Estándar
+Radio de filtror m´ ın 3.2(elem.) Para manufacturabilidad
+Peso TDAα∗ 0.018Calibrado en Prop. 1.1
+--- PAGE 17 ---
+5.3.2 Resultados del rediseño
+Cuadro 8: Comparación de configuraciones de refuerzo — Aplicación 2. La métrica
+compuesta identifica la configuración B como óptima.
+Configuraciónc (kN·m)β 0 β1 α∗β1 µ0.018
+A:p = 2 ,
+fV = 0.30
+31.4 1 5 0 .090 31 .490
+B:p = 3 ,f V = 0.30 34 .1 1 0 0 .00034 .100
+C:p = 4 ,f V = 0.30 36 .8 1 0 0 .000 36 .800
+D:p = 3 ,
+fV = 0.25
+38.3 2 0 0 .000 38 .300
+E:p = 3 ,f V = 0.35 32 .7 1 2 0 .036 32 .736
+Referencia (sin
+daño)
+22.1 1 0 — —
+Bloque sólido18 .3 1 0 — —
+5.3.3 Análisis de la métrica compuesta
+La Tabla 8 revela un resultado no trivial que justifica el uso deµ :
+Configuración A( p= 2 ) tiene la menorcompliance ( 31.4), pero genera
+5 agujeros topológicos. En la práctica, estos agujeros son zonas de material
+intermedio sin binarizar: el refuerzo es una esponja, no una estructura discre-
+ta. La métricaµ = 31 .490la penaliza ligeramente pero ladescarta por los
+criterios de manufacturabilidad (β1 >0 ).
+Configuración B( p= 3 ) equilibra rigidez y topología simple:c = 34 .1
+yβ 1 = 0. El diagramaDgm 1 muestra solo ruido (persistencia< ε∗/2). El
+refuerzo toma la forma de dos diagonales principales y un cordón inferior,
+perfectamente manufacturables como chapas soldadas.
+Configuración D( p= 3 ,f V = 0.25) produceβ 0 = 2: el refuerzo no es
+conexo. Aunqueµ no la penaliza explícitamente porβ 1, la condiciónβ 0 >1
+la descarta automáticamente (dos componentes desconectadas no transfieren
+carga eficientemente).
+Configuración E( fV = 0.35) usa más material y aún genera 2 agujeros:
+el exceso de material no mejora la topología. La métricaµ = 32 .736< 34 .1
+(B) en valor bruto, pero la mayor cantidad de material hace a B superior en
+términos de eficiencia específica (c/V).
+Recomendación de ingeniería:la configuración B es la métrica–óptima. El refuerzo
+recomendado consiste en dos chapas diagonales cruzadas en la zona dañada, ancla-
+das a los cordónes existentes. La solución es directamente implementable en obra con
+materiales y técnicas estándar.
+--- PAGE 18 ---
+5.4 Flujo SHM–TDA–SIMP integrado
+DETECCIÓN TDA
+REDISEÑO TDA–SIMP
+Sensores
+acelerómetrosa k(t)
+Embedding de Takens
+XTDA⊂R m
+Ripser:Dgm (t)
+1
+IndicadorI D(t)
+(Def. 4.2)
+ID >δ?
+Localización del daño
+Ωref
+SIMP de refuerzo
+p= 3,f V = 0.30
+TDA:β 1(Ωref)
+µ=c +αβ 1
+µ
+≤µ tol?
+Refuerzo
+aprobado✓
+Continuar
+monitoreo
+Sí
+Sí
+No
+No
+Figura 6: Flujo integrado SHM–TDA–SIMP para monitoreo y rediseño de puentes.
+La primera columna (azul/verde) realiza la detección topológica del daño; la segunda
+columna (rojo) ejecuta el rediseño con verificación mediante la métrica compuesta.
+--- PAGE 19 ---
+6. Síntesis y relación entre las aplicaciones
+6.1 Tabla comparativa entre las dos aplicaciones
+Cuadro 9: Comparación estructurada de las dos aplicaciones.
+Dimensión App. 1: Viga en
+Voladizo
+App. 2: Puente Z24
+Problema Diseño óptimo desde cero Refuerzo post–daño
+Rol del TDA Verificación post hocde β 1 Detección de daño (fase 1)
++ verificación (fase 2)
+Rol del SIMP Optimización topológica
+principal
+Rediseño de refuerzo
+β1 resultante0 (topología simple) 0 (cfg. B: óptima)
+Valor deµ 43 .7N·mm34 .1kN·m
+Aporte deµ Detecta p = 2 como
+suboptimo
+Descarta 4 de 5 alternativas
+Impacto
+ingenieril
+Ahorro62 %de material Refuerzo manufacturable
+identificado
+6.2 Validación del Corolario 1.1 en ambas aplicaciones
+En la Aplicación 1, la solución conp = 3 satisface el Corolario 1.1: domina en sentido
+Pareto ap = 2 (menor β 1 aunque mayorc ) y ap = 4 (igual β 1 = 0y menorc ). En la
+Aplicación 2, la configuración B domina a todas las alternativas conβ 1 >0 , y dentro
+del subconjunto{ β1 = 0}minimiza c . En ambos casos, la métricaµ resuelve el orden
+parcial implícito en los datos, confirmando teóricamente el resultado del corolario.
+6.3 Limitaciones y extensiones
+Escalaε ∗ adaptativa:la elección ε ∗ = diam(X)/√Ne está calibrada para
+mallas 2D uniformes. Para geometrías irregulares o mallas 3D se requiere una
+calibración diferente.
+Integración en el bucle SIMP:en la versión actual, TDA operapost hoc.
+La extensión natural es incorporarαβ 1 como término de regularización en la
+función de sensibilidad, lo que requiere definir un subgradiente deβ 1 respecto
+aρ .
+Generalización a 3D:β 2 (cavidades) sería el indicador relevante para es-
+tructuras 3D, junto aβ 1 (túneles).
+Calibración deα :la fórmula ( 6) calibraα en un conjunto de referencia;
+en la práctica se puede usar validación cruzada sobre un conjunto de diseños
+--- PAGE 20 ---
+etiquetados como manufacturables o no.

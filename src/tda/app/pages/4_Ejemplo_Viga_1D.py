@@ -1,7 +1,11 @@
-"""Página 2: Optimización Topológica de Vigas (H.E.2).
+"""Página 4: Ejemplo — Optimización de Viga 1D.
 
-Optimización topológica de vigas de hormigón armado mediante SIMP 1D.
-Minimización de volumen con restricción de rigidez y deflexión.
+Caso ilustrativo de optimización SIMP aplicado a vigas de hormigón armado.
+Este ejemplo NO corresponde a una hipótesis de la tesis, sino que demuestra
+el concepto de optimización estructural con parámetros interactivos.
+
+El problema real de la tesis usa SIMP 2D (Aplicación 1: viga en voladizo
+60×30 elementos Q4, fV=0.5, p=3 — ver Capítulo III, ítem 8.6.1).
 """
 
 import streamlit as st
@@ -16,7 +20,10 @@ from matplotlib.backends.backend_pdf import PdfPages
 import io
 
 from tda.optimization.beam_optimizer import BeamOptimizer
-from tda.app.theme import apply_mpl_theme, apply_plotly_theme, responsive_style
+from tda.app.theme import (
+    apply_mpl_theme, apply_plotly_theme, responsive_style,
+    sidebar_nav, breadcrumbs, methodology_expander, page_header
+)
 # ── Configuración de exportación (.exe) ──
 export_settings_ui()
 
@@ -27,10 +34,26 @@ apply_mpl_theme()
 # ==========================================
 # CONFIGURACIÓN DE PÁGINA
 # ==========================================
-st.set_page_config(page_title="Optimización Topológica de Vigas", layout="wide", page_icon="🏗️")
+st.set_page_config(page_title="Ejemplo de Optimización de Vigas", layout="wide", page_icon="🏗️")
 
 st.markdown(responsive_style(), unsafe_allow_html=True)
-st.header("📈 Optimización Topológica")
+
+# ── Sidebar Navigation ──
+_page_map = [
+    ("📊", "H.E.1", "pages/1_H.E.1_Robustez_TDA_vs_Euclidianos.py"),
+    ("🧮", "H.E.2", "pages/2_H.E.2_Optimizacion_SIMP_Metrica_Compuesta.py"),
+    ("🔬", "H.G.", "pages/3_H.G._Comparacion_Integrada_TDA-SIMP.py"),
+    ("🏗️", "Ejemplo", "pages/4_Ejemplo_Viga_1D.py"),
+]
+sidebar_nav("pages/4_Ejemplo_Viga_1D.py", _page_map)
+
+# ── Page Header & Breadcrumbs ──
+st.markdown(page_header(
+    "Ejemplo — Optimización de Viga 1D",
+    "SIMP simplificado con parámetros interactivos"
+), unsafe_allow_html=True)
+st.markdown(breadcrumbs(["Tesis", "Ejemplo Viga 1D", "Demo"]), unsafe_allow_html=True)
+st.header("Ejemplo — Optimización de Viga 1D")
 
 # ── Sidebar ──
 st.sidebar.header("📈 Optimización Topológica")
@@ -108,9 +131,9 @@ if not has_data and not running:
         margin-bottom: 1.5rem;
         box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     ">
-        <h3 style="margin:0; font-weight:600;">🏗️ Optimización de Viga de Hormigón Armado</h3>
+        <h3 style="margin:0; font-weight:600;">🏗️ Ejemplo de Optimización de Viga de Hormigón Armado</h3>
         <p style="margin:0.5rem 0 0 0; opacity:0.85; font-size:0.95rem;">
-            Algoritmo SIMP unidimensional — Minimización de volumen con restricción de rigidez
+            Algoritmo SIMP unidimensional — Demostración de parámetros de tesis con slider interactivo
         </p>
     </div>""", unsafe_allow_html=True)
 
@@ -186,7 +209,7 @@ if not has_data and not running:
 
     st.markdown("---")
 
-    if st.button("▶ Iniciar Optimización Topológica", type="primary", use_container_width=True):
+    if st.button("▶ Iniciar Optimización Topológica", type="primary", width='stretch'):
         st.session_state.beam_opt_running = True
         st.rerun()
 
@@ -414,13 +437,13 @@ else:
     # TAB 1: GRÁFICOS
     # ════════════════════════════════════════
     with tab_graf:
-        st.plotly_chart(fig_final, use_container_width=True, key="fig_graf")
+        st.plotly_chart(fig_final, width='stretch', key="fig_graf")
 
     # ════════════════════════════════════════
     # TAB 2: RESULTADOS
     # ════════════════════════════════════════
     with tab_res:
-        st.plotly_chart(fig_final, use_container_width=True, key="fig_res")
+        st.plotly_chart(fig_final, width='stretch', key="fig_res")
 
         st.markdown("---")
 
@@ -459,7 +482,7 @@ else:
                 f"{np.max(data['I']) / I0:.2f}×"
             ]
         })
-        st.dataframe(df_compare, use_container_width=True, hide_index=True)
+        st.dataframe(df_compare, width='stretch', hide_index=True)
 
         # Interpretation
         with st.expander("📋 Interpretación de resultados", expanded=True):
@@ -498,7 +521,7 @@ else:
             data=csv_bytes,
             file_name="optimizacion_viga.csv",
             mime="text/csv",
-            use_container_width=True
+            width='stretch'
         )
 
         # ── PDF (siempre con fondo blanco para exportación) ──
@@ -605,7 +628,7 @@ else:
             data=pdf_bytes,
             file_name="informe_optimizacion_viga.pdf",
             mime="application/pdf",
-            use_container_width=True
+            width='stretch'
         )
 
         # ── PNG ──
@@ -614,7 +637,7 @@ else:
             data=png_bytes_viga,
             file_name="resultados_optimizacion_viga.png",
             mime="image/png",
-            use_container_width=True
+            width='stretch'
         )
 
         # ── LaTeX ──
@@ -640,11 +663,30 @@ Error final & — & {data['final_error']:.6f} & — \\\\
             data=latex_table.encode('utf-8'),
             file_name="tabla_resultados_optimizacion.tex",
             mime="text/plain",
-            use_container_width=True
+            width='stretch'
         )
 
         st.markdown("---")
 
-        if st.button("🔄 Nueva Optimización", use_container_width=True):
+        if st.button("🔄 Nueva Optimización", width='stretch'):
             st.session_state.beam_opt_data = None
             st.rerun()
+
+# ════════════════════════════════════════════════════════════════
+# METODOLOGÍA
+# ════════════════════════════════════════════════════════════════
+methodology_expander(
+    "📖 Metodología — Ejemplo Viga 1D",
+    [
+        (
+            "fórmulas",
+            r"""M\u00ednimo volumen: \min_\rho \int_0^L b(x)h(x)\,dx
+\quad sujeto a: \delta_{max} \leq \delta_{adm}, \sigma_{max} \leq \sigma_{adm}
+\quad Variable de dise\u00f1o: \rho_e \in [0,1] \forall e
+\quad SIMP: E_e = E_0 \rho_e^p, p=3"""
+        )
+    ],
+    "Ejemplo Viga 1D"
+)
+st.markdown("---")
+

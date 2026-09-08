@@ -6,6 +6,7 @@ para validar hipótesis topológicas sobre robustez ante ruido.
 """
 
 import numpy as np
+import pandas as pd
 from pathlib import Path
 
 # Check for required libraries
@@ -19,6 +20,11 @@ except ImportError as e:
 from tda.core.topology import betti_numbers
 from tda.processing.preprocessing import filter_persistence_diagram, normalize_diagram
 from tda.processing.sampling import generate_cloud, add_gaussian_noise, compute_diameter
+from tda.analysis.stability import _contar_betti, UMBRAL_H1_SINTETICO
+
+# Import Euclidean descriptors computation
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
 
 # Create data directory if needed
 current_file = Path(__file__).resolve()
@@ -101,6 +107,57 @@ def compute_bottleneck_distance(dgm1: np.ndarray, dgm2: np.ndarray) -> float:
     return float(persim.bottleneck(dgm1, dgm2))
 
 
+def compare_tda_vs_euclidean(clean_pts: np.ndarray, noisy_pts: np.ndarray, 
+                              noise: float, n_points: int) -> dict:
+    """
+    Compara TDA vs. descriptores euclidianos (PCA y k-means) sobre nubes de puntos.
+    
+    Esta función es crítica para validar la Hipótesis H.E.1:
+    "La homología persistente ... superando a los descriptores euclidianos en tareas 
+    de clasificación y detección de anomalías."
+    
+    Returns:
+        dict: Diccionario con métricas de TDA y descriptores euclidianos.
+    """
+    # --- TDA Metrics ---
+    clean_dgms = compute_persistence_diagram(clean_pts)
+    noisy_dgms = compute_persistence_diagram(noisy_pts)
+    
+    threshold = 1.5
+    clean_filtered = filter_persistence_diagram(clean_dgms, threshold)
+    noisy_filtered = filter_persistence_diagram(noisy_dgms, threshold)
+    clean_diameter = compute_diameter(clean_pts)
+    noisy_diameter = compute_diameter(noisy_pts)
+    clean_normalized = normalize_diagram(clean_filtered, clean_diameter)
+    noisy_normalized = normalize_diagram(noisy_filtered, noisy_diameter)
+    clean_arr = _safe_stack(clean_normalized)
+    noisy_arr = _safe_stack(noisy_normalized)
+    
+    betti0_noisy, betti1_noisy = betti_numbers(np.hstack([noisy_arr, np.zeros((noisy_arr.shape[0], 1))])) if noisy_arr.shape[0] > 0 else (0, 0)
+    
+    # --- Euclidean Descriptors (PCA) ---
+    pca = PCA(n_components=2)
+    pca_clean = pca.fit_transform(clean_pts)
+    pca_noisy = pca.fit_transform(noisy_pts)
+    
+    # --- Euclidean Descriptors (k-means) ---
+    kmeans_clean = KMeans(n_clusters=3, random_state=42).fit(clean_pts)
+    kmeans_noisy = KMeans(n_clusters=3, random_state=42).fit(noisy_pts)
+    
+    return {
+        # TDA metrics
+        'betti0_noisy': float(betti0_noisy),
+        'betti1_noisy': float(betti1_noisy),
+        # PCA descriptors
+        'pca_inertia_clean': float(np.sum(pca.explained_variance_)),
+        'pca_inertia_noisy': float(np.sum(pca.explained_variance_)),
+        # k-means descriptors
+        'kmeans_inertia_clean': float(kmeans_clean.inertia_),
+        'kmeans_inertia_noisy': float(kmeans_noisy.inertia_),
+        'kmeans_n_clusters': 3
+    }
+
+
 # ============== Experiment ==============
 
 def run_tda_experiment(shape: str, noise_levels: list[float] = [0.10, 0.15, 0.20], 
@@ -130,6 +187,7 @@ def run_tda_experiment(shape: str, noise_levels: list[float] = [0.10, 0.15, 0.20
         betti1_list = []
         wasserstein_list = []
         bottleneck_list = []
+        tda_vs_euclidean_list = []  # Nueva lista para métricas de comparación
 
         for rep in range(n_rep):
             # Nube de puntos limpia
@@ -150,10 +208,10 @@ def run_tda_experiment(shape: str, noise_levels: list[float] = [0.10, 0.15, 0.20
             noisy_normalized = normalize_diagram(noisy_filtered, noisy_diameter)
             noisy_arr = _safe_stack(noisy_normalized)
 
-            # Números de Betti
-            betti0_noisy, betti1_noisy = betti_numbers(np.hstack([noisy_arr, np.zeros((noisy_arr.shape[0], 1))])) if noisy_arr.shape[0] > 0 else (0, 0)
-            betti0_list.append(betti0_noisy)
-            betti1_list.append(betti1_noisy)
+            # Números de Betti con filtro real de persistencia
+            b0_n, b1_n = _contar_betti(noisy_dgms, UMBRAL_H1_SINTETICO)
+            betti0_list.append(float(b0_n))
+            betti1_list.append(float(b1_n))
 
             # Distancias
             if clean_arr.shape[0] > 0 and noisy_arr.shape[0] > 0:
@@ -169,8 +227,12 @@ def run_tda_experiment(shape: str, noise_levels: list[float] = [0.10, 0.15, 0.20
 
             wasserstein_list.append(w_dist)
             bottleneck_list.append(bn_dist)
+            
+            # Nueva comparación TDA vs. euclidiana
+            comparison = compare_tda_vs_euclidean(clean_pts, noisy_pts, noise, n_points)
+            tda_vs_euclidean_list.append(comparison)
 
-        # Estadísticas
+        # Estadísticas TDA
         results[noise] = {
             'betti0_mean': float(np.mean(betti0_list)),
             'betti0_std': float(np.std(betti0_list)),
@@ -181,6 +243,10 @@ def run_tda_experiment(shape: str, noise_levels: list[float] = [0.10, 0.15, 0.20
             'bottleneck_mean': float(np.mean(bottleneck_list)),
             'bottleneck_std': float(np.std(bottleneck_list)),
         }
+        
+        # Añadir estadísticas de comparación TDA vs. euclidiano
+        for key, val in tda_vs_euclidean_list[0].items():
+            results[noise][f'tda_vs_euclidean_{key}'] = float(np.mean([d[key] for d in tda_vs_euclidean_list]))
 
     return results
 
@@ -253,7 +319,11 @@ def main():
         print(f"Noise {noise:.2f}: beta0={stats['betti0_mean']:.2f}±{stats['betti0_std']:.2f}, "
               f"beta1={stats['betti1_mean']:.2f}±{stats['betti1_std']:.2f}, "
               f"W={stats['wasserstein_mean']:.4f}±{stats['wasserstein_std']:.4f}, "
-              f"B={stats['bottleneck_mean']:.4f}±{stats['bottleneck_std']:.4f}")
+              f"B={stats['bottleneck_mean']:.4f}±{stats['bottleneck_std']:.4f}, "
+              f"PCA_clean={stats['tda_vs_euclidean_pca_inertia_clean']:.4f}, "
+              f"PCA_noisy={stats['tda_vs_euclidean_pca_inertia_noisy']:.4f}, "
+              f"Kmeans_clean={stats['tda_vs_euclidean_kmeans_inertia_clean']:.4f}, "
+              f"Kmeans_noisy={stats['tda_vs_euclidean_kmeans_inertia_noisy']:.4f}")
     _save_results_to_csv(results, args.shape)
 
 

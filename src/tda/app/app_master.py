@@ -1,18 +1,17 @@
 """Página principal — Plataforma de Optimización SIMP y Análisis Topológico.
 
-Landing page con navegación a las 3 aplicaciones principales:
-  1. TDA vs K-Medias (H.E.1) — Robustez topológica vs clasificación euclidiana
-  2. Optimización Topológica de Vigas — SIMP 1D para hormigón armado
-  3. Optimización SIMP + TDA (H.E.2) — Métrica compuesta μ_α
+Landing page con navegación a las 4 módulos:
+  1. H.E.1 — Robustez TDA vs Euclidianos
+  2. H.E.2 — Optimización SIMP + Métrica Compuesta μ_α
+  3. H.G. — Comparación Integrada TDA-SIMP
+  4. Ejemplo — Viga 1D
 """
 # ══════════════════════════════════════════════════════════════
 # FIX PyInstaller: forzar backends matplotlib ANTES de cualquier otro import.
-# Sin esto, en el .exe compilado savefig() y PdfPages fallan porque
-# PyInstaller no empaqueta los backends cargados dinámicamente.
 # ══════════════════════════════════════════════════════════════
 import matplotlib
-matplotlib.use("Agg")  # sin GUI, necesario en .exe (también funciona en desarrollo)
-import matplotlib.backends.backend_pdf  # fuerza empaquetado por PyInstaller
+matplotlib.use("Agg")
+import matplotlib.backends.backend_pdf
 import matplotlib.backends.backend_agg
 import os
 import sys as _sys
@@ -26,7 +25,7 @@ del os, _sys
 
 import streamlit as st
 
-from tda.app.theme import landing_card, footer_style, hero_section, responsive_style
+from tda.app.theme import landing_card, footer_style, update_hero_orange, responsive_style
 
 # ==========================================
 # CONFIGURACIÓN DE PÁGINA (DEBE SER EL PRIMER COMANDO STREAMLIT)
@@ -46,58 +45,139 @@ export_settings_ui()
 # ==========================================
 # LANDING PAGE
 # ==========================================
-st.title("Plataforma de Optimización SIMP y Análisis Topológico (TDA)")
-st.markdown("---")
 
-# ── Hero section ──
-st.markdown(hero_section(
-    "📐 Bienvenido a la Suite TDA-SIMP",
-    "Optimización Topológica, Homología Persistente y Métricas Compuestas "
-    "para el diseño de estructuras eficientes y manufacturables."
-), unsafe_allow_html=True)
+# ── Hero section premium con logos dentro de la tarjeta ──
+import os as _os
+import base64 as _b64
+
+_logo_dir = _os.path.join(_os.path.dirname(__file__), "..", "..", "img")
+
+def _img_to_base64(path):
+    if _os.path.exists(path):
+        with open(path, "rb") as f:
+            return _b64.b64encode(f.read()).decode()
+    return None
+
+_uagrm_b64 = _img_to_base64(_os.path.join(_logo_dir, "logoUAGRM.png"))
+_upi_b64 = _img_to_base64(_os.path.join(_logo_dir, "Logo-UPI.png"))
+
+_uagrm_tag = f'<img src="data:image/png;base64,{_uagrm_b64}" style="height:170px;" />' if _uagrm_b64 else ""
+_upi_tag = f'<img src="data:image/png;base64,{_upi_b64}" style="height:170px;" />' if _upi_b64 else ""
+
+_bg_animation = "heroGradient 8s ease infinite"
+
+st.markdown(update_hero_orange(f"""
+<style>
+@keyframes heroGradient {{
+    0% {{ background-position: 0% 50%; }}
+    50% {{ background-position: 100% 50%; }}
+    100% {{ background-position: 0% 50%; }}
+}}
+</style>
+<div style="
+    background:linear-gradient(135deg, #2c1a00 0%, #3d2200 40%, #1a0f00 70%, #2c1a00 100%);
+    background-size:200% 200%;
+    animation:{_bg_animation};
+    padding:2rem 2.5rem;
+    border-radius:20px;
+    color:white;
+    margin-bottom:2rem;
+    box-shadow:0 12px 40px rgba(0,0,0,0.25);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-left:5px solid #FF6B35;
+">
+    <div style="flex:0 0 auto;margin-right:1.5rem;">
+        {_uagrm_tag}
+    </div>
+    <div style="flex:1;text-align:center;">
+        <h1 style="margin:0;font-weight:800;font-size:2.2rem;letter-spacing:-0.02em;color:#FF6B35;">Plataforma TDA-SIMP</h1>
+        <p style="margin:0.6rem 0 0 0;opacity:0.9;font-size:1rem;max-width:600px;margin-left:auto;margin-right:auto;line-height:1.5;">
+            Optimización Topológica, Homología Persistente y Métricas Compuestas
+            para el diseño de estructuras eficientes y manufacturables.
+        </p>
+        <p style="margin:0.3rem 0 0 0;opacity:0.7;font-size:0.85rem;">
+            Jorge Larry Copa Cruz · Maestría en Matemática · UAGRM · 2026
+        </p>
+    </div>
+    <div style="flex:0 0 auto;margin-left:1.5rem;">
+        {_upi_tag}
+    </div>
+</div>
+"""), unsafe_allow_html=True)
 
 # ── Cards de navegación ──
-col1, col2, col3 = st.columns(3)
+st.markdown("### Módulos de Análisis")
+
+# CSS para integrar el botón de navegación con la tarjeta
+st.markdown("""
+<style>
+div[data-testid="stPageLink"] a {
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.02em;
+    transition: all 0.2s ease !important;
+}
+div[data-testid="stPageLink"] a:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.markdown(landing_card(
         icon="📊",
-        title="TDA vs K-Medias",
-        description="H.E.1 — Robustez de invariantes topológicos<br>frente a ruido gaussiano",
-        variant="info"
+        title="H.E.1 — Robustez TDA",
+        description="Homología persistente estable bajo ruido 15–20%<br>superando K-Medias y PCA (Def. 1.4, Teo. Estabilidad)",
+        variant="orange"
     ), unsafe_allow_html=True)
-    st.page_link("pages/1_TDA_vs_KMedias.py",
-                 label="📊 Abrir TDA vs K-Medias",
-                 use_container_width=True)
+    st.page_link("pages/1_H.E.1_Robustez_TDA_vs_Euclidianos.py",
+                 label="📊 Abrir H.E.1",
+                 width='stretch')
 
 with col2:
     st.markdown(landing_card(
-        icon="🏗️",
-        title="Optimización de Vigas",
-        description="SIMP 1D — Minimización de volumen<br>con restricción de rigidez",
-        variant="warning"
+        icon="🧮",
+        title="H.E.2 — SIMP + μ_α",
+        description="Optimización estructural con μ_α = c + α·β₁<br>p=3, fV=0.5, reducción compliance ≥40% (Def. 1.9)",
+        variant="orange"
     ), unsafe_allow_html=True)
-    st.page_link("pages/2_Optimizacion_Topologica.py",
-                 label="🏗️ Abrir Optimización de Vigas",
-                 use_container_width=True)
+    st.page_link("pages/2_H.E.2_Optimizacion_SIMP_Metrica_Compuesta.py",
+                 label="🧮 Abrir H.E.2",
+                 width='stretch')
 
 with col3:
     st.markdown(landing_card(
-        icon="🧮",
-        title="SIMP + TDA",
-        description="H.E.2 — Métrica compuesta μ_α = c + α·β₁<br>con análisis topológico",
-        variant="success"
+        icon="🔬",
+        title="H.G. — Comparación Integrada",
+        description="TDA+SIMP vs euclidianos: compliance, β₁, μ_α<br>Validación integral (Cuadro 9, Objetivo General)",
+        variant="orange"
     ), unsafe_allow_html=True)
-    st.page_link("pages/3_Optimizacion_SIMP.py",
-                 label="🧮 Abrir SIMP + TDA",
-                 use_container_width=True)
+    st.page_link("pages/3_H.G._Comparacion_Integrada_TDA-SIMP.py",
+                 label="🔬 Abrir H.G.",
+                 width='stretch')
+
+with col4:
+    st.markdown(landing_card(
+        icon="🏗️",
+        title="Ejemplo — Viga 1D",
+        description="SIMP simplificado: minimización de volumen<br>con restricción de rigidez (caso ilustrativo)",
+        variant="orange"
+    ), unsafe_allow_html=True)
+    st.page_link("pages/4_Ejemplo_Viga_1D.py",
+                 label="🏗️ Abrir Ejemplo",
+                 width='stretch')
 
 # ── Footer ──
 st.markdown("---")
 st.markdown(f"""
 <div style="{footer_style()}">
-    <p style="margin:0;">
-        Jorge Larry Copa Cruz · Maestría en Matemática · Universidad Autónoma Gabriel René Moreno · 2026
+    <p style="margin:0;color:#FF6B35;font-weight:700;">
+        Jorge Larry Copa Cruz · Maestría en Matemática · UAGRM · 2026
     </p>
     <p style="margin:0.3rem 0 0 0;">
         Tecnologías: Streamlit · Python · NumPy · Matplotlib · Plotly · Ripser · Scikit-learn

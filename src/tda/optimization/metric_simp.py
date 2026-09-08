@@ -188,8 +188,12 @@ class MetricaTDA_SIMP:
             # Paso 5: Actualizar densidades con OC
             rho_nuevo = actualizar_OC(self.rho, dc_filt, self.f_V)
 
-            # Paso 6: Medir convergencia
-            delta_c   = abs(c - c_ant) / max(c_ant, 1e-12)
+            # Paso 6: Medir convergencia (primera iter sin previo: Δc=0.0,
+            # evita inf/inf=nan que contaminaba el historial dual)
+            if np.isinf(c_ant):
+                delta_c = 0.0
+            else:
+                delta_c = abs(c - c_ant) / max(c_ant, 1e-12)
             delta_rho = float(np.max(np.abs(rho_nuevo - self.rho)))
 
             self.c_hist.append(c)

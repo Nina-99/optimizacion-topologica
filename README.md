@@ -86,7 +86,7 @@ EstructuraTopologica/
         ├── __init__.py              # Inicialización del namespace tda
         ├── analysis/                # Análisis topológico y métricas de validación
         │   ├── __init__.py
-        │   ├── metrics.py           # Accuracy de K-Means y verificación de números de Betti
+        │   ├── metrics.py           # Exactitud de K-Means y verificación de números de Betti
         │   └── stability.py         # Barrido de ruido gaussiano para validar H.E.1
         ├── app/                     # Interfaz de usuario (Streamlit)
         │   ├── __init__.py

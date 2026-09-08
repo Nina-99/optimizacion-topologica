@@ -1,0 +1,69 @@
+# openspec/config.yaml
+schema: spec-driven
+
+context: |
+  Proyecto de análisis topológico y optimización SIMP.
+  Stack: Python 3.10+, numpy, pandas, matplotlib, scipy, scikit-learn, streamlit, plotly.
+  Arquitectura: paquete TDA con módulos core, analysis, processing, simulation, visualization, optimization, app (Streamlit).
+  Testing: pytest v8+, pytest-cov, ruff lint & format.
+
+rules:
+  proposal:
+    - Incluir plan de rollback para cambios riesgosos
+  specs:
+    - Usar Given/When/Then para escenarios
+    - Usar palabras clave RFC 2119 (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Incluir diagramas de secuencia para flujos complejos
+    - Documentar decisiones de arquitectura con justificación
+  tasks:
+    - Agrupar por fase, usar numeración jerárquica
+    - Mantener tareas completables en una sesión
+  apply:
+    - Seguir patrones de código existentes
+    tdd: true
+    test_command: "python -m pytest -v --tb=short"
+  verify:
+    test_command: "python -m pytest -v --tb=short --cov=src/tda --cov-report=term-missing"
+    build_command: ""
+    coverage_threshold: 80
+  archive:
+    - Advertir antes de fusionar deltas destructivos
+
+testing:
+  strict_tdd: true
+  runner:
+    command: "python -m pytest -v --tb=short"
+    framework: pytest
+    version: ">=8.0"
+  layers:
+    unit:
+      available: true
+      tools:
+        - pytest fixtures
+        - numpy.testing
+    integration:
+      available: false
+      tools: []
+    e2e:
+      available: false
+      tools: []
+      notes: "Streamlit app — pruebas manuales por ahora"
+  coverage:
+    available: true
+    command: "python -m pytest -v --tb=short --cov=src/tda --cov-report=term-missing"
+    target: src/tda
+  quality:
+    linter:
+      available: true
+      command: "ruff check src/tda tests/"
+      rules: "E, F, I, N, W, UP"
+    type_checker:
+      available: false
+      command: ""
+    formatter:
+      available: true
+      command: "ruff format src/tda tests/"
+      style: "ruff format, quote-style=double, line-length=100"
+
+mode: openspec

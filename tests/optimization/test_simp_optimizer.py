@@ -27,7 +27,7 @@ class TestInit:
         assert opt.nely == 30
         assert opt.volfrac == 0.5
         assert opt.penal == 3.0
-        assert opt.rmin == 1.5
+        assert opt.rmin == 2.4
 
     def test_custom_params(self):
         """Parámetros personalizados deben almacenarse."""

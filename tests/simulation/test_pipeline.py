@@ -55,7 +55,7 @@ class TestRunTdaExperiment:
             "wasserstein_mean", "wasserstein_std",
             "bottleneck_mean", "bottleneck_std",
         }
-        assert expected == set(result[0.10].keys()), (
+        assert expected.issubset(set(result[0.10].keys())), (
             f"Keys mismatch. Missing: {expected - set(result[0.10].keys())}"
         )
 
@@ -138,7 +138,7 @@ class TestRunTdaExperiment:
             "wasserstein_mean", "wasserstein_std",
             "bottleneck_mean", "bottleneck_std",
         }
-        assert expected == set(result[0.10].keys())
+        assert expected.issubset(set(result[0.10].keys()))
         for val in result[0.10].values():
             assert np.isfinite(val)
 

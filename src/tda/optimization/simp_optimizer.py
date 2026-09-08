@@ -3,6 +3,54 @@
 Este módulo implementa el método SIMP (Solid Isotropic Material with Penalization)
 para la optimización de topología estructural en vigas 2D, integrado con análisis
 topológico de datos para monitorear invariantes como los números de Betti.
+
+====================================================================
+PARÁMETROS DE LA TESIS (fuente: Proy.Investigacion.pdf y Documento Completo.pdf)
+====================================================================
+Estos valores vienen definidos en el trabajo de investigación y son la configuración
+base sobre la que se construyen los experimentos:
+
+• nelx = 60  (elementos en dirección horizontal)
+  — Definido en Capítulo III, ítem 8.6.1: "viga en voladizo 2D, 60 × 30 elementos Q4"
+• nely = 30  (elementos en dirección vertical)
+  — Mismo ítem 8.6.1
+• volfrac = 0.5  (fracción de volumen objetivo)
+  — Hipótesis H.E.2 y Capítulo III, ítem 8.6.1: "fV = 0.5"
+• penal = 3.0  (factor de penalización SIMP / exponente p)
+  — Hipótesis H.E.2: "método SIMP con p = 3"
+  — También en 8.2.1: "p ≥ 3 (en la práctica p = 3 incentiva soluciones binarias)"
+• rmin = 2.4  (radio de filtro para suavizado de sensibilidades, Cuadro 1 del Documento Completo)
+  — Parámetro por defecto del optimizer; asociado a regularización en sección 8.2
+• seed = 42  (semilla aleatoria para reproducibilidad)
+  — Sección 8.6.3: "semilla aleatoria fija (seed = 42) en todos los experimentos estocásticos"
+• noise_levels = [0.10, 0.15, 0.20]  (perturbaciones gaussianas)
+  — Capítulo III, ítem 8.6.1: "prueba de estabilidad: perturbación gaussiana escalada al
+    10 %, 15 % y 20 % del diámetro"
+
+====================================================================
+PARÁMETROS DE OPTIMIZACIÓN (decisiones de implementación)
+====================================================================
+Estos parámetros controlan el comportamiento numérico del optimizer y pueden variarse
+para explorar el espacio de soluciones dentro del marco teórico de la tesis:
+
+• max_iter = 100  (iteraciones máximas del bucle SIMP)
+  — Valor por defecto del optimizer. Aumentar a 200-300 puede mejorar la convergencia
+    y acercarse a la reducción de compliance objetivo del 40% (H.E.2).
+• min_iter = 10  (iteraciones mínimas antes de convergencia check)
+  — Evita detenerse prematuramente.
+• tol_c = 1e-4  (toleraancia de cambio de compliance)
+  — Criterio de parada dual junto con tol_x.
+• tol_x = 1e-3  (toleraancia de cambio de densidades)
+  — Criterio de parada dual junto con tol_c.
+• alpha = 0.012  (peso de la métrica compuesta μ_α = c + α·β₁, calibrado por Prop. 1.1)
+  — Concepto introducido en esta investigación para integrar invariantes topológicos
+    dentro del bucle de optimización. No es un parámetro del thesis original, sino
+    una decisión de diseño para la regularización topológica.)
+
+NOTA IMPORTANTE:
+Los valores por defecto del constructor (__init__) están en negrita arriba y coinciden
+con la configuración de la tesis. Cualquier variación debe documentarse como "experimento"
+diferente al caso base.
 """
 
 import warnings
@@ -28,7 +76,7 @@ class SimpTda2DOptimizer:
         rmin (float): Radio de filtro.
     """
 
-    def __init__(self, nelx=60, nely=30, volfrac=0.5, penal=3.0, rmin=1.5):
+    def __init__(self, nelx=60, nely=30, volfrac=0.5, penal=3.0, rmin=2.4):
         """Inicializa el SimpTda2DOptimizer con parámetros de malla y optimización.
 
         Args:
@@ -36,7 +84,7 @@ class SimpTda2DOptimizer:
             nely (int): Número de elementos en la dirección vertical. Por defecto 30.
             volfrac (float): Fracción de volumen objetivo. Por defecto 0.5.
             penal (float): Parámetro de penalización para SIMP. Por defecto 3.0.
-            rmin (float): Radio de filtro. Por defecto 1.5.
+            rmin (float): Radio de filtro. Por defecto 2.4.
         """
         self.nelx = nelx
         self.nely = nely

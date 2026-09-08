@@ -9,29 +9,33 @@ import importlib
 import pytest
 
 # Lista de módulos de páginas a verificar (nombres con dígito requieren importlib)
-PAGE_MODULES = [
-    "tda.app.pages.1_TDA_vs_KMedias",
-    "tda.app.pages.2_Optimizacion_Topologica",
-    "tda.app.pages.3_Optimizacion_SIMP",
+PAGE_FILENAMES = [
+    "1_H.E.1_Robustez_TDA_vs_Euclidianos.py",
+    "2_H.E.2_Optimizacion_SIMP_Metrica_Compuesta.py",
+    "3_H.G._Comparacion_Integrada_TDA-SIMP.py",
+    "4_Ejemplo_Viga_1D.py",
 ]
 
 
 class TestPagesImport:
     """Cada página Streamlit importa sin error fuera de contexto de servidor."""
 
-    @pytest.mark.parametrize("mod_name", PAGE_MODULES)
-    def test_page_imports_without_error(self, mod_name):
-        """La página {mod_name} importa sin lanzar excepción."""
-        mod = importlib.import_module(mod_name)
+    @pytest.mark.parametrize("filename", PAGE_FILENAMES)
+    def test_page_imports_without_error(self, filename, pages_path):
+        """La página {filename} se puede importar sin errores de sintaxis."""
+        import os
+        import streamlit
+        full_path = os.path.join(pages_path, filename)
+        spec = importlib.util.spec_from_file_location(filename[:-3], full_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
         assert mod is not None
 
     def test_all_pages_in_pages_path(self, pages_path):
         """Todas las páginas listadas existen en el directorio de páginas."""
         import os
-        for mod_name in PAGE_MODULES:
-            # Convertir nombre de módulo a ruta de archivo
-            relative = mod_name.replace(".", "/") + ".py"
-            full_path = os.path.join(pages_path, os.path.basename(relative))
+        for filename in PAGE_FILENAMES:
+            full_path = os.path.join(pages_path, filename)
             assert os.path.isfile(full_path), (
                 f"Página no encontrada: {full_path}"
             )

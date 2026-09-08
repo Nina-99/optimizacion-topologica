@@ -1,0 +1,671 @@
+--- PAGE 1 ---
+                    
+ 
+APLICACIONES DE LA ESTRUCTURA TOPOLÓGICA 
+PARA LA RESOLUCIÓN DE PROBLEMAS EN ENTORNOS 
+COMPLEJOS DE INGENIERIA. 
+ 
+AUTOR 
+Jorge Larry Copa Cruz 
+ 
+--- PAGE 2 ---
+2
+Índice
+Resumen ejecutivo 4
+Introducción 5
+1. Antecedentes y estado del arte 6
+1.1. Antecedentes teóricos . . . . . . . . . . . . . . . . . . . . . . . . . . . . 6
+1.2. Frontera del conocimiento . . . . . . . . . . . . . . . . . . . . . . . . . 6
+1.3. Gap de investigación . . . . . . . . . . . . . . . . . . . . . . . . . . . . 6
+2. Problema de investigación 7
+2.1. Pregunta de investigación . . . . . . . . . . . . . . . . . . . . . . . . . 7
+3. Objetivos 7
+3.1. Objetivo general . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+3.2. Objetivos específicos . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+4. Hipótesis 8
+4.1. Hipótesis general . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+4.2. Hipótesis específicas . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+4.3. Operacionalización de las variables . . . . . . . . . . . . . . . . . . . . 8
+5. Delimitación del tema 10
+5.1. Delimitación temporal . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+5.2. Delimitación sustantiva . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+6. Justificación 10
+6.1. Justificación técnica y científica . . . . . . . . . . . . . . . . . . . . . . 11
+6.2. Justificación social y aplicada . . . . . . . . . . . . . . . . . . . . . . . 11
+6.3. Justificación académica . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+7. Bases teóricas 12
+7.1. Espacio topológico: definición y axiomas . . . . . . . . . . . . . . . . . 12
+7.2. Homeomorfismo e invariantes topológicos . . . . . . . . . . . . . . . . . 12
+7.3. Compacidad, conexidad y separación de Hausdorff . . . . . . . . . . . . 12
+8. Desarrollo de la sustentación teórica 13
+8.1. Homología persistente y filtraciones . . . . . . . . . . . . . . . . . . . . 13
+8.1.1. Laplacianos topológicos persistentes . . . . . . . . . . . . . . . . 13
+8.2. Formulación matemática del método SIMP . . . . . . . . . . . . . . . . 14
+8.2.1. Tabla de notación adoptada . . . . . . . . . . . . . . . . . . . . 14
+8.3. Paradigma de investigación . . . . . . . . . . . . . . . . . . . . . . . . . 16
+8.4. Métodos de investigación . . . . . . . . . . . . . . . . . . . . . . . . . . 16
+8.5. Tipo de investigación . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16
+8.6. Técnicas e herramientas . . . . . . . . . . . . . . . . . . . . . . . . . . 16
+8.6.1. Diseño de los casos de simulación . . . . . . . . . . . . . . . . . 16
+--- PAGE 3 ---
+3
+8.6.2. Herramientas computacionales . . . . . . . . . . . . . . . . . . . 17
+8.6.3. Criterios de validación y reproducibilidad . . . . . . . . . . . . . 17
+Bibliografía 18
+--- PAGE 4 ---
+4
+Resumen ejecutivo
+La topología, entendida formalmente como la rama de las matemáticas que estudia
+las propiedades de los espacios que se preservan bajo transformaciones continuas —los
+homeomorfismos—, ha experimentado en las últimas tres décadas una transición epis-
+temológica de notable profundidad: ha pasado de ser un campo eminentemente teórico
+y abstracto a constituirse en un conjunto de herramientas computacionales con aplica-
+ción directa y verificable en ingeniería. La ingeniería moderna enfrenta sistemas cuya
+complejidad supera los métodos basados únicamente en geometría euclidiana y cálculo
+infinitesimal. Dos frentes de investigación activos proponen salidas complementarias: el
+Análisis Topológico de Datos(TDA), que extrae rasgos invariantes de nubes de puntos
+ruidosas de alta dimensión, y el método SIMP (Solid Isotropic Material with Penali-
+zation), que determina la distribución óptima de material en dominios estructurales
+continuos. Sin embargo, los dos enfoques se han desarrollado de forma aislada, sin un
+marco integrador que aproveche los invariantes topológicos como regularización dentro
+del bucle de optimización SIMP es una dirección no explorada.
+Establecer una base metodológica formal de las estructuras topológicas y aplicarla
+sistemáticamente a dos problemas de ingeniería compleja: detección de estructura en
+datos de alta dimensión mediante TDA; diseño estructural óptimo mediante SIMP, ex-
+plorando la posibilidad de incorporar descriptores topológicos como métrica de calidad
+de la topologia resultante.
+Investigación documental-computacional implementado en Python 3.11+ con las bi-
+bliotecas Ripser 0.6, Persim 0.3, PyTorch 2.x, NumPy 1.26 y SciPy 1.12, ejecutadas
+en Google Colab. Los dos casos de simulación son integramente reproducibles; no se
+requiere laboratorio físico.
+Se anticipa que la homología persistente proporcionará descriptores estables bajo per-
+turbaciones del 15–20%; y que SIMP convergirá a topologías con al menos40 % de
+reducción decompliancerespecto al bloque sólido.
+La topología ha dejado de ser patrimonio exclusivo del matemático teórico: sus in-
+variantes constituyen hoy descriptores robustos, computacionalmente accesibles, para
+elevar la robustez del diseño estructural y del análisis de datos en Ingeniería.
+Palabras clave:Topología algebraica computacional, homología persistente, TDA,
+optimización SIMP, simulación, modelación matemática.
+--- PAGE 5 ---
+5
+Introducción
+A. Antecedentes o estado del Arte del Problema
+Cuando los ingenieros del siglo XXI se preguntan“¿cuál es la forma de estos datos?”o
+“¿cómo distribuir el material para que la estructura sea a la vez rígida y ligera?”, están,
+sin saberlo, formulando preguntas topológicas. La topología estudia las propiedades de
+los espacios que permanecen invariantes bajo deformaciones continuas — propiedades
+que, por construcción, son robustas frente al ruido y a las irregularidades geométricas
+que caracterizan a los datos y a los diseños reales.
+El trabajo seminal de Edelsbrunner, Letscher y Zomorodian (2002) [1] sobre homología
+persistente demostró que era posible cuantificar la topología de una nube de puntos de
+forma robusta y computacionalmente eficiente. Desde entonces, el campo del Análisis
+Topológico de Datos ha confluido con la optimización estructural—donde el método
+SIMP de Bendsøe (1989) [2] constituye el referente fundacional— y con el aprendi-
+zaje profundo informado por física, inaugurado por Raissi, Perdikaris y Karniadakis
+(2019) [3].
+B. Justificación técnica
+Ninguno de los enfoques actuales integra los invariantes topológicos como mecanismo
+de regularización dentro de los bucles de optimización SIMP ni en las funciones de
+pérdida de las PINNs. La revisión de Su, Liu, Wei et al. (2025) [4] confirma que esta
+integración sigue siendo un problema abierto. La complejidad computacional de las
+alternativas para problemas 3D—con matrices de rigidez de ordenO (106)— es inviable
+sin estrategias topológicamente informadas de reducción de dimensión.
+C. Descripción del problema
+El vacío se enuncia con precisión: no existe un marco matemático que integre la homo-
+logía persistente del TDA como regularización topológica dentro de los bucles de op-
+timización SIMP. Esta ausencia produce tres consecuencias verificables: los resultados
+SIMP carecen de garantías sobreβ 1(Ω); y el análisis TDA de resultados de ingeniería
+permanece desacoplado de los procesos que los generan.
+D. Estructura del trabajo
+Este trabajo se organiza en tres capítulos. El Capítulo I establece el planteamiento
+completo: antecedentes, problema, objetivos, hipótesis con su operacionalización de
+variables, delimitación y justificación. El Capítulo II desarrolla la fundamentación teó-
+rica formal, desde los axiomas del espacio topológico hasta las formulaciones de TDA,
+SIMP. El Capítulo III describe el marco metodológico: paradigma, métodos, tipo de
+investigación y herramientas computacionales para los dos casos de simulación.
+--- PAGE 6 ---
+6
+CAPÍTULO I. PLANTEAMIENTO DEL PROBLEMA
+1. Antecedentes y estado del arte
+1.1 Antecedentes teóricos
+Latopologíaalgebraicacomputacionaltieneunafechadenacimientoidentificable:elar-
+tículo de Edelsbrunner, Letscher y Zomorodian (2002) [1] enDiscrete & Computational
+Geometry, que formalizó la homología persistente como herramienta para cuantificar la
+topología de datos. Zomorodian y Carlsson (2005) [5] extendieron este trabajo al caso
+de módulos de persistencia sobre cuerpos arbitrarios. Carlsson (2009) [6] introdujo el
+TDA como disciplina orientada al análisis de datos.
+En optimización estructural, Bendsøe (1989) [2] introdujo el modelo SIMP, y su mono-
+grafíaconSigmund(2004)[ 7]siguesiendolaobradereferencia.Larevisióncomparativa
+de Sigmund y Maute (2013) [8] establece el mapa de los cuatro grandes métodos: SIMP,
+conjuntos de nivel, ESO/BESO y componentes morfológicos móviles (MMC).
+1.2 Frontera del conocimiento
+La revisión de Su, Liu, Wei et al. (2025) [4] enArtificial Intelligence Review docu-
+menta que los Laplacianos Topológicos Persistentes (PTL) y los Operadores de Dirac
+Persistentes extienden la homología clásica capturando información geométrica que el
+barcode pierde. Hensel, Moor y Rieck (2021) [11] sistematizaron más de 120 aplica-
+ciones de TDA en aprendizaje automático. Gowdridge, Dervilis y Worden (2022) [12]
+demostraronquelahomologíapersistentedetectadañoestructuralenpuentesmediante
+series temporales de vibración.
+En SIMP, Yoo et al. (2023) [13] en elJournal of Computational Disign an Engineering
+sistematiza tres décadas de integración de SIMP con aprendizaje automático. Abueidda
+et al. (2023) [14] demuestran que las PINNs pueden usarse como sustitutos computacio-
+nales del análisis decompliance. La revisión de Toscano y Karniadakis et al. (2025) [15]
+revisaron el estado actual de la optimización topológica baja estática no lineal.
+1.3 Gap de investigación
+Gap de investigación
+A pesar de los avances en TDA, SIMP, ninguno de los marcos actuales integra los
+invariantes topológicos como regularización transversal dentro de los bucles de
+optimización y entrenamiento. Esta brecha es el punto de partida de la presente
+investigación.
+--- PAGE 7 ---
+UAGRM·Maestría en Matemática·(2026)7
+2. Problema de investigación
+La limitación central no es la ausencia de métodos, sino sudesconexión estructural:
+TDA, SIMP se han desarrollado como area aisladas, es decir se evita la interferencia
+entre distintas funciones. Los métodos de optimización topológica producen resulta-
+dos cuya topología—número de agujerosβ1(Ω), conectividad de la frontera— no está
+controlada. El análisis TDA ofrece herramientas para cuantificarlas, pero su aplica-
+ción a los resultados SIMP ha sidopost hoc:se analiza la topología de un diseño ya
+convergido, sin realimentar el proceso.
+Esta desconexión tiene consecuencias verificables: los diseños SIMP pueden contener
+agujeros no intensionales que comprometen la manufacturabilidad; y el TDA de nubes
+de puntos de alta dimensión (datos de sensores estructurales, ensayos de materiales)
+permanecen desacoplado de los modelos de optimización que generan esos diseños.
+2.1 Pregunta de investigación
+Pregunta de investigación
+¿Cómo aplicar las estructuras topológicas de manera sistemática y verificable
+para resolver problemas complejos de ingeniería, articulando TDA, SIMP en un
+marco metodológico común?
+3. Objetivos
+3.1 Objetivo general
+Objetivo general
+Establecer la base metodológica formal de las estructuras topológicas y aplicarla
+sistemáticamenteadosdominiosdeingenieríacompleja—análisisdedatosdealta
+dimensión (TDA) y diseño estructural (SIMP), mediante simulación computacio-
+nal en Python, demostrando que los invariantes topológicos producen soluciones
+más robustas que los enfoques exclusivamente euclidianos.
+3.2 Objetivos específicos
+OE1.Revisar y sistematizar los fundamentos teóricos de los espacios topológicos,
+homeomorfismos, compacidad y homología persistente, articulando las defini-
+ciones formales con su implementación computacional.
+OE2.Calcular y comparar los diagramas de persistencia y los números de Betti
+β0,β 1 de nubes de puntos de referencia con diferentes topologías, verificando
+--- PAGE 8 ---
+UAGRM·Maestría en Matemática·(2026)8
+estabilidad bajo ruido gaussiano.
+OE3.Evaluar la eficiencia del método SIMP con factor de penalizaciónp= 3en
+problemas 2D de elasticidad lineal, cuantificando la reducción decompliance
+y calculandopost hocel número de Bettiβ1(Ωsólido)de la topología resultante.
+OE4.Explorar la conexión metodológica entre TDA y SIMP: usar la homología
+persistente como herramienta de evaluación de la complejidad topológica de
+los diseños SIMP.
+4. Hipótesis
+4.1 Hipótesis general
+Hipótesis general
+La aplicación sistemática de estructuras topológicas—mediante TDA, SIMP,—
+proporciona solucionesmás robustas, eficientes y globalmente consisten-
+tesa los problemas planteados en entornos complejos de ingeniería, en compara-
+ción con los métodos basados exclusivamente en geometría euclidiana y análisis
+infinitesimal local.
+4.2 Hipótesis específicas
+H.E.1 — TDA
+La homología persistente, computada sobre nubes de puntosX⊂Rd (d≤100)
+con Ripser 0.6, proporciona números de Bettiβ0 yβ 1 que permanecen estables
+bajo perturbaciones del15–20 %en los datos de entrada, superando a los des-
+criptores euclidianos en tareas de clasificación y detección de anomalías.
+H.E.2 — SIMP
+El método SIMP conp= 3y fracción de volumenf V = 0.5converge a una
+distribución de material que reduce lacomplianceglobal en al menos un40 %
+respecto al bloque sólido de referencia, generando una topología conβ1(Ωsólido)≤
+2verificable computacionalmente.
+4.3 Operacionalización de las variables
+La operacionalización traduce cada hipótesis en variables medibles. En matemática
+computacional las variables son parámetros, operadores o indicadores de rendimien-
+to; no entidades cualitativas. La Tabla 1 organiza las variables de los cuatro ejes de
+investigación.
+--- PAGE 9 ---
+UAGRM·Maestría en Matemática·(2026)9
+Cuadro 1: Operacionalización de las variables de investigación.
+Variable Tipo Definición operacional /
+Indicador
+Instrumento
+Parámetroεde
+la filtración
+VR(X,ε)
+Independiente Umbral de conectividad que
+controla la construcción del
+complejo de Vietoris-Rips.
+Rango:[0,diam(X)].
+Ripser 0.6 /
+numpy.linspace
+Números de Betti
+β0,β 1
+Dependiente Componentes conexas (β 0) y
+ciclos independientes (β1) del
+complejo a cada escalaε.
+Métrica: variación porcentual
+bajo ruido gaussiano
+σn = 0.10 diam(X).
+Persim 0.3,
+diagrama de
+persistencia
+Factor de
+penalizaciónp
+(SIMP)
+Independiente Exponente de la ley de
+potenciasE e(ρe) =ρ p
+eE0.
+Valores de prueba:
+p∈{1,2,3,4}.
+Script FEM en
+Python
+Compliancec(ρ)Dependiente Trabajo de deformación total
+c=U ⊤K(ρ)U. Reducción
+relativa (%) respecto al bloque
+sólido.
+scipy.sparse.linalg
+Dimensionalidad
+dde datos (TDA)
+Interviniente Número de atributos por
+muestra. Rango acotado:
+d≤100, lo que garantiza
+factibilidad deVR(X,ε).
+Conjuntos
+públicos (UCI,
+Zenodo)
+Resolución de
+mallaN e (SIMP)
+Interviniente Número de elementos finitos.
+Ne∈{1 600,6 400,14 400}
+(mallas40×40,80×80,
+120×120).
+Script Python
+propio
+Nota:Las variables intervinientes no se manipulan durante el experimento; se controlan
+fijándolas en los valores indicados para garantizar la reproducibilidad de los resultados.
+--- PAGE 10 ---
+UAGRM·Maestría en Matemática·(2026)10
+5. Delimitación del tema
+5.1 Delimitación temporal
+Larevisiónbibliográficacubreliteraturapublicadaentre2002yjuliode2026enrevistas
+indexadas JCR/Scopus (Web of Science, Scopus, IEEE Xplore, arXiv), priorizando
+artículosQ1/Q2delosúltimoscincoaños.Elperíododeimplementacióncomputacional
+correspondealcicloacadémico2025–2026.Lasversionesdesoftwareson:Python3.11+,
+Ripser 0.6, Persim 0.3, PyTorch 2.x, NumPy 1.26, SciPy 1.12, Matplotlib 3.8 y scikit-
+learn 1.4.
+5.2 Delimitación sustantiva
+Cuadro 2: Fronteras sustantivas de la investigación.
+Ámbito Dentro del alcance Fuera del alcance
+Campo
+matemático
+Topología algebraica
+computacional (homología
+persistente), análisis
+numérico (FEM, RK4),
+aprendizaje profundo
+científico (PINNs, Neural
+ODEs)
+Topología diferencial,
+K-teoría, cohomología de de
+Rham, teoría de nudos
+avanzada
+TDA Complejos de Vietoris-Rips
+enR d,d≤100; homología
+persistente unidimensional en
+parámetro
+Homología persistente
+multi-parámetro; módulos de
+persistencia en≥2
+parámetros
+SIMP Problemas 2D de elasticidad
+lineal; dominio rectangular
+discretizado con FEM Q4
+Optimización 3D,
+restricciones de manufactura
+aditiva, multi-física
+Software Python en Google Colab
+(GPU T4/A100); bibliotecas
+de código abierto con licencia
+MIT/BSD
+MATLAB, ANSYS, software
+propietario, hardware de
+laboratorio
+6. Justificación
+--- PAGE 11 ---
+UAGRM·Maestría en Matemática·(2026)11
+6.1 Justificación técnica y científica
+Los métodos numéricos clásicos resuelven bien problemas locales y lineales, pero exhi-
+ben limitaciones sistemáticas ante dos escenarios frecuentes en ingeniería moderna:
+datos de alta dimensión con estructura no euclidiana, diseños estructurales donde la
+topología de la solución importa tanto como su rigidez. La justificación técnica es direc-
+ta: por el Teorema de Estabilidad de Cohen-Steiner, Edelsbrunner y Harer (2007) [16],
+los invariantes topológicos son robustos frente a perturbaciones continuas por construc-
+ción, lo que los hace superiores a los descriptores euclidianos en entornos ruidosos.
+La brecha identificada—la ausencia de un marco TDA-SIMP integrado— es suficien-
+temente bien definida, computacionalmente abordable y de alto impacto como para
+constituir el núcleo de una investigación de maestría original. La revisión de Xu, Zhang
+et al. (2025) [17] documenta reducciones del en costo computacional en espacios de alta
+dimensión, lo que cuantifica el potencial de impacto.
+6.2 Justificación social y aplicada
+Bolivia y América Latina enfrentan necesidades concretas en los dos dominios de apli-
+cación elegidos. Eningeniería de datos, el análisis topológico ofrece herramientas
+robustas para datos genómicos, agrícolas e hidrológicos que son, por naturaleza, ruido-
+sos y de alta dimensión. Eningeniería civil, la optimización SIMP puede reducir el
+uso de material entre el30 %y el50 %, con impacto directo en el costo de infraestruc-
+tura pública.
+6.3 Justificación académica
+EstetrabajocontribuyealaslíneasdeinvestigaciónMod.7.GeometríayTopología,
+Mod.8. Matemática ComputacionalyMod.9. Modelación Matemáticade la
+Maestría en Matemática de la UAGRM-FII. Genera tres tipos de aporte institucional:
+(i)material docente formal—definiciones, teoremas y código Python comentado— que
+puede incorporarse a cursos de posgrado;(ii)unframeworkcomputacional en Goo-
+gle Colab reproducible sin hardware especializado; y(iii)antecedentes bibliográficos
+actualizados (2020–2026) para investigaciones futuras en la institución.
+--- PAGE 12 ---
+UAGRM·Maestría en Matemática·(2026)12
+CAPÍTULO II: FUNDAMENTACIÓN TEÓRICA
+7. Bases teóricas
+7.1 Espacio topológico: definición y axiomas
+Definición 2.1 (Espacio Topológico).SeaEun conjunto no vacío. Unato-
+pologíasobreEes una familiaT ⊆P(E)que satisface:
+(T1)Estabilidadbajounionesarbitrarias:si{G α}α∈I⊆T,entonces ⋃
+α∈IGα∈T.
+(T2)Estabilidad bajo intersecciones finitas: siG1,G 2∈T, entoncesG 1∩G 2∈T.
+(T3)Elementos triviales:∅∈TyE∈T.
+El par(E,T)es elespacio topológico. Los elementos deTse llamanconjuntos
+abiertos.
+La topología usual deRestá inducida por la métrica euclidianad(x,y) =|x−y|:
+un conjuntoG⊆Res abierto si y solo si para cadax 0 ∈Gexisteε >0tal que
+(x0−ε, x0 +ε)⊆G. Este ejemplo conecta la abstracción topológica con el cálculo
+numérico.
+7.2 Homeomorfismo e invariantes topológicos
+Definición 2.2 (Homeomorfismo).Una funciónf:E→Fentre espacios
+topológicos es unhomeomorfismosi es biyectiva, continua y de inversa continua.
+Si talfexiste se escribeE ∼=F. Uninvariante topológicoes una propiedad que
+toma el mismo valor en espacios homeomorfos.
+Losnúmeros de Bettiβ k = dimH k son los invariantes más directamente inter-
+pretables:β 0 cuenta componentes conexas,β 1 ciclos 1-dimensionales (agujeros) yβ 2
+cavidades 2-dimensionales. Son los descriptores que el TDA cuantifica a lo largo de
+una filtración.
+7.3 Compacidad, conexidad y separación de Hausdorff
+Un espacio(E,T)escompactosi toda cubierta abierta admite una subcubierta finita;
+enR n, por el Teorema de Heine-Borel, esto equivale a ser cerrado y acotado. La compa-
+cidad garantiza la existencia de soluciones óptimas en SIMP. Un espacio esconexosi
+no puede expresarse como unión de dos abiertos disjuntos no vacíos; en TDA, la cone-
+xidad se cuantifica porβ0. La condición deHausdorff(T 2)—para cualesquieraa̸=b
+existen entornos disjuntos— garantiza la unicidad de límites de sucesiones, condición
+necesaria para el análisis numérico riguroso:
+d(a,b) =r=⇒B
+(
+a, r
+2
+)
+∩B
+(
+b, r
+2
+)
+=∅.
+--- PAGE 13 ---
+UAGRM·Maestría en Matemática·(2026)13
+8. Desarrollo de la sustentación teórica
+Bloque A Análisis Topológico de Datos (TDA)
+8.1 Homología persistente y filtraciones
+El TDA, inaugurado por Edelsbrunner et al. (2002) [1] y algebraicamente fundamen-
+tado por Zomorodian y Carlsson (2005) [5], responde a la pregunta: dada una nu-
+be de puntosX={x 1,...,x n}⊂R d, ¿qué rasgos topológicos—agujeros, cavidades,
+componentes— son estadísticamente significativos? La herramienta es lafiltración de
+Vietoris-Rips:
+VR(X,ε) =
+{
+σ⊆X:d(x i, xj)≤ε∀x i,xj∈σ
+}
+,(1)
+que forma una familia anidada{VR(X,ε)} ε≥0 cuyos grupos de homologíaHk evolu-
+cionan conε. Cada rasgo topológicok-dimensional nace enε=b i y muere enε=d i,
+formando eldiagrama de persistencia
+Dgmk(X) ={(b i, di)}i⊂R 2.
+Teorema2.1(Estabilidad,Cohen-Steiner,EdelsbrunneryHarer,2007[16]).
+Seanf,g:K→Rfunciones de Morse sobre un complejo simplicialK. Entonces
+ladistancia botellaentre sus diagramas de persistencia satisface
+d∞
+(
+Dgm(f),Dgm(g)
+)
+≤ ∥f−g∥∞,(2)
+donde la distancia botella se define comod∞(A,B) = ´ ınfϕ:A→B supp∈A∥p−ϕ(p)∥∞,
+con el ínfimo sobre todas las biyecciones.
+El Teorema (2) garantiza que pequeñas perturbaciones en los datos producen pequeños
+cambios en los diagramas de persistencia, dotando al TDA de robustez intrínseca frente
+al ruido de medición.
+8.1.1 Laplacianos topológicos persistentes
+Wang y Wei (2020) [18] introdujeron los Laplacianos Combinatorios Persistentes:
+∆k =∂ ∗
+k ∂k +∂k+1∂∗
+k+1,(3)
+cuyo espectro armónico recupera la homología y cuyo espectro no armónico aporta
+información geométrica que el barcode pierde. La revisión de Su et al. (2025) [4] docu-
+menta aplicaciones a predicción de variantes virales (SARS-CoV-2) y ligación proteína-
+ligando, confirmando la superioridad del enfoque espectral en datos biológicos de alta
+complejidad.
+--- PAGE 14 ---
+UAGRM·Maestría en Matemática·(2026)14
+Bloque B Optimización Topológica SIMP
+8.2 Formulación matemática del método SIMP
+El método SIMP, introducido por Bendsøe (1989) [2] y sistematizado en Bendsøe y
+Sigmund (2004) [7], modela el módulo de Young de cada elemento finito mediante la
+ley de potencias
+Ee(ρe) =ρ p
+e E0, ρ e∈(0,1], p≥3,(4)
+dondeE 0 es el módulo del material sólido ypes el factor de penalización (en la práctica
+p= 3incentiva soluciones binarias). El problema de optimización es:
+m´ ınρ c(ρ) =U⊤K(ρ)U=
+Ne∑
+e=1
+ρp
+e u⊤
+e K0 ue,
+s.a.K(ρ)U=F,
+V(ρ)
+V0
+=
+Ne∑
+e=1
+ρeve
+Ne∑
+e=1
+ve
+=f V,
+0<ρ m´ ın≤ρ e≤1, e= 1,...,N e,
+(5)
+dondeK(ρ)es la matriz de rigidez global,Uel vector de desplazamientos,Flas fuerzas
+externas,v e el volumen del elementoe,f V ∈(0,1)la fracción de volumen objetivo y
+ρm´ ın>0un umbral de regularización. Las sensibilidades, obtenidas por el método
+adjunto, son:
+∂c
+∂ρe
+=−pρ p−1
+e u⊤
+e K0 ue ≤0,(6)
+lo que garantiza que incrementar la densidad de cualquier elemento nunca aumenta
+lacompliance. La revisión de Yoo et al. (2023) [13] documenta que la integración
+con redes neuronales convolucionales ha acelerado SIMP hasta lograr predicciones en
+milisegundos para casos 2D con índiceIoU>0.95. El vacío permanente es que ningún
+método actual controla directamenteβ1(Ωsólido)durante la optimización.
+8.2.1 Tabla de notación adoptada
+Para evitar ambigüedades en el resto del trabajo, la Tabla 3 fija la simbología mate-
+mática empleada.
+--- PAGE 15 ---
+UAGRM·Maestría en Matemática·(2026)15
+Cuadro 3: Notación matemática adoptada en la investigación.
+Símbolo Descripción Dominio
+X={x 1,...,x n}⊂R d Nube de puntos de entrada TDA
+VR(X,ε)Complejo de Vietoris-Rips a escalaεTDA
+Dgmk(X)Diagrama de persistencia de
+dimensiónk
+TDA
+βk = dimHk Número de Betti de dimensiónkTDA /
+General
+d∞(A,B)Distancia botella entre diagramas TDA
+ρe∈(0,1]Densidad de diseño del elementoeSIMP
+Ee =ρ p
+e E0 Módulo de Young penalizado SIMP
+c(ρ) =U⊤K UFuncióncomplianceSIMP
+--- PAGE 16 ---
+UAGRM·Maestría en Matemática·(2026)16
+CAPÍTULO III. Marco metodológico
+8.3 Paradigma de investigación
+La investigación se inscribe en el paradigmapositivista-cuantitativo. Se parte de
+proposiciones teóricas precisas (hipótesis medibles), se diseñan experimentos compu-
+tacionales reproducibles, se recolectan datos numéricos y se contrastan las hipótesis
+mediante indicadores estadísticos. La verdad de una proposición se juzga por su co-
+rrespondencia con los resultados de la simulación, no por autoridad bibliográfica.
+8.4 Métodos de investigación
+Se emplean dos métodos en combinación. Elmétodo deductivo y modelación ex-
+perimental, opera de la teoría (axiomas topológicos, teoremas de estabilidad, formu-
+lación SIMP) hacia las predicciones verificables de las hipótesis específicas. Elmétodo
+comparativocontrasta el rendimiento de los métodos topológicos (TDA, SIMP) fren-
+te a sus análogos no topológicos de referencia (descriptores euclidianos), cuantificando
+la mejora relativa mediante las métricas de la Tabla 1.
+8.5 Tipo de investigación
+La investigación es de tipoaplicada, descriptivo-explicativa y de carácter do-
+cumental computacional. Esaplicadaporque utiliza teoría matemática establecida
+para resolver problemas concretos de ingeniería. Esdescriptivo-explicativaporque no
+solo describe los fenómenos (estructura topológica de los datos, topología del diseño
+óptimo) sino que explica causalmente su comportamiento mediante los invariantes to-
+pológicos. Esdocumental-computacionalporque combina la revisión sistemática de la
+literatura con la simulación numérica como fuente primaria de evidencia, sin requerir
+laboratorio físico.
+8.6 Técnicas e herramientas
+8.6.1 Diseño de los casos de simulación
+Dos casos articulan las dos hipótesis específicas:
+Caso 1 — Ingeniería de Datos (TDA):computación de homología per-
+sistente sobre conjuntos de datos de referencia (esferas, toros, nubes ruidosas)
+con Ripser 0.6. Prueba de estabilidad: perturbación gaussiana escalada al10 %,
+15 %y20 %del diámetro. Comparación deβ 0/β1 vs. descriptores PCA yk-
+medias.
+Caso 2 — Ingeniería Estructural (SIMP):viga en voladizo 2D,60×30
+elementos Q4, carga puntual en extremo libre,fV = 0.5,p= 3. Métrica pri-
+maria:compliancerelativa. Métrica topológica:β 1(Ωsólido)calculado con Ripser
+sobre la malla resultante.
+--- PAGE 17 ---
+UAGRM·Maestría en Matemática·(2026)17
+8.6.2 Herramientas computacionales
+Cuadro 4: Herramientas computacionales y su caso de uso.
+Herramienta Versión Caso de uso
+Python 3.11+ Lenguaje base de todos los casos
+Ripser 0.6.x Homología persistente (Casos 1)
+Persim 0.3.x Visualización de diagramas, distancia de Wasserstein
+NumPy /
+SciPy
+1.26/1.12 Álgebra lineal, integración ODE, optimización
+PyTorch 2.x Diferenciación automática.
+Matplotlib 3.8.x Visualización científica (para los dos casos)
+scikit-learn 1.4.x Validación, métricas, reducción de dimensión
+Google
+Colab
+GPU
+T4/A100
+Entorno de ejecución sin hardware especializado
+8.6.3 Criterios de validación y reproducibilidad
+Reproducibilidad:todo el código se versionará en un repositorio público
+(GitHub) con semilla aleatoria fija (seed = 42) en todos los experimentos
+estocásticos.
+Convergencia SIMP:criterio de parada dual: cambio relativo enc(ρ)menor
+que10 −4 y cambio máximo en densidades menor que10−3 entre iteraciones
+consecutivas.
+Comparación estadística:los resultados de estabilidad TDA se reportarán
+como media±desviación estándar sobre 100 realizaciones de ruido gaussiano.
+Documentación:cada caso de simulación se entregará como un Notebook
+Jupyter (.ipynb) con celdas comentadas, figuras embebidas y tablas de resul-
+tados exportadas a CSV.
+--- PAGE 18 ---
+UAGRM·Maestría en Matemática·(2026)18
+Bibliografía
+Referencias ordenadas por primera aparición en el texto. Todos los artículos de revista
+están indexados en JCR (Web of Science) o Scopus.
+Referencias
+[1] Edelsbrunner, H., Letscher, D., & Zomorodian, A. (2002). Topological persistence
+and simplification.Discrete & Computational Geometry,28(4), 511–533.https:
+//doi.org/10.1007/s00454-002-2885-2
+[2] Bendsøe, M. P. (1989). Optimal shape design as a material distribution problem.
+Structural Optimization,1(4), 193–202.https://doi.org/10.1007/BF01650949
+[3] Raissi, M., Perdikaris, P., & Karniadakis, G. E. (2019). Physics-informed neural
+networks: A deep learning framework for solving forward and inverse problems in-
+volving nonlinear partial differential equations.Journal of Computational Physics,
+378, 686–707.https://doi.org/10.1016/j.jcp.2018.10.045
+[4] Su, Z., Liu, X., Bou Hamdan, L., Maroulas, V., Wu, J., Carlsson, G., & Wei,
+G.-W. (2025). Topological data analysis and topological deep learning beyond
+persistent homology: A review.Artificial Intelligence Review,58.https://doi.
+org/10.1007/s10462-025-11462-w
+[5] Zomorodian, A., & Carlsson, G. (2005). Computing persistent homology.Dis-
+crete & Computational Geometry,33(2), 249–274.https://doi.org/10.1007/
+s00454-004-1146-y
+[6] Carlsson, G. (2009). Topology and data.Bulletin of the American Mathematical
+Society,46(2), 255–308.https://doi.org/10.1090/S0273-0979-09-01249-X
+[7] Bendsøe, M. P., & Sigmund, O. (2004).Topology Optimization: Theory, Methods,
+and Applications(2nd ed.). Springer-Verlag. ISBN 978-3-662-05086-6.
+[8] Sigmund, O., & Maute, K. (2013). Topology optimization approaches: A compa-
+rative review.Structural and Multidisciplinary Optimization,48(6), 1031–1055.
+https://doi.org/10.1007/s00158-013-0978-6
+[9] Lorenz, E. N. (1963). Deterministic nonperiodic flow.Journal of the Atmosphe-
+ric Sciences,20(2), 130–141.https://doi.org/10.1175/1520-0469(1963)
+020<0130:DNF>2.0.CO;2
+[10] Tucker, W. (2002). A rigorous ODE solver and Smale’s 14th problem.Founda-
+tions of Computational Mathematics,2(1), 53–117.https://doi.org/10.1007/
+s002080010018
+[11] Hensel, F., Moor, M., & Rieck, B. (2021). A survey of topological machine learning
+methods.Frontiers in Artificial Intelligence,4, 681108.https://doi.org/10.
+3389/frai.2021.681108
+--- PAGE 19 ---
+UAGRM·Maestría en Matemática·(2026)19
+[12] Gowdridge, T., Dervilis, N., & Worden, K. (2022). On topological data analysis
+for structural dynamics: An introduction to persistent homology.ASME Open
+Journal of Engineering,1, 011038.https://doi.org/10.1115/1.4055184
+[13] Yoo, S., Lee, S., Kim, S., Hwang, K. H., Park, J. H., & Kang, N. (2023). To-
+pology optimization via machine learning and deep learning: A review.Journal
+of Computational Design and Engineering,10(4), 1736–1766.https://doi.org/
+10.1093/jcde/qwad072
+[14] Abueidda, D. W., Koric, S., Sobh, N. A., & Sehitoglu, H. (2023). Topology optimi-
+zation with physics-informed neural networks.Computer Methods in Applied Me-
+chanics and Engineering,415, 116276.https://doi.org/10.1016/j.cma.2023.
+116276
+[15] Toscano, J. D., Oommen, V., Varghese, A. J., Zou, Z., Ahmadi Daryakenari, N.,
+Wu, C., & Karniadakis, G. E. (2025). From PINNs to PIKANs: Recent advances in
+physics-informed machine learning.Machine Learning for Computational Science
+and Engineering,1(1).https://doi.org/10.1007/s44379-025-00015-1
+[16] Cohen-Steiner, D., Edelsbrunner, H., & Harer, J. (2007). Stability of persistence
+diagrams.Discrete & Computational Geometry,37(1), 103–120.https://doi.
+org/10.1007/s00454-006-1276-5
+[17] Xu, Z., Zhang, Y., & Li, M. (2025). Physics-informed neural networks: A review
+of methodological evolution, theoretical foundations, and interdisciplinary fron-
+tiers toward next-generation scientific computing.Applied Sciences,15(14), 8092.
+https://doi.org/10.3390/app15148092
+[18] Wang, R., & Wei, G.-W. (2020). Persistent spectral graph.International Journal
+for Numerical Methods in Biomedical Engineering,36(9), e3376.https://doi.
+org/10.1002/cnm.3376
+[19] Bendsøe, M. P., & Kikuchi, N. (1988). Generating optimal topologies in structural
+design using a homogenization method.Computer Methods in Applied Mechanics
+and Engineering,71(2), 197–224.https://doi.org/10.1016/0045-7825(88)
+90086-2
+[20] Chazal, F., & Michel, B. (2021). An introduction to topological data analysis:
+Fundamental and practical aspects for data scientists.Frontiers in Artificial Inte-
+lligence,4, 667963.https://doi.org/10.3389/frai.2021.667963
+[21] Brunton, S. L., Proctor, J. L., & Kutz, J. N. (2016). Discovering governing equa-
+tions from data by sparse identification of nonlinear dynamical systems.PNAS,
+113(15), 3932–3937.https://doi.org/10.1073/pnas.1517384113
+[22] Ameneyro, B., Maroulas, V., & Siopsis, G. (2024). Quantum persistent homology.
+Journal of Applied and Computational Topology,8,1961–1983.https://doi.org/
+10.1007/s41468-023-00115-y
+[23] Svanberg, K. (1987). The method of moving asymptotes: A new method for struc-
+tural optimization.International Journal for Numerical Methods in Engineering,
+24(2), 359–373.https://doi.org/10.1002/nme.1620240207
+--- PAGE 20 ---
+UAGRM·Maestría en Matemática·(2026)20
+[24] Xu, B., Jiang, H., & Chen, L. (2024). Topology optimization: A review for struc-
+tural designs under statics problems.Materials,17(23), 5970.https://doi.org/
+10.3390/ma17235970
+[25] Farea, A., Yli-Harja, O., & Emmert-Streib, F. (2024). Understanding
+physics-informed neural networks: Techniques, applications, trends, and cha-
+llenges.Artificial Intelligence Review,57(12).https://doi.org/10.1007/
+s10462-024-10939-4

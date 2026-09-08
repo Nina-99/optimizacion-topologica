@@ -1,7 +1,7 @@
 """Figuras Plotly para visualización de análisis TDA.
 
 Proporciona funciones que generan figuras Plotly listas para renderizar
-en Streamlit o exportar a PDF/HTML.
+en Streamlit o exportar a PDF/HTML. Adaptación automática dark/light mode.
 """
 
 from typing import Dict
@@ -10,11 +10,41 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 
+def _apply_dark_layout(fig, colors=None):
+    """Aplica dark mode al layout de una figura Plotly si está activo.
+
+    Parameters
+    ----------
+    fig : go.Figure
+        Figura a modificar
+    colors : dict, optional
+        Colores del tema (si None, importa get_plot_colors)
+
+    Returns
+    -------
+    go.Figure
+    """
+    from tda.app.theme import is_dark
+    if not is_dark():
+        return fig
+    if colors is None:
+        from tda.app.theme import get_plot_colors
+        colors = get_plot_colors()
+    fig.update_layout(
+        plot_bgcolor=colors["bg"],
+        paper_bgcolor=colors["paper_bg"],
+        font=dict(color=colors["font"]),
+        xaxis=dict(gridcolor=colors["grid"]),
+        yaxis=dict(gridcolor=colors["grid"]),
+    )
+    return fig
+
+
 def plot_stability_chart(results: Dict) -> go.Figure:
     """Crea gráfico de estabilidad con doble eje Y.
 
     Muestra los números de Betti (β₀, β₁) en el eje izquierdo
-    y el accuracy de K-Means en el eje derecho, con líneas verticales
+    y la exactitud de K-Means en el eje derecho, con líneas verticales
     marcando el rango 15-20% de la hipótesis H.E.1.
 
     Args:
@@ -73,12 +103,17 @@ def plot_stability_chart(results: Dict) -> go.Figure:
     # Accuracy K-Means (eje secundario)
     fig.add_trace(
         go.Scatter(x=noise_pct, y=sweep_acc, mode='lines+markers',
-                   name='Accuracy K-Medias',
+                   name='Exactitud K-Medias',
                    line=dict(color='#8e44ad', width=3, dash='dash'),
                    marker=dict(symbol='x', size=10)),
         secondary_y=True
     )
     
+    # Bandas de referencia: β₁ esperado (esfera=0, toro=2)
+    fig.add_hline(y=2, line=dict(color='#e74c3c', width=1, dash='dot'))
+    fig.add_annotation(x=1, y=2.15, text="β₁ esperado toro = 2",
+                       showarrow=False, font=dict(size=9, color='#e74c3c'),
+                       yref='y')
     # Líneas verticales del rango H.E.1 (15-20%)
     fig.add_vline(x=15, line=dict(color='gray', width=1, dash='dash'))
     fig.add_vline(x=20, line=dict(color='gray', width=1, dash='dash'))
@@ -92,17 +127,17 @@ def plot_stability_chart(results: Dict) -> go.Figure:
     # Layout
     fig.update_layout(
         title=dict(
-            text="<b>Estabilidad de Invariantes Topológicos vs Accuracy Euclidiano</b>",
+            text="<b>Estabilidad de Invariantes Topológicos vs Exactitud Euclidiana</b>",
             font=dict(size=13)
         ),
         xaxis=dict(title="Nivel de Ruido (%)", dtick=5, range=[-2, 32]),
         yaxis=dict(
             title="Número de Betti",
-            dtick=1, range=[-0.5, 3.5],
+            dtick=1, range=[-0.5, 10.5],
             showgrid=True, gridcolor='#ecf0f1'
         ),
         yaxis2=dict(
-            title="Accuracy K-Medias",
+            title="Exactitud K-Medias",
             range=[0, 1.05],
             tickformat='.0%',
             showgrid=False
@@ -117,7 +152,9 @@ def plot_stability_chart(results: Dict) -> go.Figure:
         plot_bgcolor='#fafafa',
         margin=dict(t=80)
     )
-    
+
+    _apply_dark_layout(fig)
+
     return fig
 
 
@@ -125,7 +162,7 @@ def interpret_stability(results: Dict) -> Dict:
     """Interpreta los resultados del barrido de ruido.
 
     Evalúa si los números de Betti se mantuvieron estables y si
-    el accuracy de K-Means se degradó, generando un veredicto sobre H.E.1.
+    la exactitud de K-Means se degradó, generando un veredicto sobre H.E.1.
 
     Args:
         results: Dict del barrido de ruido.
@@ -150,14 +187,14 @@ def interpret_stability(results: Dict) -> Dict:
             f"- β₁ del Toro se mantiene en **2** para todo el rango de ruido 0–30%\n"
             f"- β₁ de la Esfera se mantiene en **0** para todo el rango\n"
             f"- β₀ se mantiene en **1** para ambas formas\n"
-            f"- Accuracy de K-Medias {'cae por debajo del 80%' if kmeans_fails else 'se degrada'}"
+            f"- Exactitud de K-Medias {'cae por debajo del 80%' if kmeans_fails else 'se degrada'}"
         )
     else:
         verdict = "H.E.1 VERIFICADA PARCIALMENTE"
         details = (
             f"- β₁ del Toro: {'estable en 2' if b1_toro_stable else 'presenta variaciones'}\n"
             f"- β₁ de la Esfera: {'estable en 0' if b1_esfera_stable else 'presenta variaciones'}\n"
-            f"- Accuracy K-Medias: {'se degrada con el ruido' if kmeans_fails else 'se mantiene estable'}"
+            f"- Exactitud K-Medias: {'se degrada con el ruido' if kmeans_fails else 'se mantiene estable'}"
         )
     
     return {"stable": all_stable, "verdict": verdict, "details": details}
@@ -346,45 +383,11 @@ def plot_sweep_persistence_animation(results):
         height=500,
         hovermode="closest",
         sliders=sliders,
-        updatemenus=[
-            dict(
-                type="buttons",
-                showactive=False,
-                buttons=[
-                    dict(
-                        label="▶ Play",
-                        method="animate",
-                        args=[
-                            [f"noise_{i}" for i in range(len(noise_vals))],
-                            dict(
-                                frame=dict(duration=400, redraw=True),
-                                fromcurrent=True,
-                                transition=dict(duration=0),
-                            ),
-                        ],
-                    ),
-                    dict(
-                        label="⏸ Pause",
-                        method="animate",
-                        args=[
-                            [None],
-                            dict(
-                                frame=dict(duration=0, redraw=False),
-                                mode="immediate",
-                                transition=dict(duration=0),
-                            ),
-                        ],
-                    ),
-                ],
-                x=0.05,
-                y=1.12,
-                xanchor="left",
-                yanchor="top",
-            )
-        ],
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5, font=dict(size=9)),
         margin=dict(t=60, b=80),
         plot_bgcolor="#fafafa",
     )
+
+    _apply_dark_layout(fig)
 
     return fig

@@ -24,7 +24,7 @@ def run_headless_experiment():
     print("Configuración: Viga voladizo, Malla 60x30, Volumen=0.5, Penalización=3.0\\n")
 
     # Instanciación del optimizador con los parámetros definidos en la tesis
-    opt = SimpTda2DOptimizer(nelx=60, nely=30, volfrac=0.5, penal=3.0, rmin=1.5)
+    opt = SimpTda2DOptimizer(nelx=60, nely=30, volfrac=0.5, penal=3.0, rmin=2.4)
 
     # Callback simple para monitorear el progreso en consola
     def log_progress(loop, xPhys, c, reduccion, max_iter):

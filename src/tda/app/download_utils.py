@@ -76,14 +76,14 @@ def export_settings_ui():
         with col2:
             st.write("")  # spacer
             st.write("")  # spacer
-            if st.button("📂 Abrir", key="_export_btn_open", use_container_width=True):
+            if st.button("📂 Abrir", key="_export_btn_open", width='stretch'):
                 _abrir_carpeta(st.session_state[_SESSION_KEY])
 
         with col3:
             st.write("")  # spacer
             st.write("")  # spacer
             if st.button(
-                "↺ Default", key="_export_btn_reset", use_container_width=True
+                "↺ Default", key="_export_btn_reset", width='stretch'
             ):
                 nuevo_path = str(_default_export_dir())
 

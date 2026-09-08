@@ -1,0 +1,57 @@
+{
+  "malla": "100\u00d760",
+  "volfrac": 0.5,
+  "penal": 5.0,
+  "rmin": 1.5,
+  "max_iter": 500,
+  "sim_puro": {
+    "reduccion_pct": 19.308029991604414,
+    "b1": 0,
+    "c_final": 831.2778779481444
+  },
+  "sim_tda": {
+    "reduccion_pct": 19.308029991604414,
+    "b1": 0,
+    "mu": 831.2778779481444,
+    "alpha": 0.1,
+    "c_final": 831.2778779481444
+  },
+  "tda_puro": {
+    "0.1": {
+      "betti0_mean": 0.0,
+      "betti0_std": 0.0,
+      "betti1_mean": 0.0,
+      "betti1_std": 0.0,
+      "wasserstein_mean": 0.0,
+      "wasserstein_std": 0.0,
+      "bottleneck_mean": 0.0,
+      "bottleneck_std": 0.0
+    },
+    "0.15": {
+      "betti0_mean": 0.0,
+      "betti0_std": 0.0,
+      "betti1_mean": 0.0,
+      "betti1_std": 0.0,
+      "wasserstein_mean": 0.0,
+      "wasserstein_std": 0.0,
+      "bottleneck_mean": 0.0,
+      "bottleneck_std": 0.0
+    },
+    "0.2": {
+      "betti0_mean": 0.0,
+      "betti0_std": 0.0,
+      "betti1_mean": 0.0,
+      "betti1_std": 0.0,
+      "wasserstein_mean": 0.0,
+      "wasserstein_std": 0.0,
+      "bottleneck_mean": 0.0,
+      "bottleneck_std": 0.0
+    }
+  },
+  "comparativas": {
+    "reduccion_diff": 0.0,
+    "b1_diff": 0,
+    "tda_mejora_reduccion": 0.0,
+    "tda_mejora_b1": true
+  }
+}
