@@ -26,7 +26,7 @@ from tda.app.theme import (
 )
 
 # Constante de diseño
-SIGMA_ADM = SIGMA_ADM  # MPa - Tensión admisible del hormigón H-20/H-25
+SIGMA_ADM = 11.25  # MPa - Tensión admisible del hormigón H-20/H-25
 # ── Configuración de exportación (.exe) ──
 export_settings_ui()
 
@@ -285,7 +285,7 @@ elif running:
                        linestyle='--', label="Tensión σ")
         if show_limits:
             ax_stress.axhline(SIGMA_ADM, color='red', linestyle=':', alpha=0.5,
-                              label="σ_adm = SIGMA_ADM MPa")
+                              label="σ_adm = 11.25 MPa")
         ax_stress.set_ylabel("Tensión (MPa)", color='darkred')
         ax_stress.tick_params(axis='y', labelcolor='darkred')
 
@@ -407,7 +407,7 @@ else:
         fig_final.add_trace(go.Scatter(
             x=[0, data["L"]], y=[SIGMA_ADM, SIGMA_ADM],
             mode='lines', line=dict(color='red', dash='dot', width=1.5),
-            name="σ_adm = SIGMA_ADM MPa"
+            name="σ_adm = 11.25 MPa"
         ), row=3, col=1, secondary_y=True)
 
     fig_final.update_layout(
@@ -498,7 +498,7 @@ else:
     - **Ahorro de material**: Se redujo el volumen de **{V_orig:.4f} m³** a **{V_opt:.4f} m³**, equivalente a **{weight:.2f} toneladas** de peso menos.
     - **Deflexión**: La deflexión máxima optimizada es de **{def_max_opt:.2f} mm** {'✅ dentro del límite admisible' if cumple_deflexion else '⚠️ supera el límite admisible'} de {def_adm:.2f} mm (L/300).
     - **Inercia**: La inercia máxima aumentó de {I0:.6f} m⁴ a **{np.max(data['I']):.6f} m⁴** ({np.max(data['I']) / I0:.2f}×), concentrando material donde más se necesita.
-    - **Tensiones**: La tensión máxima de compresión es de {np.max(sigma):.2f} MPa {'✅ dentro del límite' if np.max(sigma) <= SIGMA_ADM else '⚠️ supera el límite'} de SIGMA_ADM MPa del hormigón.
+    - **Tensiones**: La tensión máxima de compresión es de {np.max(sigma):.2f} MPa {'✅ dentro del límite' if np.max(sigma) <= SIGMA_ADM else '⚠️ supera el límite'} de 11.25 MPa del hormigón.
     - **Convergencia**: El algoritmo alcanzó la convergencia en **{data['iterations']} iteraciones** con un error relativo de **{data['final_error']:.6f}**.
     """)
 
@@ -584,7 +584,7 @@ else:
                     axs2.plot(x, sigma, 'darkred', lw=1.5, linestyle='--', label="Tensión σ")
                     if show_limits:
                         axs2.axhline(SIGMA_ADM, color='red', linestyle=':', alpha=0.5,
-                                     label="σ_adm = SIGMA_ADM MPa")
+                                     label="σ_adm = 11.25 MPa")
                     axs2.set_ylabel("Tensión (MPa)", color='darkred')
                     axs2.tick_params(axis='y', labelcolor='darkred')
                     l1, lb1 = axes_pdf[2].get_legend_handles_labels()

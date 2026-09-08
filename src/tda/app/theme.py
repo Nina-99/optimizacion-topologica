@@ -699,17 +699,13 @@ def sidebar_nav(current_page, page_map):
     page_map : dict
         {icon: str, title: str, path: str} para cada página
     """
-    st.sidebar.title("📐 TDA-SIMP Master")
     st.sidebar.markdown("---")
 
     for icon, title, path in page_map:
         if path == current_page:
-            st.sidebar.markdown(f"**{icon} {title}**")
+            st.sidebar.markdown(f"**{title}**")
         else:
-            st.sidebar.page_link(path, label=f"{icon} {title}")
-
-    st.sidebar.markdown("---")
-    st.sidebar.caption("Dark Theme · Orange Accent")
+            st.sidebar.page_link(path, label=f"{title}")
 
 
 def breadcrumbs(parts, separator="→"):
