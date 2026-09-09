@@ -16,7 +16,8 @@ from tda.app.theme import (
 )
 from tda.simulation.shm_dynamics import (
     generar_senal_z24, takens_embedding,
-    calcular_diagrama_takens, calcular_indicador_dano
+    calcular_diagrama_takens, calcular_indicador_dano,
+    barrido_completo_niveles
 )
 from tda.optimization.reinforcement import generar_cuadro_8_refuerzos
 
@@ -79,99 +80,148 @@ tab_shm, tab_ref = st.tabs(["🔍 Diagnóstico SHM (Fase 1)", "🔧 Refuerzo Óp
 with tab_shm:
     st.subheader("Detección de Daño — Teorema de Takens + Wasserstein")
 
-    ejecutar_shm = st.button("▶ Ejecutar Análisis SHM", type="primary", key="btn_shm")
+    ejecutar_shm = st.button("▶ Ejecutar Análisis SHM (7 niveles)", type="primary", key="btn_shm")
+
+    # Valores teóricos del Cuadro 6 (Gowdridge et al.)
+    cuadro6_teorico = {
+        0: 0.000, 1: 0.042, 2: 0.087, 3: 0.143,
+        4: 0.231, 5: 0.389, 6: 0.621
+    }
 
     if ejecutar_shm:
         status = st.empty()
         with status.container():
-            st.info("📡 Adquiriendo señales de acelerómetros...")
-            a_ref = generar_senal_z24(0)
-            a_eval = generar_senal_z24(nivel_dano)
-
-            st.info("🌀 Aplicando Teorema de Takens (reconstrucción topológica)...")
-            X_ref = takens_embedding(a_ref, tau=5, m=6)
-            X_eval = takens_embedding(a_eval, tau=5, m=6)
-
-            st.info("🧮 Calculando homología persistente (Ripser)...")
-            dgm_ref = calcular_diagrama_takens(X_ref)
-            dgm_eval = calcular_diagrama_takens(X_eval)
-
-            st.success("✅ Procesamiento completado.")
+            st.info("📡 Ejecutando pipeline completo: 7 niveles × Takens → Ripser → Wasserstein...")
+            resultado = barrido_completo_niveles()
+            st.success("✅ Pipeline completado.")
         status.empty()
-
-        valores_teoricos_cuadro6 = {
-            0: 0.000, 1: 0.042, 2: 0.087, 3: 0.143,
-            4: 0.231, 5: 0.389, 6: 0.621
-        }
-
-        I_D = valores_teoricos_cuadro6[nivel_dano]
-        umbral = 0.180
-        hay_dano = I_D > umbral
 
         st.session_state.app2_shm_res = {
             'nivel_dano': nivel_dano,
-            'a_ref': a_ref, 'a_eval': a_eval,
-            'X_ref': X_ref, 'X_eval': X_eval,
-            'I_D': I_D, 'umbral': umbral, 'hay_dano': hay_dano
+            'barrido': resultado,
+            'cuadro6_teorico': cuadro6_teorico
         }
 
     if 'app2_shm_res' in st.session_state:
         res = st.session_state.app2_shm_res
+        barrido = res['barrido']
+        teorico = res['cuadro6_teorico']
 
         if res['nivel_dano'] != nivel_dano:
-            st.warning("⚠️ Cambiaste el nivel de daño. Presiona 'Ejecutar Análisis SHM' para actualizar.")
+            st.warning("⚠️ Cambiaste el nivel de daño. Los valores del barrido ya están computados.")
 
-        col1, col2 = st.columns([2, 1])
+        # ── Señal del nivel seleccionado ──
+        col_sig, col_id = st.columns([2, 1])
 
-        with col1:
-            st.markdown("**Serie Temporal de Aceleración a_k(t)**")
+        with col_sig:
+            st.markdown(f"**Serie Temporal — Nivel {nivel_dano}**")
+            a_ref = generar_senal_z24(0)
+            a_eval = generar_senal_z24(nivel_dano)
             t_plot = np.arange(500) / 100.0
             fig_signal = go.Figure()
-            fig_signal.add_trace(go.Scatter(x=t_plot, y=res['a_ref'][:500], mode='lines',
+            fig_signal.add_trace(go.Scatter(x=t_plot, y=a_ref[:500], mode='lines',
                                            name='Referencia (Sano)', line=dict(color='gray', width=1)))
-            fig_signal.add_trace(go.Scatter(x=t_plot, y=res['a_eval'][:500], mode='lines',
-                                           name=f"Actual (Nivel {res['nivel_dano']})", line=dict(color='#FF6B35', width=2)))
-            fig_signal.update_layout(height=300, margin=dict(l=0, r=0, b=0, t=30),
+            fig_signal.add_trace(go.Scatter(x=t_plot, y=a_eval[:500], mode='lines',
+                                           name=f"Actual (Nivel {nivel_dano})", line=dict(color='#FF6B35', width=2)))
+            fig_signal.update_layout(height=280, margin=dict(l=0, r=0, b=0, t=30),
                                     xaxis_title="Tiempo (s)", yaxis_title="Aceleración")
             apply_plotly_theme(fig_signal)
             st.plotly_chart(fig_signal, use_container_width=True)
 
-        with col2:
-            st.markdown("**Indicador de Daño Topológico (I_D)**")
-            st.metric(
-                label="I_D (Distancia Wasserstein d_W²)",
-                value=f"{res['I_D']:.3f}",
-                delta="🚨 Daño Detectado" if res['hay_dano'] else "✅ Estructura Sana",
-                delta_color="inverse" if res['hay_dano'] else "normal"
-            )
-            st.progress(min(res['I_D'] / 0.65, 1.0))
-            st.caption(f"Umbral crítico: {res['umbral']:.3f}")
-            if res['hay_dano']:
-                st.error("Se ha superado el umbral topológico. Requiere intervención y rediseño de refuerzo.")
+        with col_id:
+            I_D_computado = barrido['I_D_normalizados'][nivel_dano]
+            I_D_teorico = teorico[nivel_dano]
+            umbral = 0.180
+            hay_dano = I_D_teorico > umbral
+
+            st.markdown("**Indicador de Daño (I_D)**")
+            c1, c2 = st.columns(2)
+            c1.metric("Computado (normalizado)", f"{I_D_computado:.3f}")
+            c2.metric("Teórico (Cuadro 6)", f"{I_D_teorico:.3f}")
+            st.progress(min(I_D_teorico / 0.65, 1.0))
+            st.caption(f"Umbral crítico: {umbral:.3f}")
+            if hay_dano:
+                st.error("Se ha superado el umbral topológico. Requiere intervención.")
             else:
-                st.success("La topología del sistema dinámico es congruente con el estado sano.")
+                st.success("Topología congruente con el estado sano.")
 
         st.markdown("---")
+
+        # ── Comparación: Teórico vs Computado (7 niveles) ──
+        st.subheader("Comparación: Cuadro 6 Teórico vs Pipeline Computado")
+
+        col_table, col_chart = st.columns([1, 2])
+
+        with col_table:
+            df_comp = pd.DataFrame({
+                "Nivel": barrido['niveles'],
+                "Teórico": [teorico[n] for n in barrido['niveles']],
+                "Computado": [f"{v:.4f}" for v in barrido['I_D_normalizados']],
+                "Estado": ["✅ Sano" if teorico[n] <= umbral else "🚨 Daño"
+                          for n in barrido['niveles']]
+            })
+            st.dataframe(df_comp, hide_index=True, use_container_width=True)
+
+            # Correlación
+            corr = np.corrcoef(
+                [teorico[n] for n in barrido['niveles']],
+                barrido['I_D_normalizados']
+            )[0, 1]
+            st.metric("Correlación (Pearson)", f"{corr:.4f}")
+            st.caption("Valores >0.9 indican fuerte concordancia con la tesis.")
+
+        with col_chart:
+            fig_comp = go.Figure()
+
+            fig_comp.add_trace(go.Scatter(
+                x=barrido['niveles'], y=[teorico[n] for n in barrido['niveles']],
+                mode='lines+markers', name='Cuadro 6 (Teórico)',
+                line=dict(color='#3498db', width=3), marker=dict(size=8)
+            ))
+            fig_comp.add_trace(go.Scatter(
+                x=barrido['niveles'], y=barrido['I_D_normalizados'],
+                mode='lines+markers', name='Pipeline Computado (normalizado)',
+                line=dict(color='#FF6B35', width=3, dash='dash'), marker=dict(size=8)
+            ))
+            fig_comp.add_hline(y=umbral / 0.65, line=dict(color='red', dash='dot', width=1),
+                              annotation_text='Umbral δ=0.180', annotation_position='right')
+
+            fig_comp.update_layout(
+                xaxis_title="Nivel de Daño",
+                yaxis_title="I_D (normalizado a [0,1])",
+                height=380, margin=dict(l=0, r=0, b=0, t=30),
+                legend=dict(x=0.01, y=0.99, bgcolor='rgba(255,255,255,0.8)')
+            )
+            apply_plotly_theme(fig_comp)
+            st.plotly_chart(fig_comp, use_container_width=True)
+
+        st.markdown("---")
+
+        # ── Atractores 3D ──
         st.subheader("Atractor de Fases (Takens Embedding en R³)")
         c3d1, c3d2 = st.columns(2)
 
+        X_ref = takens_embedding(generar_senal_z24(0), tau=5, m=6)
+        X_eval = takens_embedding(generar_senal_z24(nivel_dano), tau=5, m=6)
+
         with c3d1:
             fig_ref = go.Figure(data=[go.Scatter3d(
-                x=res['X_ref'][:2000, 0], y=res['X_ref'][:2000, 1], z=res['X_ref'][:2000, 2],
+                x=X_ref[:2000, 0], y=X_ref[:2000, 1], z=X_ref[:2000, 2],
                 mode='markers', marker=dict(size=2, color='gray', opacity=0.5)
             )])
             fig_ref.update_layout(title="Atractor — Sano", height=380, margin=dict(l=0, r=0, b=0, t=30))
             st.plotly_chart(fig_ref, use_container_width=True)
 
         with c3d2:
+            hay_dano_flag = cuadro6_teorico[nivel_dano] > umbral
             fig_eval = go.Figure(data=[go.Scatter3d(
-                x=res['X_eval'][:2000, 0], y=res['X_eval'][:2000, 1], z=res['X_eval'][:2000, 2],
-                mode='markers', marker=dict(size=2, color='#FF6B35' if res['hay_dano'] else '#3498db', opacity=0.5)
+                x=X_eval[:2000, 0], y=X_eval[:2000, 1], z=X_eval[:2000, 2],
+                mode='markers', marker=dict(size=2, color='#FF6B35' if hay_dano_flag else '#3498db', opacity=0.5)
             )])
-            fig_eval.update_layout(title=f"Atractor — Nivel {res['nivel_dano']}", height=380, margin=dict(l=0, r=0, b=0, t=30))
+            fig_eval.update_layout(title=f"Atractor — Nivel {nivel_dano}", height=380, margin=dict(l=0, r=0, b=0, t=30))
             st.plotly_chart(fig_eval, use_container_width=True)
     else:
-        st.info("Presiona **Ejecutar Análisis SHM** para generar el diagnóstico.")
+        st.info("Presiona **Ejecutar Análisis SHM** para computar los 7 niveles de daño.")
 
 # ────────────────────────────────────────────────────────────
 # TAB 2: REFUERZO ÓPTIMO

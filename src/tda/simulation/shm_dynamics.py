@@ -115,6 +115,8 @@ def calcular_indicador_dano(dgm1_ref: np.ndarray, dgm1_eval: np.ndarray) -> floa
     Calcula el Indicador de Daño I_D usando la distancia de Wasserstein (orden 2).
     
     I_D(t) = d_{W_2}^2(Dgm_1^{(0)}, Dgm_1^{(t)})
+    
+    Retorna el valor bruto (sin calibración) de d_W².
     """
     # Filtrar puntos vacíos o infinitos por seguridad
     if len(dgm1_ref) == 0: dgm1_ref = np.array([[0, 0]])
@@ -124,11 +126,52 @@ def calcular_indicador_dano(dgm1_ref: np.ndarray, dgm1_eval: np.ndarray) -> floa
     # persim devuelve d_W, el documento usa d_W^2
     d_w = persim.wasserstein(dgm1_ref, dgm1_eval, matching=False)
     
-    # El valor bruto depende de la escala de amplitud de la señal.
-    # Aplicamos una constante de calibración sintética para mapear al 
-    # orden de magnitud del Cuadro 6 del documento (0.0 a 0.6)
-    # y estabilizamos la varianza del subsampling.
-    raw_id = float(d_w ** 2)
-    escala_calibracion = 1.2e-4
+    return float(d_w ** 2)
+
+
+def barrido_completo_niveles(n_points: int = 8000, fs: float = 100.0) -> dict:
+    """
+    Ejecuta el pipeline completo Takens → Ripser → Wasserstein para los 7 
+    niveles de daño (0-6) contra la referencia (nivel 0).
     
-    return raw_id * escala_calibracion
+    Retorna
+    -------
+    dict con:
+        'niveles': lista de niveles [0..6]
+        'I_D_crudos': lista de valores I_D (d_W²) sin normalizar
+        'I_D_normalizados': lista de I_D normalizados a [0, 1]
+        'dgm_ref': diagrama de referencia
+        'dgms_eval': dict de diagramas por nivel
+    """
+    # Generar referencia (nivel 0)
+    a_ref = generar_senal_z24(0, n_points=n_points, fs=fs)
+    X_ref = takens_embedding(a_ref, tau=5, m=6)
+    dgm_ref = calcular_diagrama_takens(X_ref)
+    
+    niveles = list(range(7))
+    I_D_crudos = []
+    dgms_eval = {}
+    
+    for nivel in niveles:
+        if nivel == 0:
+            I_D_crudos.append(0.0)
+            dgms_eval[nivel] = dgm_ref
+        else:
+            a_eval = generar_senal_z24(nivel, n_points=n_points, fs=fs)
+            X_eval = takens_embedding(a_eval, tau=5, m=6)
+            dgm_eval = calcular_diagrama_takens(X_eval)
+            dgms_eval[nivel] = dgm_eval
+            I_D = calcular_indicador_dano(dgm_ref, dgm_eval)
+            I_D_crudos.append(I_D)
+    
+    # Normalizar a [0, 1] usando el máximo computado
+    max_I_D = max(I_D_crudos) if max(I_D_crudos) > 0 else 1.0
+    I_D_normalizados = [v / max_I_D for v in I_D_crudos]
+    
+    return {
+        'niveles': niveles,
+        'I_D_crudos': I_D_crudos,
+        'I_D_normalizados': I_D_normalizados,
+        'dgm_ref': dgm_ref,
+        'dgms_eval': dgms_eval
+    }
