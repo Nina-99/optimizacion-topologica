@@ -49,15 +49,14 @@ st.set_page_config(page_title="H.E.2 — Optimización SIMP + Métrica Compuesta
 st.markdown(responsive_style(), unsafe_allow_html=True)
 
 # ── Modo Defensa Toggle ──
-_modo_original = st.sidebar.checkbox("🔄 Ver valor original (α=0.012, r_min=2.4)", value=False,
-    help="Compara con los parámetros originales de la tesis. Default: α=0.036, r_min=3.0 (validados).")
+_modo_original = st.sidebar.checkbox("🔄 Usar parámetros de la tesis (α=0.012, r_min=2.4)", value=False,
+    help="Restaura los valores del Cuadro 1 de la tesis. Default: α=0.036, r_min=3.0 (validados experimentalmente).")
 
 # ── Page Header ──
 st.markdown(page_header(
     "H.E.2 — Optimización SIMP + Métrica Compuesta μ_α",
     "Algoritmo 1: μ_α = c + α·β₁ | p=3, f_V=0.5, reducción ≥40%"
 ), unsafe_allow_html=True)
-st.header("H.E.2 — Optimización SIMP + Métrica Compuesta μ_α")
 
 # ── Sidebar ──
 st.sidebar.header("🏗️ Optimización SIMP")
@@ -412,17 +411,21 @@ if ejecutar_simp:
     m_sol.definir_problema(F, dofs_fijos)
     m_sol.optimizar(verbose=False)
     c_solido = m_sol.c_final
-    # Referencia 2 (baseline H.E.2): diseño homogéneo inicial ρ=f_V
-    # (primera compliance del historial). La reducción mide cuánto rigidiza
-    # la optimización respecto al punto de partida, coherente con el Cuadro 2.
+
+    # Referencia 2: diseño homogéneo inicial ρ=f_V
     c_base = float(m.c_hist[0])
-    reduccion_pct = ((c_base - m.c_final) / c_base) * 100
+
+    # Reducción vs bloque sólido (criterio de la tesis Cuadro 2)
+    reduccion_vs_solido = ((c_solido - m.c_final) / c_solido) * 100
+    # Reducción vs homogéneo (baseline de partida)
+    reduccion_vs_homog = ((c_base - m.c_final) / c_base) * 100
 
     # Guardar resultados en session_state
     st.session_state.simp_c_solido = c_solido
     st.session_state.simp_c_base = c_base
-    st.session_state.simp_reduccion_pct = reduccion_pct
-    st.session_state.simp_rho_final = m.rho_final
+    st.session_state.simp_reduccion_solido = reduccion_vs_solido
+    st.session_state.simp_reduccion_homog = reduccion_vs_homog
+    st.session_state.simp_reduccion = reduccion_vs_solido  # primario = vs sólido (tesis)
     st.session_state.simp_c_final = m.c_final
     st.session_state.simp_beta1 = m.beta1
     st.session_state.simp_beta0 = m.beta0
@@ -444,9 +447,7 @@ if ejecutar_simp:
     st.session_state.simp_history = history
     st.session_state.simp_t_simp = m.t_simp
     st.session_state.simp_t_tda = m.t_tda
-    st.session_state.simp_reduccion = reduccion_pct
-    st.session_state.simp_c_solido = c_solido
-    st.session_state.simp_c_base = c_base
+    st.session_state.simp_rho_final = m.rho_final
     st.session_state.simp_optimized = True
 
 # Renderizar resultados si existen
@@ -507,10 +508,12 @@ if st.session_state.get('simp_optimized', False):
         col_q1, col_q2, col_q3, col_q4 = st.columns(4)
         c_final = st.session_state.simp_c_final
         c_solido = st.session_state.get('simp_c_solido', c_final)
-        reduccion = st.session_state.get('simp_reduccion_pct', 0.0)
+        reduccion_solido = st.session_state.get('simp_reduccion_solido', 0.0)
+        reduccion_homog = st.session_state.get('simp_reduccion_homog', 0.0)
         
         col_q1.metric("Compliance Sólido (100%)", f"{c_solido:.1f} N·mm")
-        col_q2.metric("Compliance SIMP (50%)", f"{c_final:.1f} N·mm", delta=f"{reduccion:.1f}% vs Homogéneo", delta_color="inverse")
+        col_q2.metric("Compliance SIMP (50%)", f"{c_final:.1f} N·mm",
+                      delta=f"{reduccion_solido:.1f}% vs Sólido (tesis)", delta_color="normal")
         col_q3.metric("β₁ (Agujeros)", st.session_state.simp_beta1)
         col_q4.metric("μ_α Compuesta", f"{st.session_state.simp_mu:.2f}")
 
@@ -793,18 +796,19 @@ if st.session_state.get('simp_optimized', False):
         with st.expander("✅ Validación H.E.2", expanded=True):
             st.markdown("""
             **Hipótesis H.E.2:** SIMP con p=3 y fV=0.5 reduce la compliance
-            en al menos un 40% respecto al diseño homogéneo inicial (ρ=fV),
+            en al menos un 40% respecto al bloque sólido de referencia (f_V=1.0),
             generando una topología con β₁(Ω_sólido) ≤ 2.
             """)
-            c_base = st.session_state.get("simp_c_base", None)
-            if c_base is None:
+            c_base_local = st.session_state.get("simp_c_base", None)
+            if c_base_local is None:
                 c_hist_local = st.session_state.get("simp_c_hist", None)
-                c_base = float(c_hist_local[0]) if c_hist_local is not None and len(c_hist_local) > 0 else None
-                st.session_state.simp_c_base = c_base
-            reduccion = (1 - st.session_state.simp_c_final / c_base) * 100 if c_base else 0.0
+                c_base_local = float(c_hist_local[0]) if c_hist_local is not None and len(c_hist_local) > 0 else None
+                st.session_state.simp_c_base = c_base_local
+            reduccion_solido = st.session_state.get("simp_reduccion_solido", 0.0)
+            reduccion_homog = st.session_state.get("simp_reduccion_homog", 0.0)
 
             diag = diagnosticar_he2(
-                reduccion=reduccion,
+                reduccion=reduccion_solido,
                 beta1=st.session_state.simp_beta1,
                 mu=st.session_state.simp_mu,
                 alpha=st.session_state.simp_alpha_stored,
@@ -917,7 +921,7 @@ if st.session_state.get('simp_optimized', False):
 
                 res_text = (
                     f"Compliance final:      c = {c_final:.5f}\n"
-                    f"Reducción vs homogéneo:   {reduccion:.2f}%\n"
+                    f"Reducción vs sólido:     {reduccion:.2f}%\n"
                     f"Componentes conexas:   β₀ = {beta0}\n"
                     f"Agujeros topológicos:  β₁ = {beta1}\n"
                     f"Métrica compuesta:     μ_α = {mu:.5f}\n"
@@ -1019,7 +1023,7 @@ if st.session_state.get('simp_optimized', False):
                     col_labels = ['Métrica', 'Valor', 'Unidad']
                     rows = [
                         ['Compliance final', f'{c_final:.5f}', 'N·mm'],
-                        ['Reducción vs homogéneo', f'{reduccion:.2f}', '%'],
+                        ['Reducción vs sólido', f'{reduccion:.2f}', '%'],
                         ['Fracción de volumen', f'{volfrac}', '—'],
                         ['Penalización p', f'{penal}', '—'],
                         ['α (peso topológico)', f'{alpha_val}', '—'],
@@ -1180,7 +1184,7 @@ if st.session_state.get('simp_optimized', False):
             f"",
             f"Resultados:",
             f"  Compliance final: {c_final:.8f}",
-            f"  Reducción vs homogéneo: {reduccion:.2f}%",
+            f"  Reducción vs sólido: {reduccion:.2f}%",
             f"  β₀={beta0}, β₁={beta1}",
             f"  μ_α={mu:.8f}",
             f"  Convergió: {'Sí' if converged else 'No'}",
@@ -1237,9 +1241,9 @@ methodology_expander(
         (
             "fórmulas",
             r"""\mu_\alpha = c + \alpha \cdot \beta_1
-\quad sujeto a: \int_\Omega \rho \, d\Omega \leq f_V \cdot |\Omega|
-\quad Algoritmo 1: inicializar, resolver FEM, calcular c y \beta_1,
-\quad actualizar \rho_e con OC hasta convergencia"""
+\quad \text{sujeto a:} \quad K(\rho) \cdot U = F, \quad \int_\Omega \rho \, d\Omega \leq f_V \cdot |\Omega|
+\quad \text{Algoritmo 1: inicializar } \rho_e = f_V, \text{ resolver FEM, calcular } c \text{ y } \beta_1,
+\quad \text{actualizar } \rho_e \text{ con OC hasta convergencia dual}"""
         )
     ],
     "H.E.2"
