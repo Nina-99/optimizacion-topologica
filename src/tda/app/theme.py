@@ -768,6 +768,18 @@ def methodology_expander(title, content_items, page_name):
     -------
     str HTML o markdown para st.markdown()
     """
+    def _is_latex(text):
+        """Detecta si el contenido contiene sintaxis LaTeX."""
+        latex_markers = ['\\frac', '\\sqrt', '\\beta', '\\mu', '\\alpha',
+                         '\\leq', '\\geq', '\\rightarrow', '\\text{',
+                         '\\mapsto', '\\mathbb', '\\in', '\\quad',
+                         '\\Rightarrow', '\\implies', '\\sum', '\\int',
+                         '\\dot', '\\ddot', '\\partial', '\\nabla',
+                         '\\left(', '\\right)', '\\left[', '\\right]',
+                         '\\left\\{', '\\right\\}', '\\cdot', '\\times',
+                         '\\sigma', '\\delta', '\\rho', '\\phi']
+        return any(m in text for m in latex_markers)
+
     with st.expander(title, expanded=False):
         st.markdown(f"### {page_name} — Metodología")
 
@@ -782,7 +794,11 @@ def methodology_expander(title, content_items, page_name):
             elif label == "algoritmo":
                 st.markdown("#### Algoritmo")
                 st.code(text, language="text")
+            elif _is_latex(text):
+                st.markdown(f"**{label}**")
+                st.latex(text)
             else:
+                st.markdown(f"**{label}**")
                 st.markdown(text)
 
         st.markdown("---")
