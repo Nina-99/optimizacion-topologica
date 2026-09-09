@@ -260,7 +260,7 @@ if st.session_state.get('hg_run', False):
 
     df_comp = pd.DataFrame({
         "Métrica": [
-            "Compliance c (N·mm)", "Reducción vs sólido",
+            "Compliance c (N·mm)", "Reducción vs base (ρ=fV)",
             "β₀ (componentes)", "β₁ (agujeros)", "μ_α (métrica compuesta)",
             "Manufacturabilidad"
         ],

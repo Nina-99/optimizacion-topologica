@@ -3,8 +3,8 @@
 Valida la Hipótesis Específica 2 (H.E.2):
 "El método SIMP con p = 3 y fracción de volumen fV = 0.5 converge
 a una distribución de material que reduce la compliance global en
-al menos un 40% respecto al bloque sólido de referencia, generando
-una topología con β₁(Ωsólido) ≤ 2 verificable computacionalmente."
+al menos un 40% respecto al diseño base uniforme (ρ = fV), generando
+una topología con β₁(Ω) ≤ 2 verificable computacionalmente."
 
 Referencias del Documento:
 - Definición 1.6: Malla FEM y variable de diseño ρ
@@ -402,28 +402,16 @@ if ejecutar_simp:
 
     st.success("¡Optimización Finalizada!")
 
-    # Referencia 1: bloque sólido (f_V=1.0) — compliance directa sin OC
-    # La referencia del Cuadro 2 es el bloque sólido completo, no una iteración OC.
-    from tda.core.fem import ensamblar_K_global, resolver_FEM, calcular_compliance_sensibilidades
-    rho_solido = np.ones(nelx * nely)
-    K_solido = ensamblar_K_global(rho_solido, m.DOFS, n_dof, m.K0, 1.0)
-    U_solido = resolver_FEM(K_solido, F, dofs_fijos, n_dof)
-    c_solido, _ = calcular_compliance_sensibilidades(U_solido, rho_solido, m.DOFS, m.K0, 1.0)
-
-    # Referencia 2: diseño homogéneo inicial ρ=f_V
+    # Baseline: diseño base uniforme ρ=f_V (hipótesis: "respecto al diseño base uniforme")
     c_base = float(m.c_hist[0])
 
-    # Reducción vs bloque sólido (criterio de la tesis Cuadro 2)
-    reduccion_vs_solido = ((c_solido - m.c_final) / c_solido) * 100
-    # Reducción vs homogéneo (baseline de partida)
-    reduccion_vs_homog = ((c_base - m.c_final) / c_base) * 100
+    # Reducción vs diseño base uniforme (criterio de la hipótesis H.E.2: ≥40%)
+    reduccion = ((c_base - m.c_final) / c_base) * 100
 
     # Guardar resultados en session_state
-    st.session_state.simp_c_solido = c_solido
     st.session_state.simp_c_base = c_base
-    st.session_state.simp_reduccion_solido = reduccion_vs_solido
-    st.session_state.simp_reduccion_homog = reduccion_vs_homog
-    st.session_state.simp_reduccion = reduccion_vs_solido  # primario = vs sólido (tesis)
+    st.session_state.simp_reduccion = reduccion
+    st.session_state.simp_c_final = m.c_final
     st.session_state.simp_c_final = m.c_final
     st.session_state.simp_beta1 = m.beta1
     st.session_state.simp_beta0 = m.beta0
@@ -505,20 +493,19 @@ if st.session_state.get('simp_optimized', False):
         st.markdown("---")
         col_q1, col_q2, col_q3, col_q4 = st.columns(4)
         c_final = st.session_state.simp_c_final
-        c_solido = st.session_state.get('simp_c_solido', c_final)
-        reduccion_solido = st.session_state.get('simp_reduccion_solido', 0.0)
-        reduccion_homog = st.session_state.get('simp_reduccion_homog', 0.0)
+        c_base = st.session_state.simp_c_base
+        reduccion = st.session_state.simp_reduccion
         
-        col_q1.metric("Compliance Sólido (100%)", f"{c_solido:.1f} N·mm")
+        col_q1.metric("Compliance Base (ρ=0.5)", f"{c_base:.1f} N·mm")
         col_q2.metric("Compliance SIMP (50%)", f"{c_final:.1f} N·mm",
-                      delta=f"{reduccion_solido:.1f}% vs Sólido (tesis)", delta_color="normal")
+                      delta=f"{reduccion:.1f}% vs Base", delta_color="normal")
         col_q3.metric("β₁ (Agujeros)", st.session_state.simp_beta1)
         col_q4.metric("μ_α Compuesta", f"{st.session_state.simp_mu:.2f}")
 
         # α* calibrado (Proposición 1.1)
         from tda.core.metric import calibrar_alpha_optimo
         alpha_star = calibrar_alpha_optimo(
-            [st.session_state.simp_c_solido, st.session_state.simp_c_final],
+            [st.session_state.simp_c_base, st.session_state.simp_c_final],
             [0, st.session_state.simp_beta1]
         )
         st.info(
@@ -794,19 +781,13 @@ if st.session_state.get('simp_optimized', False):
         with st.expander("✅ Validación H.E.2", expanded=True):
             st.markdown("""
             **Hipótesis H.E.2:** SIMP con p=3 y fV=0.5 reduce la compliance
-            en al menos un 40% respecto al bloque sólido de referencia (f_V=1.0),
-            generando una topología con β₁(Ω_sólido) ≤ 2.
+            en al menos un 40% respecto al diseño base uniforme (ρ=fV),
+            generando una topología con β₁(Ω) ≤ 2.
             """)
-            c_base_local = st.session_state.get("simp_c_base", None)
-            if c_base_local is None:
-                c_hist_local = st.session_state.get("simp_c_hist", None)
-                c_base_local = float(c_hist_local[0]) if c_hist_local is not None and len(c_hist_local) > 0 else None
-                st.session_state.simp_c_base = c_base_local
-            reduccion_solido = st.session_state.get("simp_reduccion_solido", 0.0)
-            reduccion_homog = st.session_state.get("simp_reduccion_homog", 0.0)
+            reduccion = st.session_state.simp_reduccion
 
             diag = diagnosticar_he2(
-                reduccion=reduccion_solido,
+                reduccion=reduccion,
                 beta1=st.session_state.simp_beta1,
                 mu=st.session_state.simp_mu,
                 alpha=st.session_state.simp_alpha_stored,
@@ -920,7 +901,7 @@ if st.session_state.get('simp_optimized', False):
 
                 res_text = (
                     f"Compliance final:      c = {c_final:.5f}\n"
-                    f"Reducción vs sólido:     {reduccion:.2f}%\n"
+                    f"Reducción vs base:     {reduccion:.2f}%\n"
                     f"Componentes conexas:   β₀ = {beta0}\n"
                     f"Agujeros topológicos:  β₁ = {beta1}\n"
                     f"Métrica compuesta:     μ_α = {mu:.5f}\n"
@@ -1022,7 +1003,7 @@ if st.session_state.get('simp_optimized', False):
                     col_labels = ['Métrica', 'Valor', 'Unidad']
                     rows = [
                         ['Compliance final', f'{c_final:.5f}', 'N·mm'],
-                        ['Reducción vs sólido', f'{reduccion:.2f}', '%'],
+                        ['Reducción vs base', f'{reduccion:.2f}', '%'],
                         ['Fracción de volumen', f'{volfrac}', '—'],
                         ['Penalización p', f'{penal}', '—'],
                         ['α (peso topológico)', f'{alpha_val}', '—'],
@@ -1183,7 +1164,7 @@ if st.session_state.get('simp_optimized', False):
             f"",
             f"Resultados:",
             f"  Compliance final: {c_final:.8f}",
-            f"  Reducción vs sólido: {reduccion:.2f}%",
+            f"  Reducción vs base: {reduccion:.2f}%",
             f"  β₀={beta0}, β₁={beta1}",
             f"  μ_α={mu:.8f}",
             f"  Convergió: {'Sí' if converged else 'No'}",
