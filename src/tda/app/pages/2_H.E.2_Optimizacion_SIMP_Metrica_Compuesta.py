@@ -402,15 +402,13 @@ if ejecutar_simp:
 
     st.success("¡Optimización Finalizada!")
 
-    # Referencia 1: bloque sólido (f_V=1.0, una iteración)
-    m_sol = MetricaTDA_SIMP(
-        nex=nelx, ney=nely, E=E_acero, nu=0.3,
-        Lx=120.0, Ly=40.0, t=espesor,
-        f_V=1.0, p=penal, r_min=rmin, alpha=alpha, max_iter=1
-    )
-    m_sol.definir_problema(F, dofs_fijos)
-    m_sol.optimizar(verbose=False)
-    c_solido = m_sol.c_final
+    # Referencia 1: bloque sólido (f_V=1.0) — compliance directa sin OC
+    # La referencia del Cuadro 2 es el bloque sólido completo, no una iteración OC.
+    from tda.core.fem import ensamblar_K_global, resolver_FEM, calcular_compliance_sensibilidades
+    rho_solido = np.ones(nelx * nely)
+    K_solido = ensamblar_K_global(rho_solido, m.DOFS, n_dof, m.K0, 1.0)
+    U_solido = resolver_FEM(K_solido, F, dofs_fijos, n_dof)
+    c_solido, _ = calcular_compliance_sensibilidades(U_solido, rho_solido, m.DOFS, m.K0, 1.0)
 
     # Referencia 2: diseño homogéneo inicial ρ=f_V
     c_base = float(m.c_hist[0])
