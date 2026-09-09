@@ -1,10 +1,11 @@
 """Página principal — Plataforma de Optimización SIMP y Análisis Topológico.
 
-Landing page con navegación a las 4 módulos:
+Landing page con navegación a los 5 módulos:
   1. H.E.1 — Robustez TDA vs Euclidianos
   2. H.E.2 — Optimización SIMP + Métrica Compuesta μ_α
   3. H.G. — Comparación Integrada TDA-SIMP
-  4. Ejemplo — Viga 1D
+  4. App 2 — SHM + Refuerzo (Puente Z24)
+  5. Ejemplo — Viga 1D
 """
 # ══════════════════════════════════════════════════════════════
 # FIX PyInstaller: forzar backends matplotlib ANTES de cualquier otro import.
@@ -168,26 +169,15 @@ col5, col6, col7, _ = st.columns(4)
 with col5:
     st.markdown(landing_card(
         icon="🌉",
-        title="App 2 — SHM (Fase 1)",
-        description="Teorema de Takens y distancia de Wasserstein para detección topológica de daño en el Puente Z24.",
+        title="App 2 — SHM + Refuerzo",
+        description="Diagnóstico SHM (Takens + Wasserstein) y rediseño de refuerzo óptimo (SIMP + μ_α) en el Puente Z24.",
         variant="orange"
     ), unsafe_allow_html=True)
-    st.page_link("pages/5_App2_SHM_Z24.py",
-                 label="🌉 Abrir SHM",
+    st.page_link("pages/5_App2_ShM_Refuerzo.py",
+                 label="🌉 Abrir App 2",
                  width='stretch')
 
 with col6:
-    st.markdown(landing_card(
-        icon="🏗️",
-        title="App 2 — Refuerzo (Fase 2)",
-        description="Rediseño post-daño con SIMP y selección del refuerzo óptimo de fibra de carbono mediante μ_α.",
-        variant="orange"
-    ), unsafe_allow_html=True)
-    st.page_link("pages/6_App2_Refuerzo.py",
-                 label="🏗️ Abrir Refuerzo",
-                 width='stretch')
-
-with col7:
     st.markdown(landing_card(
         icon="📏",
         title="Ejemplo — Viga 1D",
@@ -197,6 +187,9 @@ with col7:
     st.page_link("pages/4_Ejemplo_Viga_1D.py",
                  label="📏 Abrir Ejemplo",
                  width='stretch')
+
+with col7:
+    pass
 
 # ── Footer ──
 st.markdown("---")

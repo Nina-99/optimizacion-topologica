@@ -17,8 +17,7 @@ PAGE_FILENAMES = [
     "2_H.E.2_Optimizacion_SIMP_Metrica_Compuesta.py",
     "3_H.G._Comparacion_Integrada_TDA-SIMP.py",
     "4_Ejemplo_Viga_1D.py",
-    "5_App2_SHM_Z24.py",
-    "6_App2_Refuerzo.py"
+    "5_App2_ShM_Refuerzo.py"
 ]
 
 
