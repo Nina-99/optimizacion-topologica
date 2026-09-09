@@ -817,6 +817,7 @@ if st.session_state.get('simp_optimized', False):
                 volfrac=st.session_state.simp_volfrac,
                 n_iter=st.session_state.simp_n_iter,
                 converged=st.session_state.simp_converged,
+                max_iter=max_iter,
             )
 
             # Badges resumen

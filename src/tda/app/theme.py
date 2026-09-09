@@ -361,7 +361,8 @@ def _badge(icono: str, label: str, color: str) -> str:
 
 def diagnosticar_he2(reduccion: float, beta1: int, mu: float,
                       alpha: float, rmin: float, penal: float,
-                      volfrac: float, n_iter: int, converged: bool) -> dict:
+                      volfrac: float, n_iter: int, converged: bool,
+                      max_iter: int = 200) -> dict:
     """Diagnóstico de H.E.2: genera badges, razones y sugerencias.
 
     Returns dict con keys:
@@ -437,13 +438,20 @@ def diagnosticar_he2(reduccion: float, beta1: int, mu: float,
 
     # ── Sugerencias ──
     if not cumple_red:
-        sugerencias.append(
-            f"Aumentar `max_iter` a {max(n_iter, 200)} para mejor convergencia."
-        )
-        if not converged:
+        if n_iter >= max_iter and not converged:
             sugerencias.append(
-                f"La optimización no convergió con tol=10⁻⁴. Considerar relajar a tol=10⁻³ "
-                f"o aumentar `max_iter`."
+                f"La optimización alcanzó el máximo de {max_iter} iteraciones sin converger. "
+                f"Aumentar `max_iter` a {max_iter + 100} para mejor convergencia."
+            )
+        elif not converged:
+            sugerencias.append(
+                f"La optimización no convergió con tol=10⁻⁴. "
+                f"Considerar relajar a tol=10⁻³ o aumentar `max_iter`."
+            )
+        else:
+            sugerencias.append(
+                f"La optimización convergió en {n_iter} iteraciones pero la reducción "
+                f"({reduccion:.1f}%) no supera el 40%. Probar ajustar α, rmin o p."
             )
 
     if not cumple_b1:
