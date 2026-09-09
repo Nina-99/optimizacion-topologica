@@ -7,7 +7,7 @@ a los problemas planteados en entornos complejos de ingeniería, en
 comparación con los métodos basados exclusivamente en geometría euclidiana
 y análisis infinitesimal local."
 
-Estructura de validación (Documento Completo, Sección 6):
+Estructura de validación (Documento, Sección 6):
 1. Correr SIMP con p=2, p=3, p=4 en la misma malla
 2. Calcular μ_α para cada configuración
 3. Validar Corolario 1.1: μ_α identifica p=3 como Pareto-óptimo

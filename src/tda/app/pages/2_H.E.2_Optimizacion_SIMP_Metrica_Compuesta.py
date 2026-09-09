@@ -6,7 +6,7 @@ a una distribución de material que reduce la compliance global en
 al menos un 40% respecto al bloque sólido de referencia, generando
 una topología con β₁(Ωsólido) ≤ 2 verificable computacionalmente."
 
-Referencias del Documento Completo:
+Referencias del Documento:
 - Definición 1.6: Malla FEM y variable de diseño ρ
 - Definición 1.7: Problema SIMP
 - Definición 1.8: Nube de Puntos del Diseño SIMP
@@ -530,10 +530,10 @@ if st.session_state.get('simp_optimized', False):
         history = st.session_state.get("simp_history", [])
         if history and len(history) > 1:
             st.markdown("---")
-            st.subheader("Convergencia Dual (Criterio del Documento Completo)")
+            st.subheader("Convergencia Dual (Criterio del Documento)")
             st.caption(
                 "Criterio de convergencia: Δc/c < 10⁻⁴ AND Δρ < 10⁻⁴ "
-                "(Documento Completo, Algoritmo 1, paso 8)"
+                "(Documento, Algoritmo 1, paso 8)"
             )
 
             iterations = [h["Iteration"] for h in history]

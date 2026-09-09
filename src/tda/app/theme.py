@@ -391,7 +391,7 @@ def diagnosticar_he2(reduccion: float, beta1: int, mu: float,
         razones.append(
             f"La optimización SIMP con p={penal}, f_V={volfrac} redujo la compliance "
             f"un {reduccion:.1f}% respecto al diseño homogéneo inicial, superando "
-            f"el umbral del 40% del Documento Completo."
+            f"el umbral del 40% del Documento."
         )
     else:
         if n_iter < 150:
@@ -786,7 +786,7 @@ def methodology_expander(title, content_items, page_name):
                 st.markdown(text)
 
         st.markdown("---")
-        st.caption("Verificar consistencia con el Documento Completo y Proy.Investigacion.txt")
+        st.caption("Verificar consistencia con el Documento")
 
 
 # ═══════════════════════════════════════════════════════════════

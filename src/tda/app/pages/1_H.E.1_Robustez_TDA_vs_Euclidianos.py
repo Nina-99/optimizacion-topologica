@@ -7,7 +7,7 @@ que permanecen estables bajo perturbaciones del 15–20% en los datos
 de entrada, superando a los descriptores euclidianos en tareas de
 clasificación y detección de anomalías."
 
-Referencias del Documento Completo:
+Referencias del Documento:
 - Definición 1.4: Número de Betti topológico
 - Teorema de Estabilidad (Cohen-Steiner et al., 2007)
 - Sección 8.6.1: Diseño de casos de simulación (esfera/toro)
@@ -50,7 +50,7 @@ st.header("H.E.1 — Robustez Topológica vs Descriptores Euclidianos")
 st.sidebar.header("📊 H.E.1 — Robustez TDA")
 n_points = st.sidebar.slider(
     "Puntos por forma", 100, 500, 200, 50, key="tda_n_points",
-    help="n=200 es el valor del Documento Completo (Sección 8.6.1).")
+    help="n=200 es el valor del Documento (Sección 8.6.1).")
 noise_level = st.sidebar.slider(
     "Ruido Gaussiano (%)", 0.0, 0.3, 0.15, 0.05, key="tda_noise_level",
     help="0.15 = 15% de perturbación. H.E.1 evalúa estabilidad en rango 15–20%.")

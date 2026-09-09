@@ -29,7 +29,7 @@ from tda.analysis.metrics import compute_kmeans_accuracy
 def _escala_adaptativa(nube: np.ndarray) -> float:
     """Calcula ε* = diam(X) / √N para filtración Vietoris-Rips.
 
-    Ref: Def. 1.5 del Documento Completo — escala adaptativa.
+    Ref: Def. 1.5 del Documento — escala adaptativa.
     Para nubes sintéticas (sin malla), N = cantidad de puntos.
     """
     if nube.shape[0] < 2:

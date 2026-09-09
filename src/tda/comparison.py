@@ -5,7 +5,7 @@ NOTA DE ARQUITECTURA Y DEPRECACIÓN:
 Este módulo utiliza el optimizador legacy (`SimpTda2DOptimizer`), el cual se encuentra
 en estado de deprecación. Para la aplicación interactiva en Streamlit y nuevos análisis,
 se recomienda utilizar la clase canonica `MetricaTDA_SIMP` (`tda.optimization.metric_simp`),
-que implementa directamente el Algoritmo 1 del Documento Completo.
+que implementa directamente el Algoritmo 1 del Documento.
 
 Proporciona análisis comparativo sistemático entre:
 1. SIMP puro (baseline euclidiano sin invariantes topológicos)
@@ -20,7 +20,7 @@ demostrando que los invariantes topológicos producen soluciones más robustas q
 los enfoques exclusivamente euclidianos."
 
 NOTA SOBRE PARÁMETROS:
-- ✅ VALORES CON TÍTULO (definidos en el Documento Completo / Proy.Investigacion.pdf):
+- ✅ VALORES CON TÍTULO (Verificar consistencia con el Documento):
     - Malla: 60×30 (Capítulo III, ítem 8.6.1)
     - Volumen: fV = 0.5 (Hipótesis H.E.2)
     - Penalización: p = 3.0 (Hipótesis H.E.2)
@@ -46,7 +46,7 @@ def run_sim_pure_optimizer(nelx=60, nely=30, volfrac=0.5, penal=3.0, rmin=2.4, m
     """
     Ejecuta SIMP puro (baseline euclidiano) sin análisis topológico.
     
-    Parámetros del Documento Completo (por defecto):
+    Parámetros del Documento (por defecto):
     - Malla 60×30
     - volfrac=0.5, penal=3.0, rmin=2.4
     
@@ -82,7 +82,7 @@ def run_sim_tda_optimizer(nelx=60, nely=30, volfrac=0.5, penal=3.0, rmin=2.4, ma
     Usa la métrica compuesta μ_α(ρ*) = c(ρ*) + α·β₁(Ω_sólido) para guiar la optimización,
     cumpliendo así el núcleo de la hipótesis general.
     
-    Parámetros del Documento Completo (por defecto):
+    Parámetros del Documento (por defecto):
     - volfrac=0.5, penal=3.0, rmin=2.4 (definidos en H.E.2 y Capítulo III)
     """
     print(f"\n=== SIMP CON TDA (topológica) ===")
@@ -93,7 +93,7 @@ def run_sim_tda_optimizer(nelx=60, nely=30, volfrac=0.5, penal=3.0, rmin=2.4, ma
     
     # Si no se especifica α, se usa valor por defecto
     if alpha is None:
-        alpha = 0.012  # peso calibrado por Prop. 1.1 (α ≈ 0.01-0.02 según Documento Completo)
+        alpha = 0.012  # peso calibrado por Prop. 1.1 (α ≈ 0.01-0.02 según Documento)
     
     xPhys, dgms, b1, c_final, reduccion_pct = opt.run_optimization()
     

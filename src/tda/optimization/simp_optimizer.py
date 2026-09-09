@@ -5,7 +5,7 @@ para la optimización de topología estructural en vigas 2D, integrado con anál
 topológico de datos para monitorear invariantes como los números de Betti.
 
 ====================================================================
-PARÁMETROS DE LA TESIS (fuente: Proy.Investigacion.pdf y Documento Completo.pdf)
+PARÁMETROS DE LA TESIS (Verificar consistencia con el Documento)
 ====================================================================
 Estos valores vienen definidos en el trabajo de investigación y son la configuración
 base sobre la que se construyen los experimentos:
@@ -19,7 +19,7 @@ base sobre la que se construyen los experimentos:
 • penal = 3.0  (factor de penalización SIMP / exponente p)
   — Hipótesis H.E.2: "método SIMP con p = 3"
   — También en 8.2.1: "p ≥ 3 (en la práctica p = 3 incentiva soluciones binarias)"
-• rmin = 2.4  (radio de filtro para suavizado de sensibilidades, Cuadro 1 del Documento Completo)
+• rmin = 2.4  (radio de filtro para suavizado de sensibilidades, Cuadro 1 del Documento)
   — Parámetro por defecto del optimizer; asociado a regularización en sección 8.2
 • seed = 42  (semilla aleatoria para reproducibilidad)
   — Sección 8.6.3: "semilla aleatoria fija (seed = 42) en todos los experimentos estocásticos"
