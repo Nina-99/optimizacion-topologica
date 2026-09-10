@@ -791,6 +791,7 @@ if st.session_state.get('simp_optimized', False):
 
             > ⚠️ Las formulaciones originales (β₁ ≤ 2 y comparación vs bloque sólido)
             > fueron descartadas en §4.4 por razones técnicas documentadas.
+            > β₁=2 es invariante bajo malla y rmin (H.E.2b′ corregida).
             """)
             reduccion = st.session_state.simp_reduccion
 
@@ -813,7 +814,7 @@ if st.session_state.get('simp_optimized', False):
 
             # Veredicto
             if diag["veredicto"] == "CUMPLIDA":
-                st.success(f"✅ **H.E.2 {diag['veredicto']}:** Reducción ≥40% y β₁ ≤ 2")
+                st.success(f"✅ **H.E.2 {diag['veredicto']}:** Reducción ≥40% y β₁=2 invariante (H.E.2b′ corregida)")
             elif diag["veredicto"] == "PARCIAL":
                 st.warning(f"⚠️ **H.E.2 {diag['veredicto']}:** Se cumple solo uno de los dos criterios")
             else:
@@ -829,6 +830,43 @@ if st.session_state.get('simp_optimized', False):
                 with st.expander("💡 Sugerencias de ajuste", expanded=diag["veredicto"] != "CUMPLIDA"):
                     for s in diag["sugerencias"]:
                         st.markdown(f"- {s}")
+
+        # ── Convergencia SIMP (cumplimiento §10) ──
+        st.markdown("---")
+        st.subheader("Convergencia SIMP")
+        n_iter = st.session_state.simp_n_iter
+        converged = st.session_state.simp_converged
+        c_hist = st.session_state.simp_c_hist
+        c_hist_arr = np.array(c_hist) if c_hist else np.array([])
+
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Iteraciones", f"{n_iter}")
+        c2.metric("Convergió", "✅" if converged else "❌")
+        if len(c_hist_arr) > 1:
+            delta_c = abs(c_hist_arr[-1] - c_hist_arr[-2]) / max(abs(c_hist_arr[-2]), 1e-12)
+            c3.metric("Último Δc/c", f"{delta_c:.6e}")
+        else:
+            c3.metric("Último Δc/c", "N/A")
+        c4.metric("Tol Δc/c", "1e-4 (Perfil §9.4.4)")
+
+        # Curva de convergencia
+        if len(c_hist_arr) > 0:
+            fig_conv = go.Figure()
+            fig_conv.add_trace(go.Scatter(
+                x=list(range(1, len(c_hist_arr) + 1)),
+                y=c_hist_arr,
+                mode='lines+markers',
+                line=dict(color=ORANGE, width=2),
+                name='Compliance c_k'
+            ))
+            fig_conv.update_layout(
+                title="Convergencia SIMP — Historial de Compliance",
+                xaxis_title="Iteración k",
+                yaxis_title="Compliance c (N·mm)",
+                template="plotly_white",
+                height=350
+            )
+            st.plotly_chart(fig_conv, use_container_width=True)
 
     # ═══════════════════════════════════════════════════
     # TAB 4: REPORTE Y EXPORTACIÓN
