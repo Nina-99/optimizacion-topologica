@@ -388,14 +388,6 @@ if st.session_state.get('hg_run', False):
             "0 (topología simple)",
             "Detecta p=2 como subóptimo (agujeros espurios)",
             "Ahorro de material con manufacturabilidad garantizada"
-        ],
-        "App 2: Puente Z24": [
-            "Refuerzo post-daño (SHM)",
-            "Detección de daño (Fase 1) + verificación (Fase 2)",
-            "Rediseño de refuerzo",
-            "0 (Configuración B: óptima)",
-            "Descarta 4 de 5 alternativas de refuerzo",
-            "Refuerzo manufacturable identificado"
         ]
     })
     
@@ -419,7 +411,7 @@ if st.session_state.get('hg_run', False):
     {'✅ **HIPÓTESIS GENERAL VALIDADA:** '
      'La métrica μ_α resuelve el orden parcial de las configuraciones y demuestra que TDA+SIMP es superior '
      'a los enfoques puramente euclidianos. En la App 1 identifica p=3 como Pareto-óptimo (evitando los agujeros '
-     'de p=2). En la App 2 identifica el refuerzo manufacturable óptimo. La metodología proporciona '
+     'de p=2). La metodología proporciona '
      'soluciones consistentes y robustas a diferentes problemas complejos.' if corollary_ok
      else '⚠️ Se requieren ajustes de parámetros para validar completamente H.G.'}
     """)
