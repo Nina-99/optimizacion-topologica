@@ -167,13 +167,13 @@ col5, col6, _ = st.columns(3)
 
 with col5:
     st.markdown(landing_card(
-        icon="📏",
-        title="Ejemplo — Viga 1D",
-        description="SIMP simplificado: minimización de volumen<br>con restricción de rigidez (caso ilustrativo)",
+        icon="🧪",
+        title="Playground — Laboratorio",
+        description="Experimentá con optimización 1D, SIMP 2D,<br>barridos de p y comparaciones lado a lado",
         variant="orange"
     ), unsafe_allow_html=True)
-    st.page_link("pages/4_Ejemplo_Viga_1D.py",
-                 label="📏 Abrir Ejemplo",
+    st.page_link("pages/4_Playground.py",
+                 label="🧪 Abrir Playground",
                  width='stretch')
 
 # ── Footer ──
