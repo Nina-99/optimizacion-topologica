@@ -4,6 +4,7 @@ setlocal enabledelayedexpansion
 REM ============================================
 REM build_exe.bat — Generar .exe nativo Windows
 REM con streamlit-desktop-app + PyInstaller
+REM Versión 3.1 — Profesional & Optimizada con uv
 REM ============================================
 REM
 REM USO:
@@ -25,42 +26,36 @@ set APP_NAME=EstructuraTopologica
 set REQUIREMENTS=requirements.txt
 
 echo.
-echo ============================================
-echo  Generador de .exe — Estructura Topologica
-echo ============================================
+echo ============================================================
+echo  GENERADOR DE EJECUTABLE — ESTRUCTURA TOPOLOGICA
+echo ============================================================
 echo.
 echo  App:      %APP_NAME%
 echo  Script:   %APP_SCRIPT%
 echo  Salida:   dist\%APP_NAME%.exe
 echo.
 
-REM ─────────── 1. Verificar Python ───────────
-echo === [1/6] Verificando Python ===
+REM ─────────── 1. Verificar/Instalar uv ───────────
+echo === [1/7] Verificando Gestor de Paquetes (uv) ===
 
-set PYTHON_CMD=
-where python 2>nul >nul
+where uv 2>nul
 if %errorlevel% equ 0 (
-    set PYTHON_CMD=python
+    echo [INFO] uv detectado.
 ) else (
-    where python3 2>nul >nul
-    if !errorlevel! equ 0 (
-        set PYTHON_CMD=python3
+    echo [INFO] uv no detectado. Instalando uv via PowerShell...
+    powershell -ExecutionPolicy ByPass -Command "irm https://astral.sh/uv/install.ps1 | iex"
+    set "PATH=%PATH%;%USERPROFILE%\.cargo\bin"
+    if %errorlevel% neq 0 (
+        echo [ERROR] No se pudo instalar uv automaticamente.
+        echo   Instalalo manualmente desde: https://astral.sh/uv
+        pause
+        exit /b 1
     )
 )
-
-if not defined PYTHON_CMD (
-    echo [ERROR] Python no esta instalado.
-    echo   Descargalo desde: https://www.python.org/downloads/
-    echo   IMPORTANTE: Marca "Add Python to PATH" durante la instalacion.
-    pause
-    exit /b 1
-)
-
-%PYTHON_CMD% --version
 echo.
 
 REM ─────────── 2. Verificar archivos del proyecto ───────────
-echo === [2/6] Verificando archivos del proyecto ===
+echo === [2/7] Verificando archivos del proyecto ===
 
 if not exist "%APP_SCRIPT%" (
     echo [ERROR] No se encuentra %APP_SCRIPT%
@@ -76,17 +71,17 @@ if not exist "%REQUIREMENTS%" (
 echo  OK - Archivos del proyecto encontrados
 echo.
 
-REM ─────────── 3. Crear entorno virtual ───────────
-echo === [3/6] Creando entorno virtual ===
+REM ─────────── 3. Crear entorno virtual con uv ───────────
+echo === [3/7] Creando entorno virtual (ultra-rapido) ===
 
 if exist "%VENV_DIR%" (
-    echo  Eliminando entorno existente...
+    echo  Eliminando entorno de construcción previo...
     rmdir /s /q "%VENV_DIR%"
 )
-echo  Creando nuevo entorno virtual...
-%PYTHON_CMD% -m venv "%VENV_DIR%"
-if !errorlevel! neq 0 (
-    echo [ERROR] No se pudo crear el entorno virtual.
+echo  Creando nuevo entorno virtual con uv...
+uv venv %VENV_DIR%
+if %errorlevel% neq 0 (
+    echo [ERROR] No se pudo crear el entorno virtual con uv.
     pause
     exit /b 1
 )
@@ -94,42 +89,42 @@ echo  OK - Entorno creado en %VENV_DIR%\
 echo.
 
 set VENV_PYTHON=%VENV_DIR%\Scripts\python.exe
-set VENV_PIP=%VENV_DIR%\Scripts\pip.exe
+set VENV_STREAMLIT=%VENV_DIR%\Scripts\streamlit.exe
 
-REM ─────────── 4. Instalar dependencias ───────────
-echo === [4/6] Instalando dependencias ===
-echo  Esto puede tomar varios minutos...
+REM ─────────── 4. Instalar dependencias con uv ───────────
+echo === [4/7] Instalando dependencias ===
+echo  Sincronizando paquetes...
 echo.
 
 REM 4a. Dependencias base
 echo  [4a] Instalando dependencias base...
-%VENV_PIP% install -r %REQUIREMENTS%
-if !errorlevel! neq 0 (
-    echo [ERROR] Fallo la instalacion de dependencias base.
+uv pip install -r %REQUIREMENTS%
+if %errorlevel% neq 0 (
+    echo [ERROR] Fallo la instalacion de dependencias base con uv.
     pause
     exit /b 1
 )
 
 REM 4b. ripser sin persim
-echo  [4b] Instalando ripser (sin persim)...
-%VENV_PIP% install ripser --no-deps
-if !errorlevel! neq 0 (
+echo  [4b] Instalando ripser (sin dependencias)...
+uv pip install ripser --no-deps
+if %errorlevel% neq 0 (
     echo [ERROR] No se pudo instalar ripser.
     pause
     exit /b 1
 )
 
 REM 4c. Paquete local
-echo  [4c] Instalando paquete local...
-%VENV_PIP% install -e .
+echo  [4c] Instalando paquete local en modo editable...
+uv pip install -e .
 if !errorlevel! neq 0 (
     echo [WARN] No se pudo instalar el paquete local, continuando...
 )
 
 REM 4d. streamlit-desktop-app
 echo  [4d] Instalando streamlit-desktop-app...
-%VENV_PIP% install streamlit-desktop-app
-if !errorlevel! neq 0 (
+uv pip install streamlit-desktop-app
+if %errorlevel% neq 0 (
     echo [ERROR] No se pudo instalar streamlit-desktop-app.
     pause
     exit /b 1
@@ -137,10 +132,11 @@ if !errorlevel! neq 0 (
 
 REM 4d.5. Instalar Pillow para generar el icono .ico
 echo  [4d.5] Instalando Pillow...
-%VENV_PIP% install Pillow
-if !errorlevel! neq 0 (
+uv pip install Pillow
+if %errorlevel% neq 0 (
     echo [WARN] No se pudo instalar Pillow, el icono podria no generarse.
 )
+
 REM 4e. Generar icono .ico desde OTopologica.jpg
 echo  [4e] Generando icono...
 if exist "OTopologica.jpg" (
@@ -158,20 +154,13 @@ echo  OK - Dependencias instaladas
 echo.
 
 REM ─────────── 5. Buildear .exe ───────────
-echo === [5/6] Construyendo %APP_NAME%.exe ===
+echo === [5/7] Construyendo %APP_NAME%.exe ===
 echo  Esto puede tomar varios minutos...
 echo.
 
-REM IMPORTANTE: streamlit-desktop-app usa nargs=REMAINDER para
-REM --pyinstaller-options, lo que significa que SOLO UNO
-REM --pyinstaller-options se usa y TRAGA todo lo que sigue.
-REM Por eso va UNA sola vez, con todos los flags de PyInstaller juntos.
-REM
 REM Obtener ruta de mpl-data de matplotlib para empaquetarlo
 for /f "delims=" %%i in ('%VENV_PYTHON% -c "import matplotlib; import os; print(os.path.dirname(matplotlib.matplotlib_fname()))"') do set MPL_DATA_PATH=%%i
 echo  [5a] mpl-data detectado en: !MPL_DATA_PATH!
-
-REM En Windows, --add-data usa ";" como separador (no ":" como Linux).
 
 %VENV_DIR%\Scripts\streamlit-desktop-app build %APP_SCRIPT% --name %APP_NAME% --pyinstaller-options --onefile --icon OTopologica.ico --noconfirm --collect-all matplotlib.backends --collect-all streamlit --collect-all plotly --collect-data matplotlib --copy-metadata streamlit --hidden-import matplotlib.backends.backend_pdf --hidden-import matplotlib.backends.backend_agg --hidden-import matplotlib.font_manager --hidden-import ripser --hidden-import numpy.f2py --hidden-import sklearn.cluster --hidden-import sklearn.metrics --hidden-import scipy.sparse --hidden-import scipy.sparse.linalg --hidden-import scipy.spatial.distance --hidden-import pandas --hidden-import matplotlib.patches --hidden-import io --hidden-import tda.app.download_utils --add-data "!MPL_DATA_PATH!;matplotlib/mpl-data" --add-data "src\tda;tda" --add-data "src\tda\app\pages;pages" --paths src
 
@@ -183,22 +172,33 @@ if !errorlevel! neq 0 (
     exit /b 1
 )
 
-REM ─────────── 6. Mostrar resultado ───────────
+REM ─────────── 6. Limpieza de entorno de construcción ───────────
 echo.
-echo ============================================
+echo === [6/7] Limpiando entorno de construccion ===
+echo  Eliminando %VENV_DIR%...
+rmdir /s /q "%VENV_DIR%"
+if %errorlevel% equ 0 (
+    echo  OK - Entorno temporal eliminado.
+) else (
+    echo  [WARN] No se pudo eliminar el entorno temporal.
+)
+
+REM ─────────── 7. Mostrar resultado ───────────
+echo.
+echo ============================================================
 echo  ✅  BUILD EXITOSO
-echo ============================================
+echo ============================================================
 echo.
 echo  Ejecutable generado:
 echo    %CD%\dist\%APP_NAME%.exe
 echo.
 echo  Tamanio aproximado: 200-300 MB (un solo archivo)
 echo.
-echo  NOTAS:
-echo  - No requiere Python instalado en la PC destino
-echo  - Compatible con Windows 10 y 11
-echo  - El icono se genera automaticamente desde OTopologica.jpg (como .ico)
-echo  - Si queres cambiarlo, reemplaza OTopologica.jpg por tu imagen
+echo  NOTAS IMPORTANTES:
+echo  - No requiere Python instalado en la PC destino.
+echo  - REQUIERE: Microsoft Edge WebView2 Runtime instalado.
+echo  - Compatible con Windows 10 y 11.
+echo  - El icono se genera automaticamente desde OTopologica.jpg.
 echo.
 
 pause

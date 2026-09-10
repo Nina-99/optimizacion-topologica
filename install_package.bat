@@ -3,49 +3,33 @@ setlocal enabledelayedexpansion
 
 REM ============================================
 REM install_package.bat — Estructura Topológica
-REM Versión 2.0 — multiplataforma
+REM Versión 3.0 — Optimizada con uv
 REM ============================================
 
-set VENV_DIR=venv
+set VENV_DIR=.venv
 set REQUIREMENTS=requirements.txt
 set APP_PATH=src\tda\app\app_master.py
 
 echo.
-echo === Verificando Python ===
+echo === Verificando Gestor de Paquetes (uv) ===
 
-REM Buscar Python en PATH
-set PYTHON_CMD=
-where python 2>nul >nul
+REM Buscar uv en PATH
+where uv 2>nul
 if %errorlevel% equ 0 (
-    set PYTHON_CMD=python
+    echo [INFO] uv detectado.
 ) else (
-    where python3 2>nul >nul
-    if !errorlevel! equ 0 (
-        set PYTHON_CMD=python3
+    echo [INFO] uv no detectado. Instalando uv via PowerShell...
+    powershell -ExecutionPolicy ByPass -Command "irm https://astral.sh/uv/install.ps1 | iex"
+    REM Actualizar PATH para la sesion actual
+    set "PATH=%PATH%;%USERPROFILE%\.cargo\bin"
+    if %errorlevel% neq 0 (
+        echo [ERROR] No se pudo instalar uv automaticamente.
+        echo   Instalalo manualmente desde: https://astral.sh/uv
+        pause
+        exit /b 1
     )
 )
-
-if not defined PYTHON_CMD (
-    echo [ERROR] Python no esta instalado.
-    echo.
-    echo   Descargalo desde: https://www.python.org/downloads/
-    echo   IMPORTANTE: Marca "Add Python to PATH" durante la instalacion.
-    echo.
-    pause
-    exit /b 1
-)
-
-%PYTHON_CMD% --version
 echo.
-
-REM Verificar que venv funciona
-%PYTHON_CMD% -c "import venv" 2>nul
-if %errorlevel% neq 0 (
-    echo [ERROR] El modulo 'venv' no esta disponible.
-    echo   Reinstala Python y asegurate de incluir 'venv'.
-    pause
-    exit /b 1
-)
 
 REM ─────────── Verificar requirements.txt ───────────
 echo === Verificando dependencias ===
@@ -57,8 +41,8 @@ if not exist "%REQUIREMENTS%" (
 echo OK - %REQUIREMENTS% encontrado
 echo.
 
-REM ─────────── Entorno virtual ───────────
-echo === Entorno virtual ===
+REM ─────────── Entorno virtual con uv ───────────
+echo === Entorno virtual (ultra-rapido) ===
 
 if exist "%VENV_DIR%\Scripts\python.exe" (
     echo [WARN] Ya existe un entorno virtual en '%VENV_DIR%\'
@@ -66,55 +50,43 @@ if exist "%VENV_DIR%\Scripts\python.exe" (
     if /i "!RECREAR!"=="s" (
         echo Eliminando entorno existente...
         rmdir /s /q "%VENV_DIR%"
-        echo Creando nuevo entorno virtual...
-        %PYTHON_CMD% -m venv "%VENV_DIR%"
     ) else (
         echo Usando entorno existente.
     )
-) else (
-    echo Creando entorno virtual...
-    %PYTHON_CMD% -m venv "%VENV_DIR%"
 )
 
-if not exist "%VENV_DIR%\Scripts\pip.exe" (
-    echo [ERROR] No se pudo crear el entorno virtual.
-    pause
-    exit /b 1
-)
+echo Creando entorno virtual con uv...
+uv venv %VENV_DIR%
 
-set VENV_PIP=%VENV_DIR%\Scripts\pip.exe
+set VENV_PYTHON=%VENV_DIR%\Scripts\python.exe
 set VENV_STREAMLIT=%VENV_DIR%\Scripts\streamlit.exe
 
-REM ─────────── Instalar dependencias ───────────
+REM ─────────── Instalar dependencias con uv ───────────
 echo.
 echo === Instalando dependencias ===
-echo Esto puede tomar varios minutos...
+echo Sincronizando paquetes...
 echo.
 
-REM NOTA: ripser depende de persim, y persim NO tiene wheels para Windows.
-REM Estrategia:
-REM   1. Instalar requirements.txt (numpy, scipy, scikit-learn, etc.)
-REM   2. Instalar ripser con --no-deps (evita persim, pero ya tiene numpy/scipy)
-
-echo [1/2] Instalando dependencias base...
-%VENV_PIP% install -r %REQUIREMENTS%
+REM Instalacion ultra-rapida de dependencias base
+uv pip install -r %REQUIREMENTS%
 if %errorlevel% neq 0 (
-    echo [ERROR] Fallo la instalacion de dependencias base.
-    echo   Revisa el mensaje de error de arriba.
+    echo [ERROR] Fallo la instalacion de dependencias base con uv.
     pause
     exit /b 1
 )
 
-REM 4c. Instalar el paquete local (tda.* como modulo importable)
-%VENV_PIP% install -e .
+REM Instalar el paquete local en modo editable
+echo [INFO] Instalando paquete local en modo editable...
+uv pip install -e .
 if !errorlevel! neq 0 (
     echo [ERROR] No se pudo instalar el paquete local.
     pause
     exit /b 1
 )
 
-echo [2/2] Instalando ripser (sin persim)...
-%VENV_PIP% install ripser --no-deps
+REM Instalacion de ripser sin dependencias (para evitar persim en Windows/ARM)
+echo [INFO] Instalando ripser (sin dependencias)...
+uv pip install ripser --no-deps
 if %errorlevel% neq 0 (
     echo [ERROR] No se pudo instalar ripser.
     pause
@@ -124,7 +96,7 @@ if %errorlevel% neq 0 (
 REM ─────────── Resumen ───────────
 echo.
 echo ======================================
-echo Instalacion completada exitosamente.
+echo Instalacion completada exitosamente con uv.
 echo ======================================
 echo.
 
@@ -144,9 +116,6 @@ if exist "%APP_PATH%" (
     )
 ) else (
     echo [WARN] No se encuentra la app en %APP_PATH%
-    echo   Revisa la ruta o ejecutala manualmente con:
-    echo     %VENV_STREAMLIT% run ^<tu-app^>.py
-    echo.
 )
 
 pause
