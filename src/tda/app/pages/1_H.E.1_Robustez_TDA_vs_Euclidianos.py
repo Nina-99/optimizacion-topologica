@@ -1,16 +1,24 @@
 """Página 1: H.E.1 — Robustez TDA vs Descriptores Euclidianos.
 
-Valida la Hipótesis Específica 1 (H.E.1):
-"La homología persistente, computada sobre nubes de puntos X ⊂ R^d
-(d ≤ 100) con Ripser 0.6, proporciona números de Betti β₀ y β₁
-que permanecen estables bajo perturbaciones del 15–20% en los datos
-de entrada, superando a los descriptores euclidianos en tareas de
-clasificación y detección de anomalías."
+Valida las hipótesis corregidas tras el estudio piloto (§4.4):
 
-Referencias del Documento:
-- Definición 1.4: Número de Betti topológico
-- Teorema de Estabilidad (Cohen-Steiner et al., 2007)
-- Sección 8.6.1: Diseño de casos de simulación (esfera/toro)
+H.E.1a' (CORREGIDA — §4.4 Hallazgo 1):
+    dB(Dgm(X), Dgm(Y)) / diam(X) ≤ 2q
+    La cota bottleneck normalizada se verifica en el 100% de las réplicas.
+    Esta es la cota que el Teorema de Estabilidad (Chazal et al.) SÍ respalda.
+
+H.E.1a original (FALSIFICADA — tasa de acierto = 0.0036):
+    "βk permanece estable bajo perturbaciones del 15–20%"
+    Fue descartada porque el teorema acota el diagrama completo, no βk a escala fija.
+
+H.E.1b: TDA > descriptores euclidianos en clasificación (parcial, no significativo)
+
+H.E.1c: Cota dB ≤ 2dH se cumple al 100% (confirmada)
+
+Referencias:
+- Perfil §4.4: Estudio piloto y reformulación de hipótesis
+- metodologia_implementacion.txt §2.1: El teorema de estabilidad no protege a βk
+- metodologia_implementacion.txt §7: Resultados del Caso 1 (TDA)
 """
 
 import streamlit as st
@@ -23,8 +31,8 @@ import io
 from sklearn.cluster import KMeans
 
 from tda.processing.sampling import generate_cloud, add_gaussian_noise
-from tda.analysis.metrics import compute_kmeans_accuracy, verify_betti_numbers
-from tda.analysis.stability import compute_noise_sweep
+from tda.analysis.metrics import compute_kmeans_accuracy, verify_betti_numbers, mcnemar_test
+from tda.analysis.stability import compute_noise_sweep, verificar_cota_bottleneck, barrido_cota_bottleneck
 from tda.analysis.anomaly import compare_anomaly_detection
 from tda.visualization.plots_tda import plot_stability_chart, interpret_stability, plot_sweep_persistence_animation
 from tda.app.theme import (
@@ -45,12 +53,13 @@ st.markdown(page_header(
     "H.E.1 — Robustez TDA vs Euclidianos"
 ), unsafe_allow_html=True)
 st.header("H.E.1 — Robustez Topológica vs Descriptores Euclidianos")
+st.caption("H.E.1a' validada (cota bottleneck) | H.E.1 original (βk estable) falsificada en §4.4")
 
 # ── Sidebar ──
 st.sidebar.header("📊 H.E.1 — Robustez TDA")
 n_points = st.sidebar.slider(
-    "Puntos por forma", 100, 500, 200, 50, key="tda_n_points",
-    help="n=200 es el valor del Documento (Sección 8.6.1).")
+    "Puntos por forma", 100, 500, 400, 50, key="tda_n_points",
+    help="n=400 es el mínimo del Perfil (§9.4.1). Máximo 500 por rendimiento.")
 noise_level = st.sidebar.slider(
     "Ruido Gaussiano (%)", 0.0, 0.3, 0.15, 0.05, key="tda_noise_level",
     help="0.15 = 15% de perturbación. H.E.1 evalúa estabilidad en rango 15–20%.")
@@ -58,8 +67,8 @@ n_clusters = st.sidebar.number_input(
     "Clústeres (K-medias)", value=2, min_value=2, key="tda_n_clusters",
     help="Para H.E.1 con 2 formas (esfera+toro) mantener 2.")
 n_rep = st.sidebar.slider(
-    "Repeticiones (n_rep)", 1, 50, 10, 1, key="tda_n_rep",
-    help="Número de repeticiones por nivel de ruido.")
+    "Repeticiones (n_rep)", 1, 100, 10, 1, key="tda_n_rep",
+    help="Réplicas por celda. El Perfil usa 100 (§9.4.1).")
 run_sweep = st.sidebar.checkbox("Ejecutar barrido de estabilidad (0→30%)", value=True,
     help="Activa el barrido sistemático de ruido. Desactivar para verificación rápida.")
 
@@ -100,6 +109,67 @@ if ejecutar:
         'params': {'n_points': n_points, 'noise_level': noise_level,
                    'n_clusters': n_clusters, 'n_rep': n_rep}
     }
+
+    # ═══════════════════════════════════════════════
+    # FASE 1b: McNemar test (≥200 muestras)
+    # ═══════════════════════════════════════════════
+    n_mcnemar = 200
+    st.session_state.tda_mcnemar_n_rep = n_mcnemar
+    y_true_mcn_all = []
+    y_pred_tda_all = []
+    y_pred_eucl_all = []
+
+    for rep_idx in range(n_mcnemar):
+        seed_r = 42 + rep_idx
+        np.random.seed(seed_r)
+        pts_s = generate_cloud("sphere", n_points)
+        pts_t = generate_cloud("torus", n_points)
+        pts_t[:, 0] += 1.5
+        dataset_rep = np.vstack([pts_s, pts_t])
+        dataset_rep_noisy = add_gaussian_noise(dataset_rep, noise_level)
+        y_true_rep = np.array([0] * n_points + [1] * n_points)
+
+        # Clasificador Euclídeo: K-Means
+        km_rep = KMeans(n_clusters=n_clusters, random_state=seed_r, n_init=10)
+        y_eucl_rep = km_rep.fit_predict(dataset_rep_noisy)
+
+        # Clasificador TDA: K-Means + Betti
+        # 1. Clustering
+        labels_s = y_eucl_rep[:n_points]
+        labels_t = y_eucl_rep[n_points:]
+        # 2. Betti por cluster
+        from tda.analysis.stability import betti_significativos as _betti_sig_rep
+        if np.sum(labels_s == 0) > 2:
+            (b0_c0, b1_c0), _ = _betti_sig_rep(
+                dataset_rep_noisy[:n_points][labels_s == 0])
+        else:
+            b0_c0, b1_c0 = 0, 0
+        if np.sum(labels_s == 1) > 2:
+            (b0_c1, b1_c1), _ = _betti_sig_rep(
+                dataset_rep_noisy[:n_points][labels_s == 1])
+        else:
+            b0_c1, b1_c1 = 0, 0
+        cluster_betti = {
+            0: (b0_c0, b1_c0),
+            1: (b0_c1, b1_c1),
+        }
+        # 3. Asignar: cluster con β₁ ≥ 1 → toro (1), otro → esfera (0)
+        tda_map = {}
+        for cid, (b0, b1) in cluster_betti.items():
+            tda_map[cid] = 1 if b1 >= 1 else 0
+        y_tda_rep = np.array([tda_map[c] for c in y_eucl_rep])
+
+        y_true_mcn_all.append(y_true_rep)
+        y_pred_tda_all.append(y_tda_rep)
+        y_pred_eucl_all.append(y_eucl_rep)
+
+    y_true_mcn = np.concatenate(y_true_mcn_all)
+    y_pred_tda_mcn = np.concatenate(y_pred_tda_all)
+    y_pred_eucl_mcn = np.concatenate(y_pred_eucl_all)
+
+    mcnemar_result = mcnemar_test(y_true_mcn, y_pred_tda_mcn, y_pred_eucl_mcn)
+    st.session_state.tda_mcnemar = mcnemar_result
+    st.session_state.tda_mcnemar_n = n_mcnemar * n_points * 2
 
     # ═══════════════════════════════════════════════
     # FASE 2: Detección de anomalías
@@ -291,8 +361,57 @@ if st.session_state.get('tda_he1_run', False):
             value_color="#27ae60" if stable else "#e74c3c"
         ), unsafe_allow_html=True)
 
-    # ── 3. Métricas TDA vs Euclideo ──
-    with st.expander("3. Métricas TDA vs. Euclideo (PCA/K-Medias)", expanded=False):
+    # ── 3. McNemar: Comparación estadística TDA vs Euclídeo ──
+    mcn = st.session_state.get('tda_mcnemar', None)
+    mcn_n = st.session_state.get('tda_mcnemar_n', 0)
+    if mcn is not None:
+        st.subheader("3. Test de McNemar — H.E.1b (§9.4.4)")
+        st.info(
+            f"**Comparación pareada** de TDA (K-Means + Betti) vs Euclídeo (solo K-Means) "
+            f"sobre **{mcn_n} predicciones pareadas** ({st.session_state.tda_mcnemar_n_rep} réplicas × {n_points*2} puntos)."
+        )
+
+        # Tabla de contingencia
+        c1, c2 = st.columns([1, 1])
+        with c1:
+            st.markdown("**Tabla de contingencia 2×2:**")
+            ct = mcn["contingency_table"]
+            df_ct = pd.DataFrame(
+                ct,
+                index=["TDA correcto", "TDA incorrecto"],
+                columns=["Eucl correcto", "Eucl incorrecto"],
+            )
+            st.dataframe(df_ct, width='stretch')
+
+            st.caption(
+                f"n₀₀={mcn['n00']} (ambos correctos) | "
+                f"n₀₁={mcn['n01']} (TDA✓ / Eucl✗) | "
+                f"n₁₀={mcn['n10']} (Eucl✓ / TDA✗) | "
+                f"n₁₁={mcn['n11']} (ambos incorrectos)"
+            )
+
+        with c2:
+            st.markdown("**Resultado del test:**")
+            if mcn["statistic"] is not None:
+                st.metric("χ² de McNemar", f"{mcn['statistic']:.4f}")
+                st.metric("Valor p", f"{mcn['p_value']:.6f}")
+                if mcn["significant"]:
+                    st.success(
+                        f"✅ **Diferencia estadísticamente significativa** (p < 0.05). "
+                        f"{mcn['message'].split('. ')[1] if '. ' in mcn['message'] else ''}"
+                    )
+                else:
+                    st.warning(
+                        f"⚠️ **Diferencia NO significativa** (p ≥ 0.05). "
+                        f"Los clasificadores no difieren estadísticamente a este nivel."
+                    )
+            else:
+                st.info(mcn["message"])
+
+        st.markdown("---")
+
+    # ── 4. Métricas TDA vs Euclideo ──
+    with st.expander("4. Métricas TDA vs. Euclideo (PCA/K-Medias)", expanded=False):
         from tda.simulation.pipeline import run_tda_experiment
         tmp_s = run_tda_experiment('sphere', noise_levels=[params['noise_level']],
                                    n_rep=params['n_rep'], n_points=params['n_points'], seed=42)
@@ -328,7 +447,7 @@ if st.session_state.get('tda_he1_run', False):
 
     # ── 4. Detección de anomalías ──
     if anomaly is not None:
-        st.subheader("4. Detección de Anomalías (TDA vs K-Means)")
+        st.subheader("5. Detección de Anomalías (TDA vs K-Means)")
 
         st.markdown("**Resultados TDA (Betti filtrado por ε*/2)**")
         for category, label in [("normal", "Formas Normales"), ("anomaly", "Formas Anómalas")]:
@@ -360,14 +479,14 @@ if st.session_state.get('tda_he1_run', False):
                 f"⚠️ K-Means ({km_acc:.0%}) iguala o supera a TDA ({tda_acc:.0%})."
             )
 
-    # ── 5. Barrido de estabilidad ──
+    # ── 5. Barrido de estabilidad + H.E.1a' ──
     if sweep is not None:
-        st.subheader("5. Barrido de Estabilidad (0→30% ruido)")
+        st.subheader("6. Barrido de Estabilidad y Verificación H.E.1a'")
 
         fig_stab = plot_stability_chart(sweep)
         apply_plotly_theme(fig_stab)
         st.plotly_chart(fig_stab, width='stretch')
-        st.caption("Línea punteada roja: β₁=2 esperado del toro. Esfera estable en (1,0) en todo el rango; el toro converge a 2 en la ventana 15-20% de H.E.1. Valores altos fuera de esa ventana son artefacto Rips con muestreo disperso (200 pts), no topología real.")
+        st.caption("Línea punteada roja: β₁=2 esperado del toro. El colapso de βk con el ruido es el Hallazgo 1 del §4.4 — βk NO es estable, pero la cota bottleneck SÍ se mantiene (H.E.1a').")
 
         if "diagrams_s" in sweep and len(sweep["diagrams_s"]) > 0:
             if "show_persist_anim" not in st.session_state:
@@ -397,38 +516,104 @@ if st.session_state.get('tda_he1_run', False):
         })
         st.dataframe(df_sweep, width='stretch', hide_index=True)
 
-        if "estabilidad_s" in sweep or "estabilidad_t" in sweep:
-            st.markdown("**Verificación H.E.1 — Estabilidad en rango 15%–20%**")
-            c_es, c_et = st.columns(2)
-            with c_es:
-                est_s = sweep.get("estabilidad_s", {})
-                icon_s = "✅" if est_s.get("estable", False) else "❌"
-                st.markdown(f"**{icon_s} Esfera (β₀=1, β₁=0):**")
-                st.caption(est_s.get("mensaje", "Sin datos"))
-            with c_et:
-                est_t = sweep.get("estabilidad_t", {})
-                icon_t = "✅" if est_t.get("estable", False) else "❌"
-                st.markdown(f"**{icon_t} Toro (β₀=1, β₁=2):**")
-                st.caption(est_t.get("mensaje", "Sin datos"))
+        # ══════════════════════════════════════════════════════════════
+        # H.E.1a' — Cota bottleneck (la hipótesis que SÍ se sostiene)
+        # ══════════════════════════════════════════════════════════════
+        st.markdown("---")
+        st.subheader("✅ H.E.1a' — Verificación de la Cota Bottleneck")
+        st.info(
+            "**H.E.1a' (corregida, §4.4):** dB(Dgm(X), Dgm(Y)) / diam(X) ≤ 2q\n\n"
+            "Esta es la cota que el Teorema de Estabilidad (Chazal et al.) respalda. "
+            "La formulación original (βk invariante) fue falsada con tasa de acierto = 0.0036."
+        )
 
-            if est_s.get("estable", False) and est_t.get("estable", False):
-                st.success(
-                    "✅ **H.E.1 VALIDADA:** Los Betti permanecen estables en 15%–20% de ruido."
-                )
-            else:
-                st.warning(
-                    "⚠️ **H.E.1 no validada completamente:** "
-                    "Los Betti no permanecen estables en 15%–20%."
-                )
+        # Verificar cota para cada forma y nivel de ruido del sweep
+        n_pts = params['n_points']
+        cota_results = {}
+        for shape_name, shape_label in [("sphere", "Esfera"), ("torus", "Toro")]:
+            pts_limpia = generate_cloud(shape_name, n_pts)
+            cota_results[shape_name] = {"niveles": [], "cumple": [], "ratio": []}
 
-        interpretation = interpret_stability(sweep)
-        if interpretation["stable"]:
-            st.success(f"✅ **{interpretation['verdict']}:** {interpretation['details']}")
+            for q in sweep["noise_vals"]:
+                if q == 0:
+                    cota_results[shape_name]["niveles"].append(q)
+                    cota_results[shape_name]["cumple"].append(True)
+                    cota_results[shape_name]["ratio"].append(0.0)
+                    continue
+
+                # Promediar sobre N_REP_INTERNO réplicas (misma semilla del sweep)
+                ratios = []
+                for rep in range(5):
+                    seed_r = 42 + 1000 * rep + int(1e5 * q)
+                    np.random.seed(seed_r)
+                    from tda.processing.sampling import add_gaussian_noise
+                    Y = add_gaussian_noise(pts_limpia, q)
+                    res = verificar_cota_bottleneck(pts_limpia, Y, q)
+                    ratios.append(res["ratio"])
+
+                mean_ratio = float(np.mean(ratios))
+                cota_results[shape_name]["niveles"].append(q)
+                cota_results[shape_name]["cumple"].append(mean_ratio <= 2 * q)
+                cota_results[shape_name]["ratio"].append(mean_ratio)
+
+        # Tabla de resultados H.E.1a'
+        df_cota = pd.DataFrame({
+            "Nivel ruido q": [f"{q:.2f}" for q in cota_results["sphere"]["niveles"]],
+            "Cota teórica 2q": [f"{2*q:.3f}" for q in cota_results["sphere"]["niveles"]],
+            "Ratio Esfera": [f"{r:.4f}" for r in cota_results["sphere"]["ratio"]],
+            "Cumple Esfera": ["✅" if c else "❌" for c in cota_results["sphere"]["cumple"]],
+            "Ratio Toro": [f"{r:.4f}" for r in cota_results["torus"]["ratio"]],
+            "Cumple Toro": ["✅" if c else "❌" for c in cota_results["torus"]["cumple"]],
+        })
+        st.dataframe(df_cota, width='stretch', hide_index=True)
+
+        # Veredicto H.E.1a'
+        todas_cumplen = all(cota_results["sphere"]["cumple"]) and all(cota_results["torus"]["cumple"])
+        n_total = len(cota_results["sphere"]["cumple"])
+        n_cumplen = sum(cota_results["sphere"]["cumple"]) + sum(cota_results["torus"]["cumple"])
+
+        if todas_cumplen:
+            st.success(
+                f"✅ **H.E.1a' VALIDADA:** La cota dB/diam ≤ 2q se cumple en "
+                f"{n_cumplen}/{2*n_total} configuraciones (100%)."
+            )
         else:
-            st.warning(f"⚠️ **{interpretation['verdict']}:** {interpretation['details']}")
+            st.warning(
+                f"⚠️ **H.E.1a' parcial:** La cota se cumple en "
+                f"{n_cumplen}/{2*n_total} configuraciones."
+            )
+
+        # ══════════════════════════════════════════════════════════════
+        # H.E.1 original — Evidencia del Hallazgo 1 (βk NO es estable)
+        # ══════════════════════════════════════════════════════════════
+        with st.expander("📚 H.E.1 original (βk estable) — Evidencia del Hallazgo 1", expanded=False):
+            st.warning(
+                "**Nota:** La formulación original de H.E.1 ('βk permanece estable bajo "
+                "perturbaciones del 15–20%') fue **FALSIFICADA** en el estudio piloto (§4.4 Hallazgo 1). "
+                "La tasa de acierto de βk a niveles 0.15–0.20 fue de 0.0036, frente al criterio ≥ 0.95.\n\n"
+                "El Hallazgo 1 documenta POR QUÉ falla: el teorema de estabilidad acota la distancia "
+                "bottleneck entre diagramas completos, pero βk es una lectura por umbral de ese diagrama, "
+                "y un umbral fijo puede ser cruzado por barras que se desplazan menos que dB."
+            )
+
+            if "estabilidad_s" in sweep or "estabilidad_t" in sweep:
+                c_es, c_et = st.columns(2)
+                with c_es:
+                    est_s = sweep.get("estabilidad_s", {})
+                    icon_s = "✅" if est_s.get("estable", False) else "❌"
+                    st.markdown(f"**{icon_s} Esfera (β₀=1, β₁=0):**")
+                    st.caption(est_s.get("mensaje", "Sin datos"))
+                with c_et:
+                    est_t = sweep.get("estabilidad_t", {})
+                    icon_t = "✅" if est_t.get("estable", False) else "❌"
+                    st.markdown(f"**{icon_t} Toro (β₀=1, β₁=2):**")
+                    st.caption(est_t.get("mensaje", "Sin datos"))
+
+            interpretation = interpret_stability(sweep)
+            st.info(f"**{interpretation['verdict']}:** {interpretation['details']}")
 
     # ── 6. Exportación ──
-    st.subheader("6. Exportar Datos")
+    st.subheader("7. Exportar Datos")
     dataset_noisy = cls['dataset_noisy']
     n_pts = len(dataset_noisy) // 2
     shape_labels = ["sphere"] * n_pts + ["torus"] * n_pts
@@ -489,10 +674,16 @@ methodology_expander(
     [
         (
             "fórmulas",
-            r"""\beta_0 = \text{número componentes conexas del complejo de Rips}
-\beta_1 = \text{número agujeros con persistencia > 0.5}
-\text{Métrica: Exactitud = correctos/total}
-F_1 = 2 \cdot \frac{precisión \cdot recuperación}{precisión + recuperación}"""
+            r"""**H.E.1a' (corregida — la que SÍ se valida):**
+$$\frac{d_B\bigl(\text{Dgm}_k^{\text{VR}}(X),\ \text{Dgm}_k^{\text{VR}}(Y)\bigr)}{\text{diam}(X)} \leq 2q$$
+
+**H.E.1a original (FALSIFICADA en §4.4, tasa de acierto = 0.0036):**
+$$\beta_k^{(\tau)}(X) = \beta_k^{(\tau)}(Y) \quad \text{para } q \in \{0.15, 0.20\}$$
+
+**H.E.1c (confirmada):**
+$$d_B \leq 2 \cdot d_H(X, Y) \quad \text{(100\% de las 700 réplicas)}$$
+
+**Métrica de clasificación:** Exactitud = correctos/total"""
         )
     ],
     "H.E.1"

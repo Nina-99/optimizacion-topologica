@@ -20,7 +20,7 @@ except ImportError as e:
 from tda.core.topology import betti_numbers
 from tda.processing.preprocessing import filter_persistence_diagram, normalize_diagram
 from tda.processing.sampling import generate_cloud, add_gaussian_noise, compute_diameter
-from tda.analysis.stability import _contar_betti, UMBRAL_H1_SINTETICO
+from tda.analysis.stability import betti_persistente
 
 # Import Euclidean descriptors computation
 from sklearn.decomposition import PCA
@@ -208,8 +208,9 @@ def run_tda_experiment(shape: str, noise_levels: list[float] = [0.10, 0.15, 0.20
             noisy_normalized = normalize_diagram(noisy_filtered, noisy_diameter)
             noisy_arr = _safe_stack(noisy_normalized)
 
-            # Números de Betti con filtro real de persistencia
-            b0_n, b1_n = _contar_betti(noisy_dgms, UMBRAL_H1_SINTETICO)
+            # Números de Betti con Def. 8.1: τ · diam(X)
+            diam_noisy = compute_diameter(noisy_pts)
+            b0_n, b1_n = betti_persistente(noisy_dgms, tau=0.15, diam=diam_noisy)
             betti0_list.append(float(b0_n))
             betti1_list.append(float(b1_n))
 

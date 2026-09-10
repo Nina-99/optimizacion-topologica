@@ -1,0 +1,12 @@
+config,beta0,beta1,concordancia
+rmin=1.5,1,4,True
+rmin=2.0,1,2,True
+rmin=2.4,1,2,True
+rmin=3.0,1,2,True
+rmin=4.0,1,2,True
+p=2,1,2,
+p=3,1,2,
+p=4,1,2,
+malla=40×20,1,2,
+malla=80×40,1,2,
+malla=120×60,1,2,

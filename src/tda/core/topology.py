@@ -14,8 +14,8 @@ import numpy as np
 from typing import Tuple
 
 try:
-    from persim import wasserstein_distance as persim_wasserstein
-    from persim import bottleneck_distance as persim_bottleneck
+    from persim import wasserstein as persim_wasserstein
+    from persim import bottleneck as persim_bottleneck
 except ImportError:
     persim_wasserstein = None
     persim_bottleneck = None

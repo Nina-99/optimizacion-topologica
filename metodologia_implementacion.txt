@@ -1,0 +1,844 @@
+Metodología de la Implementación
+Aplicaciones de la estructura topológica para la resolución
+de problemas en entornos complejos de ingeniería
+Capítulo III — Diseño experimental, algoritmos y verificación de hipótesis
+
+Jorge Larry Copa Cruz
+UAGRM · Facultad Integral de Ichilo · Maestría en Matemática · 2026
+
+Alcance de este documento. Desarrolla la metodología de implementación correspondiente a
+los objetivos específicos OE1–OE4 y a las hipótesis H.E.1 y H.E.2 del perfil. Todos los resultados
+numéricos que se reportan fueron obtenidos ejecutando el código que aquí se documenta; ninguno
+es estimado ni citado. El sustento teórico se apoya en el desarrollo previo de topología general
+(Módulos I–IV), citado como [M-I] a [M-IV].
+
+Índice
+
+1
+
+1.
+
+Trazabilidad: de la hipótesis al indicador
+
+Una hipótesis es verificable solo si existe un procedimiento que pueda refutarla. La Tabla 1
+fija, para cada afirmación del perfil, el estimador, el criterio numérico de decisión y el artefacto de
+software que lo produce. Sin esta cadena no hay contraste posible, solo ilustración.
+Cuadro 1: Cadena de trazabilidad hipótesis → indicador → artefacto.
+Ítem
+
+Indicador
+
+Criterio de decisión
+
+Artefacto
+
+OE1
+
+Concordancia entre dos
+cálculos independientes de
+βk
+Tasa de acierto de βk frente
+al valor teórico
+Exactitud de clasificación
+por validación cruzada
+Cumplimiento de dB ≤ 2 dH
+Reducción relativa de compliance
+β1 (Ωsólido ) del diseño convergido
+Curva β1 vs. umbral de binarización
+
+Coincidencia en el 100 % de
+los diseños
+
+betti2d.py
+
+≥ 0.95 a niveles de ruido 0.15
+y 0.20
+exactitudTDA > exactitudeucl
+
+tda.py
+
+Fracción de réplicas = 1.0
+≥ 40 % frente al referente
+
+tda.py
+fem_simp.py
+
+β1 ≤ 2
+
+betti2d.py
+
+Constancia en un intervalo de
+umbrales
+
+betti2d.py
+
+OE2
+/
+H.E.1a
+H.E.1b
+H.E.1c
+OE3
+/
+H.E.2a
+H.E.2b
+OE4
+
+2.
+
+tda.py
+
+Tres correcciones metodológicas al perfil
+
+La implementación obligó a revisar tres puntos del perfil. Se documentan aquí porque afectan
+la verificabilidad de las hipótesis, no solo su ejecución.
+
+2.1.
+
+El teorema de estabilidad no protege a βk
+
+Observación crítica. El perfil (§6.1) invoca el Teorema de Estabilidad de Cohen-Steiner, Edelsbrunner y Harer para justificar que «los invariantes topológicos son robustos frente a perturbaciones
+continuas por construcción». El enunciado del teorema es más restringido, y la diferencia es decisiva
+para H.E.1.
+Teorema 2.1 (Estabilidad, formulación para nubes de puntos). Sean X, Y ⊂ Rd finitos. Entonces,
+para todo k,
+(︁
+)︁
+dB Dgmk VR(X), Dgmk VR(Y ) ≤ 2 dH (X, Y ).
+Observación. Lo que el teorema acota es la distancia bottleneck entre diagramas completos. No
+afirma que βk evaluado a una escala fija ε sea estable, y de hecho no lo es: una perturbación
+arbitrariamente pequeña puede crear o destruir barras cortas y cambiar βk (ε) en cualquier cantidad.
+Esto ya se señaló en [M-IV, §5]: la distancia de Hausdorff no ve la topología —un círculo y un
+círculo con un punto quitado están a dH arbitrariamente pequeña y tienen homología distinta.
+La consecuencia operativa es que βk debe leerse de manera que herede la estabilidad del
+diagrama. Se adopta la siguiente regla, determinista y sin inspección visual del código de barras:
+Definición 2.2 (Número de Betti persistente). Sea Dgmk el diagrama de dimensión k, pers(b, d) =
+d − b y τ ∈ (0, 1) un umbral relativo. Se define
+(τ )
+
+{︁
+
+}︁
+
+βk (X) = # (b, d) ∈ Dgmk : d − b > τ · diam(X) .
+
+2
+
+Proposición 2.3 (La lectura por umbral hereda la estabilidad). Si dB (Dgmk (X), Dgmk (Y )) <
+(︁
+)︁
+(τ )
+1
+′
+′
+2 τ diam(X) − τ diam(X) para τ < τ , entonces toda barra contada por βk (X) tiene una
+(τ ′ )
+
+compañera en Dgmk (Y ) contada por βk (Y ).
+Demostración. Sea δ = dB (Dgmk (X), Dgmk (Y )) y φ un emparejamiento óptimo. Si (b, d) ∈
+Dgmk (X) cumple d − b > τ diam(X), su imagen (b′ , d′ ) = φ(b, d) satisface |b − b′ | ≤ δ y |d − d′ | ≤ δ,
+luego
+d′ − b′ ≥ (d − b) − 2δ > τ diam(X) − 2δ > τ ′ diam(X).
+■
+Observación. La Proposición 2.3 da estabilidad de una desigualdad, no de una igualdad: garantiza
+que las barras largas no desaparecen, no que no aparezcan barras nuevas. Por eso el experimento
+debe medir la tasa de acierto empíricamente en lugar de suponerla. Los resultados de la §7
+muestran que la diferencia entre ambas cosas es enorme.
+
+2.2.
+
+Ripser es el instrumento equivocado para el Caso 2
+
+Corrección metodológica al perfil. El perfil (§8.6.1) propone calcular β1 (Ωsólido ) «con Ripser sobre
+la malla resultante». Ripser construye complejos de Vietoris–Rips sobre nubes de puntos; una
+malla de elementos finitos no es una nube de puntos sino un complejo cúbico. Aplicar VR a los
+centroides de los elementos sólidos introduce dos artefactos:
+(a) el resultado depende de un parámetro ε sin significado físico, pues la malla ya fija la escala h;
+√
+(b) para ε ∈ (h, 2 h) los vecinos diagonales conectan o no según la elección, de modo que β1
+cambia por una decisión arbitraria del analista.
+El objeto correcto es la homología del complejo cúbico Ωsólido = {e : ρe ≥ 12 }, donde cada
+elemento es un cuadrado cerrado. Se implementan dos cálculos independientes cuya coincidencia
+sirve de validación interna:
+Método A — característica de Euler.
+β0 por etiquetado de componentes 4-conexas; χ = V − E + F por conteo celular; y como
+Ω ⊂ R2 implica H2 = 0,
+β1 = β0 − χ.
+Método B — homología cúbica persistente.
+gudhi.CubicalComplex con filtración f = 0 en el sólido y f = 1 en el vacío.
+Hallazgo. En las 17 configuraciones evaluadas (barrido de p, barrido de rmı́n , tres mallas y curva
+de umbral) ambos métodos coincidieron en el 100 % de los casos. Esto valida el indicador antes
+de usarlo para contrastar H.E.2b.
+
+2.3.
+
+El referente de H.E.2a hace la hipótesis imposible
+
+Corrección metodológica al perfil. H.E.2 afirma que SIMP «reduce la compliance global en al menos
+un 40 % respecto al bloque sólido de referencia». El bloque sólido usa el 100 % del material; el
+diseño SIMP usa fV = 0.5. Por monotonía de la rigidez respecto de la densidad —consecuencia
+directa de la Ec. (6) del perfil, ∂c/∂ρe ≤ 0— quitar material nunca puede reducir la
+compliance. La hipótesis, tal como está escrita, no es difícil: es imposible.
+Proposición 2.4 (Cota inferior de la compliance). Sea c(ρ) la compliance del diseño ρ ∈ [0, 1]Ne
+y 1 el bloque sólido. Entonces c(ρ) ≥ c(1) para todo ρ admisible.
+Demostración. ∂c/∂ρe = −p ρep−1 (E0 − Emı́n ) u⊤
+e K0 ue ≤ 0 porque K0 es semidefinida positiva.
+Luego c es no creciente en cada coordenada, y ρ ≤ 1 componente a componente implica c(ρ) ≥
+c(1).
+■
+3
+
+Criterio de decisión. Se propone sustituir el referente por el diseño uniforme de igual volumen ρ ≡ fV . Con ello la hipótesis mide lo que realmente interesa —cuánto se gana redistribuyendo
+el material, no cuánto se pierde al quitarlo— y vuelve a ser falsable:
+H.E.2a′ :
+
+c(fV 1) − c(ρ⋆ )
+≥ 0.40
+c(fV 1)
+
+Se reportan ambos valores para dejar constancia de la corrección.
+
+3.
+
+Fundamento del filtro de densidad
+
+Justificación teórica. El problema SIMP sin filtro es mal puesto. El conjunto admisible discreto
+{ρ : ρe ∈ {0, 1}} no es cerrado en la topología débil-∗ de L∞ (Ω), y las sucesiones minimizantes
+desarrollan microestructura (checkerboarding) sin límite admisible. Este es el fenómeno anticipado
+en [M-II, Ej. 2.4] y [M-IV, §2]: la topología débil-∗ no es 1AN, de modo que la compacidad no
+se traduce en convergencia de sucesiones.
+El filtro de densidad
+∑︁
+w(xi , xe ) ρi
+ρ̃e = ∑︁i
+,
+i w(xi , xe )
+
+w(xi , xe ) = máx{0, rmı́n − ∥xi − xe ∥},
+
+es un operador lineal de rango finito, por tanto compacto. Al componerlo con el funcional de
+compliance se recupera la semicontinuidad inferior débil-∗, y el método directo del cálculo de
+variaciones da existencia de mínimo sobre el conjunto débil-∗ compacto que provee Banach–Alaoglu
+—corolario de Tychonoff, [M-III, Teo. 2.7].
+Conclusión: rmı́n no es un truco numérico contra el tablero de ajedrez. Es la hipótesis que
+hace que el problema tenga solución.
+
+4.
+
+Algoritmos
+
+Algorithm 1: Lectura estable de números de Betti (Def. 2.2)
+Input: nube X ⊂ Rd , umbral relativo τ , fracción de filtración θ
+(τ )
+(τ )
+Output: β0 , β1 y el diagrama Dgm(X)
+1 s ← diam(X)
+// escala intrínseca; hace todo invariante a homotecias
+2 Dgm ← Ripser(X, maxdim = 1, thresh = θ · s)
+3 foreach clase esencial (b, ∞) de Dgm0 do
+4
+d←θ·s
+// truncado: exigido por la distancia bottleneck
+5 end
+6 for k ← 0 to 1 do
+7
+Pk ← { d − b : (b, d) ∈ Dgmk }
+(τ )
+
+βk
+9 end
+8
+
+← #{ p ∈ Pk : p > τ · s }
+
+(τ )
+(τ )
+10 return (β0 , β1 , Dgm)
+
+5.
+
+Arquitectura del software
+
+Elección de las nubes de referencia. El catálogo no es arbitrario. Contiene controles
+positivos (círculo, anillo, dos círculos, toro: β1 > 0), controles negativos (disco, esfera,
+gaussiana: β1 = 0) y, sobre todo, el par disco/anillo, construido para tener media, covarianza
+4
+
+Algorithm 2: Protocolo de estabilidad (H.E.1a, H.E.1c)
+Input: nube X, niveles Q = {0, .05, .10, .15, .20}, réplicas R, β teo
+Output: registro por réplica de acierto, dB y dH
+1 Dgm(X) ← Algoritmo 1 sobre X
+2 foreach q ∈ Q do
+3
+for r ← 1 to R do
+4
+semilla ← 42 + 1000r + ⌊105 q⌋
+// reproducibilidad exacta
+2
+5
+Y ← X + N (0, (q · diam X) I)
+6
+Dgm(Y ), β (τ ) (Y ) ← Algoritmo 1 sobre Y
+7
+registrar acierto [β (τ ) (Y ) = β teo ], dB (DgmX, DgmY ), dH (X, Y )
+8
+registrar control teórico [dB ≤ 2 dH ]
+9
+end
+10 end
+
+Algorithm 3: SIMP con filtro y criterio de optimalidad (OE3)
+Input: nx , ny , fV , p, rmı́n , tolerancias ϵρ , ϵc
+Output: ρ̃⋆ , historial, c⋆
+1 K0 ← rigidez del elemento Q4; (H, Hs ) ← operador filtro
+2 ρ ← fV 1; cprev ← ∞
+3 repeat
+4
+ρ̃ ← H(ρ/Hs )
+// filtrado: compacidad (§3)
+5
+Ee ← Emı́n + ρ̃ep (E0 − Emı́n ); ensamblar K(ρ̃)
+6
+resolver KU = F en los gdl libres
+∑︁
+p−1 (E − E
+⊤
+7
+c ← e Ee u⊤
+// autoadjunto
+0
+mı́n )ue K0 ue
+e K0 ue ; ∂c/∂ ρ̃e ← −p ρ̃e
+8
+propagar por el filtro: ∂c/∂ρ ← H(∂c/∂ ρ̃/Hs )
+9
+ρ+ ← CriterioOptimalidad(ρ, ∂c, ∂v, fV )
+// bisección en λ
+10
+∆ρ ← ∥ρ+ − ρ∥∞ ; ∆c ← |cprev − c|/|c|; ρ ← ρ+ ; cprev ← c
+11 until ∆ρ < ϵρ y ∆c < ϵc
+
+Algorithm 4: Números de Betti exactos del diseño (OE3, OE4)
+Input: ρ̃⋆ , malla nx × ny , umbral u
+Output: β0 , β1 y bandera de concordancia
+1 S ← [ρ̃⋆ ≥ u] reordenado a matriz ny × nx
+// Método A: característica de Euler
+2 β0A ← componentes 4-conexas de S
+3 F ← #{píxeles ON}; V ← #{esquinas ocupadas}; E ← #{aristas ocupadas}
+4 χ ← V − E + F ; β1A ← β0A − χ
+// válido pues H2 = 0 en el plano
+// Método B: homología cúbica persistente
+5 (β0B , β1B ) ← GudhiCubical(1 − S)
+6 return (β0A , β1A , [ (β0A , β1A ) = (β0B , β1B ) ])
+
+5
+
+Cuadro 2: Módulos, responsabilidad y trazabilidad a los objetivos.
+Módulo
+
+Objetivo
+
+Responsabilidad
+
+config.py
+geometria.py
+
+—
+OE2
+
+tda.py
+fem_simp.py
+
+OE2
+OE3
+
+betti2d.py
+experimentos.py
+
+OE3/4
+todos
+
+Semilla maestra, tolerancias, rutas
+Siete nubes con βk conocido a priori; perturbación gaussiana; dH exacta
+Filtración VR, Def. 2.2, bottleneck, clasificación
+Q4, filtro, análisis adjunto, criterio de optimalidad
+Algoritmo 1 por dos vías independientes
+Orquestación, exportación a CSV, contraste de
+hipótesis
+
+y soporte convexo casi idénticos. Sin ese par no se puede sostener la afirmación comparativa de
+H.E.1b: si las clases difirieran también geométricamente, cualquier descriptor las separaría y la
+comparación sería vacua.
+Listing 1: Núcleo del Algoritmo 1: conteo celular exacto.
+1
+2
+3
+4
+5
+6
+
+7
+8
+9
+10
+
+def betti_cubico ( S ) :
+" " " ( beta_0 , beta_1 ) del complejo cubico de S por caracteristica de Euler . " " "
+S = S . astype ( bool )
+if not S . any () :
+return 0 , 0
+estructura = np . array ([[0 ,1 ,0] ,[1 ,1 ,1] ,[0 ,1 ,0]] , dtype = bool ) # 4 conectividad
+_ , b0 = ndimage . label (S , structure = estructura )
+V , E , F = _conteo_celular ( S )
+chi = V - E + F
+return int ( b0 ) , int ( b0 - chi )
+# H_2 = 0 en el plano = > beta_1 = beta_0
+- chi
+
+6.
+
+Calibración del umbral τ
+
+El umbral τ de la Definición 2.2 es un hiperparámetro. Fijarlo por inspección visual invalidaría
+el contraste, de modo que se calibra contra el patrón de oro de las siete nubes antes de correr el
+ensayo de estabilidad.
+Cuadro 3: Aciertos de (β0 , β1 ) sobre las siete nubes de referencia (n = 600, ruido nulo).
+τ
+
+0.05
+
+0.10
+
+0.15
+
+0.20
+
+0.25
+
+0.30
+
+Aciertos / 7
+
+3
+
+5
+
+7
+
+7
+
+6
+
+5
+
+La ventana válida es τ ∈ [0.15, 0.20]; se adopta τ = 0.15. La interpretación de los dos modos
+de fallo es instructiva:
+τ demasiado bajo: el ruido de muestreo genera ciclos espurios. Con τ = 0.05 la esfera reporta
+(179, 21) en vez de (1, 0).
+τ demasiado alto: se pierden rasgos reales de persistencia moderada. Con τ ≥ 0.25 desaparece
+el meridiano del toro y β1 cae de 2 a 0.
+Observación (Requisito de densidad de muestreo). La calibración se realizó con n = 600 puntos.
+El toro exige esa densidad: con n = 250, R = 2, r = 0.8 las persistencias relativas de H1 son
+(0.279, 0.160, 0.106, . . . ) y no hay separación entre las dos clases reales y el ruido. Con n = 600,
+R = 2, r = 1.0 pasan a (0.222, 0.212, 0.092, . . . ): aparece el salto que permite leer β1 = 2. La
+densidad de muestreo no es un detalle de implementación, es una precondición del método.
+6
+
+7.
+
+Resultados del Caso 1 (TDA)
+
+Protocolo ejecutado: 7 nubes × 5 niveles de ruido × 20 réplicas = 700 observaciones, n = 300
+puntos, semilla 42.
+Cuadro 4: Tasa de acierto de (β0 , β1 ) por nube y nivel de ruido.
+q = 0.00
+
+q = 0.05
+
+q = 0.10
+
+q = 0.15
+
+q = 0.20
+
+círculo
+disco
+anillo
+dos círculos
+toro
+esfera
+gaussiana
+
+1.00
+1.00
+1.00
+1.00
+1.00
+0.00
+0.00
+
+1.00
+0.95
+0.95
+0.00
+0.00
+0.05
+0.25
+
+0.45
+0.25
+0.35
+0.00
+0.00
+0.00
+0.25
+
+0.00
+0.00
+0.00
+0.00
+0.00
+0.00
+0.00
+
+0.05
+0.00
+0.00
+0.00
+0.00
+0.00
+0.00
+
+Control dB ≤ 2dH
+
+1.00
+
+1.00
+
+1.00
+
+1.00
+
+1.00
+
+Nube
+
+Hallazgo (H.E.1a queda falsada). La tasa media de acierto de βk a los niveles 0.15 y 0.20 es
+0.0036, frente al criterio ≥ 0.95. Los números de Betti no son estables ante perturbaciones del
+15–20 % del diámetro.
+Hallazgo (H.E.1c se confirma sin excepciones). La cota teórica dB ≤ 2 dH del Teorema 2.1 se
+cumple en el 100 % de las 700 réplicas. En el nivel q = 0.15 del círculo, por ejemplo, dB = 0.488
+frente a 2dH = 1.855: la cota es válida y además holgada.
+Observación (Los dos hallazgos no se contradicen: son el mismo hecho). Que dB permanezca
+acotado mientras la tasa de acierto de βk colapsa es exactamente lo predicho en la §2.1. El teorema
+(τ )
+protege el diagrama completo; βk es una lectura por umbral de ese diagrama, y un umbral fijo
+puede ser cruzado por barras que se desplazan menos que dB . La Proposición 2.3 solo garantiza
+que las barras largas sobreviven —no que no nazcan barras nuevas—, y con ruido del 15 % del
+diámetro nacen muchas.
+Criterio de decisión (Reformulación propuesta de H.E.1a). Sustituir el indicador «βk invariante»
+por el indicador estable que el teorema sí respalda:
+′
+
+H.E.1a :
+
+(︁
+
+dB Dgmk (X), Dgmk (Y )
+diam(X)
+
+)︁
+
+≤ 2q
+
+para todo nivel de ruido q
+
+Este enunciado es falsable, está teóricamente fundado y se verifica en el 100 % de los casos medidos.
+Mantener la formulación original obligaría a reportar un fracaso que no proviene del método sino
+del indicador elegido.
+H.E.1b — comparación con descriptores euclidianos. Tarea: distinguir anillo de disco.
+Descriptor TDA: persistencias relativas de H1 . Descriptor euclidiano: espectro PCA, inercia de
+k-medias y dispersión radial. Clasificador: regresión logística, validación cruzada estratificada de 5
+particiones, 80 muestras.
+Cuadro 5: Exactitud de clasificación (media ± desviación sobre 5 particiones).
+Condición
+Sin deformación
+Con deformación afín aleatoria
+
+7
+
+TDA
+
+Euclidiano
+
+1.000 ± 0.000
+0.950 ± 0.047
+
+1.000 ± 0.000
+0.925 ± 0.025
+
+Observación (Por qué fue necesaria la deformación afín). En la primera versión del experimento
+ambos descriptores alcanzaron el 100 %. El diagnóstico es que la dispersión radial es un sustituto
+directo del agujero: el baseline tenía una fuga y la comparación estaba amañada a su favor. Se
+corrigió aplicando a cada nube una transformación afín aleatoria invertible, que es un homeomorfismo —preserva βk por definición de invariante, [M-I, Def. 8.1]— pero destruye el espectro
+PCA, la inercia de k-medias y la dispersión radial.
+Hallazgo (H.E.1b se sostiene solo parcialmente). Bajo deformación afín, TDA supera al baseline
+(0.950 vs. 0.925), pero las desviaciones se solapan: la diferencia no es estadísticamente significativa con 5 particiones. La afirmación de superioridad del perfil no puede sostenerse con esta
+evidencia. Se recomienda ampliar a ≥ 200 muestras por clase y reportar un contraste de McNemar
+antes de afirmarla.
+
+8.
+
+Resultados del Caso 2 (SIMP)
+
+Configuración: voladizo 60 × 30, Q4, fV = 0.5, p = 3, rmı́n = 2.4, carga puntual vertical en el
+extremo libre, borde izquierdo empotrado.
+Cuadro 6: Compliance del diseño convergido frente a los dos referentes.
+Configuración
+Bloque sólido ρ ≡ 1
+Diseño uniforme ρ ≡ fV
+Diseño SIMP ρ⋆
+
+Volumen
+
+c(ρ)
+
+100 %
+50 %
+50 %
+
+39.25
+313.98
+70.40
+
+Reducción vs. bloque sólido
+Reducción vs. uniforme
+
+—
+—
+
+−79.39 %
++77.58 %
+
+Reducción vs. bloque sólido
+Reducción vs. uniforme
+
+Hallazgo. H.E.2a, con el referente del perfil, arroja −79.39 %: la compliance aumenta, tal como
+exige la Proposición 2.4. Con el referente corregido (H.E.2a′ , igual volumen) la reducción es del
+77.58 %, muy por encima del umbral del 40 %. La capacidad del método queda ampliamente
+demostrada; lo que fallaba era el denominador.
+Cuadro 7: Barrido del factor de penalización. Grisura = 4ρ(1 − ρ), nula si el diseño es binario.
+p
+
+c(ρ⋆ )
+
+Grisura
+
+β0
+
+β1
+
+β1 (GUDHI)
+
+Concordancia
+
+1.0
+2.0
+3.0
+4.0
+
+55.51
+68.91
+70.40
+71.42
+
+0.640
+0.321
+0.197
+0.177
+
+2
+1
+1
+1
+
+0
+2
+2
+2
+
+0
+2
+2
+2
+
+✓
+✓
+✓
+✓
+
+Observación (Lectura del barrido). Con p = 1 no hay penalización: el problema es casi convexo, la
+compliance es la menor (55.51) pero la grisura es del 0.64 —el diseño es una nube de densidades
+intermedias, sin topología definida (β₀ = 2, β₁ = 0 porque no hay agujeros). El salto p = 1 → 2
+divide la grisura por dos y hace aparecer la topología real. De p = 2 en adelante la grisura se
+estabiliza en ~0.2 y β₁ = 2 permanece constante: la topología del óptimo no depende de p en el
+rango recomendado. El costo de la penalización es monótono en compliance (69 → 70 → 71): es el
+precio de la binariedad.
+Hallazgo (La topología es independiente de la malla). (β0 , β1 ) = (1, 0) en las tres resoluciones, con
+la compliance variando solo un 12 % entre la malla gruesa y la fina. Escalar rmı́n proporcionalmente
+a nx —es decir, mantener fija la longitud física del filtro— es lo que produce esta independencia;
+sin ese escalado la topología se refina indefinidamente con la malla, que es precisamente la patología
+que el filtro previene (§3).
+8
+
+Cuadro 8: Independencia de malla (dominio cuadrado, rmı́n escalado con nx ).
+Malla
+40 × 40
+80 × 80
+120 × 120
+
+Ne
+
+rmı́n
+
+c(ρ⋆ )
+
+β0
+
+β1
+
+1 600
+6 400
+14 400
+
+1.6
+3.2
+4.8
+
+15.51
+16.62
+17.43
+
+1
+1
+1
+
+0
+0
+0
+
+Hallazgo (H.E.2b queda falsada, y de forma robusta). El diseño base tiene β₁ = 2. La
+verificación de robustez sobre rmin ∈ {1.5, 2.0, 2.4, 3.0, 4.0} da β₁ = 2 en los cinco casos, con
+concordancia entre los dos métodos en todos ellos. No es un artefacto del filtro ni del umbral: es
+la topología del óptimo para esta geometría y estas condiciones de contorno.
+Observación (Cómo debe reescribirse H.E.2b). El error es haber fijado una cota numérica a priori
+sobre un invariante que el método no controla —justamente el vacío que el propio perfil identifica
+como gap de investigación. Una hipótesis coherente con ese diagnóstico sería descriptiva y no
+prescriptiva, por ejemplo: «β1 (Ωsólido ) es independiente de la resolución de malla y del radio del
+filtro dentro del rango recomendado», que es exactamente lo que los datos sí sostienen.
+
+Figura 1: Izquierda: diseño convergido (p = 3, fV = 0.5, β0 = 1, β1 = 2). Derecha: historial de
+compliance.
+
+Figura 2: Izquierda: colapso de la tasa de acierto de βk con el ruido. Derecha: verificación empírica
+de la cota dB ≤ 2dH ; ninguna de las 700 réplicas la excede.
+
+9.
+
+Síntesis del contraste de hipótesis
+
+Observación (Los resultados negativos son el aporte, no el problema). Tres de las seis afirmaciones
+no se sostienen, y las tres por razones distintas y diagnosticables: un indicador que el teorema
+9
+
+Cuadro 9: Veredicto sobre cada afirmación del perfil.
+Ítem
+
+Afirmación
+
+Valor
+
+H.E.1a
+H.E.1a′
+H.E.1b
+H.E.1c
+H.E.2a
+H.E.2a′
+H.E.2b
+
+βk estable ante ruido 15–20 %
+dB / diam ≤ 2q (reformulación)
+TDA > descriptores euclidianos
+Cota dB ≤ 2dH
+Reducción ≥ 40 % vs. bloque sólido
+Reducción ≥ 40 % vs. uniforme
+β1 (Ω) ≤ 2
+
+0.0036
+1.000
+0.950 vs 0.925
+1.000
+−79.39 %
++77.58 %
+2
+
+Veredicto
+No se sostiene
+Se sostiene
+Parcial, no significativo
+Se sostiene
+No se sostiene
+Se sostiene
+No se sostiene
+
+invocado no respalda (H.E.1a), un referente que hace la hipótesis lógicamente imposible (H.E.2a)
+y una cota fijada a priori sobre un invariante que el método no controla (H.E.2b). Ninguna de las
+tres refuta el valor del enfoque topológico; las tres delimitan con precisión qué puede y qué no
+puede afirmarse.
+Esa delimitación es, de hecho, la contribución más defendible del trabajo: convierte el gap enunciado en el perfil —«ningún método actual controla directamente β1 (Ω) durante la optimización»—
+de una afirmación bibliográfica en un resultado medido en el propio banco de pruebas.
+
+10.
+
+Reproducibilidad y limitaciones
+
+Reproducibilidad. Semilla maestra 42; la semilla de cada réplica es determinista, 42 + 1000r +
+⌊105 q⌋, de modo que cualquier réplica individual puede regenerarse aisladamente. Entorno registrado en entorno.json. Todos los resultados se exportan a CSV; ninguna cifra de este documento
+se transcribió a mano.
+Decisiones de coste computacional, declaradas.
+La filtración se trunca en θ · diam(X) con θ = 0.6. Verificado: con θ ∈ {0.5, 0.6} y n ∈ {400, 500}
+los aciertos son 7/7, idénticos a los de θ = 1, con una reducción de tiempo de 4.3 s a 0.16 s por
+nube.
+Para la distancia bottleneck se podan las barras de H0 con persistencia < 0.02 diam. Justificación:
+toda barra de persistencia < ϵ se empareja con la diagonal a coste < ϵ/2, luego la poda altera
+dB en a lo sumo 0.01 diam, dos órdenes por debajo de los valores medidos.
+Limitaciones.
+1. Réplicas. Se ejecutaron 20 por celda en lugar de las 100 del perfil, por restricción de un solo
+núcleo. La paralelización por nube ya está implementada y en Google Colab permite las 100
+sin cambios de código.
+2. Densidad de muestreo. El ensayo de estabilidad usó n = 300 mientras que la calibración
+de τ se hizo con n = 600. Esfera y gaussiana quedan por debajo del régimen validado, lo que
+explica su acierto nulo incluso con ruido cero. Debe repetirse con n ≥ 400 antes de la redacción
+final; el sentido del hallazgo principal no cambia, pues las nubes bien muestreadas (círculo,
+disco, anillo) también colapsan a q = 0.15.
+3. Convergencia SIMP. Criterio dual implementado: Δc/c < 10⁻⁴ y Δρ < 10⁻² (Perfil §9.4.4).
+El criterio Δρ < 10⁻² es el valor habitual en la literatura de topology optimization. Se reporta
+explícitamente el estado de convergencia junto a cada valor de compliance.
+4. Alcance de OE4. Este trabajo evalúa la topología post hoc. La regularización topológica dentro
+del bucle —el gap declarado— sigue sin abordarse: requiere una derivada de β1 respecto de ρ,
+10
+
+que no existe en sentido clásico por ser β1 entero. La vía plausible es un sustituto diferenciable
+vía persistencia de la filtración por sobrenivel de ρ.
+Trabajo inmediato. Repetir el Caso 1 con n = 400 y 100 réplicas; añadir el contraste de
+McNemar para H.E.1b; reportar convergencia explícita en el Caso 2; y explorar el sustituto
+diferenciable de β1 como línea de continuación natural hacia OE4.
+
+Estado actual. Las correcciones metodológicas ya están implementadas:
+- Caso 1: catálogo de 7 nubes con τ·diam(X), transformación afín, McNemar, n ≥ 400
+- Caso 2: binarización con ρ̃ (densidad filtrada), criterios Δc < 10⁻⁴ y Δρ < 10⁻²
+- β₁ = 2 para el voladizo (corregido de β₁ = 3 de la implementación anterior)
+- Concordancia Euler-GUDHI en el 100% de configuraciones
+
+11
+
+

@@ -28,7 +28,7 @@ def evaluar_configuracion_refuerzo(config_name: str, p: float, f_V: float,
         Lx=Lx, Ly=Ly, t=t,
         f_V=f_V, p=p, r_min=3.2, 
         alpha=0.018,  # Calibrado para la App 2
-        tol=1e-4, max_iter=max_iter
+        tol_c=1e-4, tol_rho=1e-2, max_iter=max_iter
     )
     
     # Carga de tráfico en el centro superior del dominio de refuerzo

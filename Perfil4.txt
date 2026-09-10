@@ -1,0 +1,1522 @@
+UNIVERSIDAD AUTÓNOMA «GABRIEL RENÉ MORENO»
+
+FACULTAD INTEGRAL DE ICHILO
+UNIDAD DE POSTGRADO
+MAESTRÍA EN MATEMÁTICA
+
+[logotipo UAGRM–FII]
+
+APLICACIONES DE LA ESTRUCTURA TOPOLÓGICA
+PARA LA RESOLUCIÓN DE PROBLEMAS EN ENTORNOS
+COMPLEJOS DE INGENIERÍA
+
+AUTOR
+Jorge Larry Copa Cruz
+
+Celular del postulante: 69578080
+
+Santa Cruz – Bolivia
+
+2026
+
+UAGRM · Maestría en Matemática · (2026)
+
+1
+
+Índice
+Resumen ejecutivo
+
+3
+
+Introducción
+
+4
+
+A. Antecedentes o estado del arte del problema . . . . . . . . . . . . . . . .
+
+4
+
+B. Justificación técnica . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+4
+
+C. Descripción del problema . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+4
+
+D. Estructura del trabajo . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+5
+
+CAPÍTULO I. PLANTEAMIENTO DEL PROBLEMA
+
+6
+
+1. Antecedentes y estado del arte
+
+6
+
+1.1. Antecedentes teóricos . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+6
+
+1.2. Frontera del conocimiento . . . . . . . . . . . . . . . . . . . . . . . . .
+
+6
+
+1.3. Gap de investigación . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+7
+
+2. Problema de investigación
+2.1. Pregunta de investigación . . . . . . . . . . . . . . . . . . . . . . . . .
+3. Objetivos
+
+7
+7
+8
+
+3.1. Objetivo general . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+8
+
+3.2. Objetivos específicos . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+8
+
+4. Hipótesis
+
+9
+
+4.1. Hipótesis general . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+9
+
+4.2. Hipótesis específicas
+
+. . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+9
+
+4.3. Operacionalización de las variables . . . . . . . . . . . . . . . . . . . .
+
+10
+
+4.4. Estudio piloto y fundamento de la reformulación de hipótesis . . . . . .
+
+10
+
+5. Delimitación del tema
+
+13
+
+5.1. Delimitación temporal . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+13
+
+5.2. Delimitación sustantiva . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+13
+
+6. Justificación
+6.1. Justificación técnica y científica . . . . . . . . . . . . . . . . . . . . . .
+
+14
+14
+
+UAGRM · Maestría en Matemática · (2026)
+
+2
+
+6.2. Justificación social y aplicada . . . . . . . . . . . . . . . . . . . . . . .
+
+14
+
+6.3. Justificación académica . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+14
+
+CAPÍTULO II. FUNDAMENTACIÓN TEÓRICA
+
+15
+
+7. Bases teóricas
+
+15
+
+7.1. Espacio topológico: definición y axiomas . . . . . . . . . . . . . . . . .
+
+15
+
+7.2. Homeomorfismo e invariantes topológicos . . . . . . . . . . . . . . . . .
+
+15
+
+7.3. Compacidad, conexidad y separación de Hausdorff . . . . . . . . . . . .
+
+16
+
+8. Desarrollo de la sustentación teórica
+
+16
+
+Bloque A — Análisis Topológico de Datos . . . . . . . . . . . . . . . . . . .
+
+16
+
+8.1. Homología persistente y filtraciones . . . . . . . . . . . . . . . . . . . .
+
+16
+
+8.2. Laplacianos topológicos persistentes . . . . . . . . . . . . . . . . . . . .
+
+17
+
+Bloque B — Optimización Topológica SIMP . . . . . . . . . . . . . . . . . .
+
+17
+
+8.3. Formulación matemática del método SIMP . . . . . . . . . . . . . . . .
+
+17
+
+8.4. El filtro de densidad como condición de existencia . . . . . . . . . . . .
+
+18
+
+8.5. Instrumento para el cálculo de β1 : homología cúbica . . . . . . . . . . .
+
+19
+
+8.6. Tabla de notación adoptada . . . . . . . . . . . . . . . . . . . . . . . .
+
+19
+
+CAPÍTULO III. MARCO METODOLÓGICO
+
+20
+
+9. Marco metodológico
+
+20
+
+9.1. Paradigma de investigación . . . . . . . . . . . . . . . . . . . . . . . . .
+
+20
+
+9.2. Métodos de investigación . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+21
+
+9.3. Tipo de investigación . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+21
+
+9.4. Técnicas e instrumentos . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+21
+
+9.4.1. Diseño de los casos de simulación . . . . . . . . . . . . . . . . .
+
+21
+
+9.4.2. Protocolo de calibración del umbral τ . . . . . . . . . . . . . . .
+
+21
+
+9.4.3. Herramientas computacionales . . . . . . . . . . . . . . . . . . .
+
+22
+
+9.4.4. Criterios de validación y reproducibilidad . . . . . . . . . . . . .
+
+22
+
+9.4.5. Limitaciones reconocidas y trabajo pendiente . . . . . . . . . . .
+
+23
+
+Bibliografía
+
+25
+
+UAGRM · Maestría en Matemática · (2026)
+
+3
+
+Resumen ejecutivo
+La topología, entendida formalmente como la rama de las matemáticas que estudia las propiedades de los espacios que se preservan bajo transformaciones continuas
+—los homeomorfismos—, ha experimentado en las últimas tres décadas una transición
+epistemológica de notable profundidad: ha pasado de ser un campo eminentemente
+teórico y abstracto a constituirse en un conjunto de herramientas computacionales con
+aplicación directa y verificable en ingeniería. La ingeniería moderna enfrenta sistemas
+cuya complejidad supera los métodos basados únicamente en geometría euclidiana y
+cálculo infinitesimal. Dos frentes de investigación activos proponen salidas complementarias: el Análisis Topológico de Datos (TDA), que extrae rasgos invariantes de nubes
+de puntos ruidosas de alta dimensión, y el método SIMP (Solid Isotropic Material with
+Penalization), que determina la distribución óptima de material en dominios estructurales continuos. Ambos enfoques se han desarrollado de forma aislada, sin un marco
+integrador que aproveche los invariantes topológicos dentro del bucle de optimización.
+Objetivo. Establecer una base metodológica formal de las estructuras topológicas
+y aplicarla sistemáticamente a dos problemas de ingeniería compleja: detección de
+estructura en datos de alta dimensión mediante TDA, y diseño estructural óptimo
+mediante SIMP, evaluando la capacidad de los descriptores topológicos para caracterizar
+la calidad de la topología resultante.
+Método. Investigación documental-computacional implementada en Python 3.11+
+con Ripser 0.6, Persim 0.3, GUDHI 3.13, NumPy 1.26 y SciPy 1.12, ejecutada en Google
+Colab. Los dos casos de simulación son íntegramente reproducibles; no se requiere
+laboratorio físico.
+Resultados esperados, corregidos tras un estudio piloto. Se anticipa que
+(i) la distancia bottleneck entre diagramas de persistencia permanecerá acotada por 2q
+bajo perturbaciones de nivel relativo q ≤ 0.20, conforme al teorema de estabilidad; (ii)
+SIMP reducirá la compliance en al menos un 40 % respecto del diseño uniforme de
+igual volumen; y (iii) el número de Betti β1 del diseño convergido será independiente de
+la resolución de malla y del radio del filtro dentro del rango recomendado. Estas tres
+formulaciones sustituyen a las del borrador inicial, cuyas limitaciones se documentan
+en la §4.4.
+Conclusión anticipada. La topología ha dejado de ser patrimonio exclusivo del
+matemático teórico: sus invariantes constituyen hoy descriptores robustos y computacionalmente accesibles para elevar la robustez del diseño estructural y del análisis de datos
+en ingeniería. La presente investigación delimita, además, con precisión qué puede y
+qué no puede afirmarse sobre esa robustez.
+Palabras clave: topología algebraica computacional, homología persistente, TDA,
+optimización SIMP, homología cúbica, simulación, modelación matemática.
+
+UAGRM · Maestría en Matemática · (2026)
+
+4
+
+Introducción
+A. Antecedentes o estado del arte del problema
+Cuando los ingenieros del siglo XXI se preguntan «¿cuál es la forma de estos datos?»
+o «¿cómo distribuir el material para que la estructura sea a la vez rígida y ligera?», están,
+sin saberlo, formulando preguntas topológicas. La topología estudia las propiedades de
+los espacios que permanecen invariantes bajo deformaciones continuas: propiedades que,
+por construcción, son robustas frente al ruido y a las irregularidades geométricas que
+caracterizan a los datos y a los diseños reales.
+El trabajo seminal de Edelsbrunner, Letscher y Zomorodian (2002) [1] sobre homología persistente demostró que era posible cuantificar la topología de una nube de
+puntos de forma robusta y computacionalmente eficiente. Desde entonces, el campo del
+Análisis Topológico de Datos ha confluido con la optimización estructural, donde el
+método SIMP de Bendsøe (1989) [2] constituye el referente fundacional.
+
+B. Justificación técnica
+Ninguno de los enfoques actuales integra los invariantes topológicos como mecanismo
+de regularización dentro de los bucles de optimización SIMP. La revisión de Su, Liu,
+Wei et al. (2025) [4] confirma que esta integración sigue siendo un problema abierto. La
+complejidad computacional de las alternativas para problemas 3D —con matrices de
+rigidez de orden O(106 )— es inviable sin estrategias topológicamente informadas de
+reducción de dimensión.
+
+C. Descripción del problema
+El vacío se enuncia con precisión: no existe un marco matemático que integre la
+homología persistente del TDA como regularización topológica dentro de los bucles de
+optimización SIMP. Esta ausencia produce tres consecuencias verificables:
+(i) los resultados SIMP carecen de garantías sobre β1 (Ω), es decir, sobre el número
+de agujeros del diseño convergido;
+(ii) el análisis TDA de resultados de ingeniería permanece desacoplado de los procesos
+que los generan, limitándose a una evaluación post hoc;
+(iii) no existe un indicador validado de la complejidad topológica de un diseño que
+sea independiente de la discretización empleada.
+
+UAGRM · Maestría en Matemática · (2026)
+
+5
+
+D. Estructura del trabajo
+Este trabajo se organiza en tres capítulos. El Capítulo I establece el planteamiento
+completo: antecedentes, problema, objetivos, hipótesis con su operacionalización de
+variables, el estudio piloto que motivó su reformulación, delimitación y justificación.
+El Capítulo II desarrolla la fundamentación teórica formal, desde los axiomas del
+espacio topológico hasta las formulaciones de TDA y SIMP, incluyendo la justificación
+del instrumento de cálculo de los números de Betti. El Capítulo III describe el marco
+metodológico: paradigma, métodos, tipo de investigación, herramientas computacionales
+y las limitaciones reconocidas.
+
+UAGRM · Maestría en Matemática · (2026)
+
+6
+
+CAPÍTULO I. PLANTEAMIENTO
+DEL PROBLEMA
+1.
+
+Antecedentes y estado del arte
+
+1.1.
+
+Antecedentes teóricos
+
+La topología algebraica computacional tiene una fecha de nacimiento identificable: el
+artículo de Edelsbrunner, Letscher y Zomorodian (2002) [1] en Discrete & Computational
+Geometry, que formalizó la homología persistente como herramienta para cuantificar la
+topología de datos. Zomorodian y Carlsson (2005) [5] extendieron este trabajo al caso
+de módulos de persistencia sobre cuerpos arbitrarios. Carlsson (2009) [6] introdujo el
+TDA como disciplina orientada al análisis de datos.
+En optimización estructural, Bendsøe (1989) [2] introdujo el modelo SIMP, precedido
+por el método de homogeneización de Bendsøe y Kikuchi (1988) [19]; su monografía
+con Sigmund (2004) [7] sigue siendo la obra de referencia. La revisión comparativa de
+Sigmund y Maute (2013) [8] establece el mapa de los cuatro grandes métodos: SIMP,
+conjuntos de nivel, ESO/BESO y componentes morfológicos móviles (MMC).
+Para el cálculo de la homología de objetos discretizados en malla, la referencia
+metodológica es Kaczynski, Mischaikow y Mrozek (2004) [26], que desarrolla la teoría
+de homología cúbica sobre la que se apoya el instrumento adoptado en la §8.5.
+
+1.2.
+
+Frontera del conocimiento
+
+La revisión de Su, Liu, Wei et al. (2025) [4] en Artificial Intelligence Review documenta que los Laplacianos Topológicos Persistentes (PTL) y los Operadores de Dirac
+Persistentes extienden la homología clásica capturando información geométrica que el
+código de barras pierde. Hensel, Moor y Rieck (2021) [11] sistematizaron más de 120
+aplicaciones de TDA en aprendizaje automático. Gowdridge, Dervilis y Worden (2022)
+[12] demostraron que la homología persistente detecta daño estructural en puentes
+mediante series temporales de vibración.
+En SIMP, Yoo et al. (2023) [13] en el Journal of Computational Design and Engineering sistematizan tres décadas de integración de SIMP con aprendizaje automático.
+Xu, Jiang y Chen (2024) [24] revisan el estado actual de la optimización topológica
+bajo cargas estáticas.
+
+UAGRM · Maestría en Matemática · (2026)
+
+1.3.
+
+7
+
+Gap de investigación
+
+Gap de investigación. A pesar de los avances en TDA y SIMP, ninguno de los
+marcos actuales integra los invariantes topológicos como regularización transversal
+dentro de los bucles de optimización. Esta brecha es el punto de partida de la
+presente investigación.
+Precisión sobre el alcance. El obstáculo técnico central es que β1 es un invariante
+entero y, por tanto, no admite derivada en sentido clásico respecto de las densidades
+ρe . Cerrar el gap exige construir un sustituto diferenciable, lo que excede el alcance de
+una tesis de maestría. El presente trabajo se propone el paso previo e indispensable:
+construir y validar el indicador que una futura regularización debería optimizar.
+
+2.
+
+Problema de investigación
+
+La limitación central no es la ausencia de métodos, sino su desconexión estructural:
+TDA y SIMP se han desarrollado como áreas aisladas. Los métodos de optimización
+topológica producen resultados cuya topología —número de agujeros β1 (Ω), conectividad de la frontera— no está controlada. El análisis TDA ofrece herramientas para
+cuantificarla, pero su aplicación a los resultados SIMP ha sido post hoc: se analiza la
+topología de un diseño ya convergido, sin realimentar el proceso.
+Esta desconexión tiene consecuencias verificables: los diseños SIMP pueden contener
+agujeros no intencionales que comprometen la manufacturabilidad, y el análisis TDA
+de nubes de puntos de alta dimensión (datos de sensores estructurales, ensayos de
+materiales) permanece desacoplado de los modelos de optimización que generan esos
+diseños.
+
+2.1.
+
+Pregunta de investigación
+
+Pregunta de investigación. ¿Cómo aplicar las estructuras topológicas de manera
+sistemática y verificable para resolver problemas complejos de ingeniería, articulando
+TDA y SIMP en un marco metodológico común, y qué indicadores topológicos
+admiten una verificación estadísticamente sostenible?
+
+UAGRM · Maestría en Matemática · (2026)
+
+3.
+
+Objetivos
+
+3.1.
+
+Objetivo general
+
+8
+
+Establecer la base metodológica formal de las estructuras topológicas y aplicarla
+sistemáticamente a dos dominios de ingeniería compleja —análisis de datos de alta
+dimensión (TDA) y diseño estructural (SIMP)— mediante simulación computacional
+en Python, determinando bajo qué condiciones los invariantes topológicos producen
+descriptores más robustos que los enfoques exclusivamente euclidianos.
+Observación. El objetivo general fue reformulado. La versión anterior afirmaba que
+se demostraría que los invariantes topológicos «producen soluciones más robustas»;
+formulado así, el objetivo presupone su propia conclusión y ninguna evidencia contraria
+podría satisfacerlo. La versión adoptada pregunta bajo qué condiciones ocurre, que es
+una pregunta investigable y cuya respuesta puede ser negativa.
+
+3.2.
+
+Objetivos específicos
+
+OE1.
+
+Revisar y sistematizar los fundamentos teóricos de los espacios topológicos,
+homeomorfismos, compacidad, separación y homología persistente, articulando
+las definiciones formales con su implementación computacional.
+
+OE2.
+
+Calcular y comparar los diagramas de persistencia y los números de Betti
+β0 , β1 de nubes de puntos de referencia con topología conocida a priori, verificando empíricamente la cota de estabilidad dB ≤ 2dH bajo ruido gaussiano y
+determinando el rango de perturbación en que la lectura de βk sigue siendo
+fiable.
+
+OE3.
+
+Evaluar la eficiencia del método SIMP con factor de penalización p = 3 en
+problemas 2D de elasticidad lineal, cuantificando la reducción de compliance
+respecto del diseño uniforme de igual volumen y calculando β0 , β1 del diseño
+resultante mediante homología cúbica validada por doble cómputo.
+
+OE4.
+
+Caracterizar la sensibilidad de β1 (Ω) frente a la resolución de malla, al radio
+del filtro y al umbral de binarización, estableciendo si constituye un descriptor
+estable del diseño y, por tanto, un candidato válido a función objetivo en una
+futura regularización topológica.
+
+UAGRM · Maestría en Matemática · (2026)
+
+4.
+
+Hipótesis
+
+4.1.
+
+Hipótesis general
+
+La aplicación sistemática de estructuras topológicas —mediante TDA y SIMP—
+proporciona descriptores estables y globalmente consistentes para los problemas
+planteados en entornos complejos de ingeniería. Su ventaja sobre los métodos basados
+exclusivamente en geometría euclidiana se manifiesta en aquellos indicadores que el
+teorema de estabilidad respalda formalmente, y no de manera indiscriminada.
+
+4.2.
+
+Hipótesis específicas
+
+H.E.1a — Estabilidad de los diagramas (TDA).
+Para nubes X ⊂ Rd (d ≤ 100) perturbadas con ruido gaussiano de nivel relativo
+q ∈ {0.05, 0.10, 0.15, 0.20}, la distancia bottleneck entre diagramas de persistencia
+satisface
+(︂
+)︂
+dB Dgmk VR(X), Dgmk VR(Y )
+≤ 2q
+(k = 0, 1),
+diam(X)
+en el 100 % de las réplicas.
+H.E.1b — Ventaja comparativa (TDA).
+En una tarea de clasificación entre nubes topológicamente distintas pero geométricamente equivalentes (anillo frente a disco), sometidas a transformaciones afines
+aleatorias, el descriptor de persistencia alcanza una exactitud significativamente
+superior (p < 0.05 en contraste de McNemar) a la de un descriptor euclidiano de
+referencia compuesto por espectro PCA, inercia de k-medias y dispersión radial.
+H.E.1c — Rango de fiabilidad de βk (TDA).
+(τ )
+Existe un nivel de ruido crítico q ⋆ tal que el número de Betti persistente βk , leído
+con umbral τ calibrado, identifica correctamente la topología teórica en más del
+95 % de las réplicas para q < q ⋆ , y por debajo del 50 % para q > q ⋆ . Se estima
+q ⋆ ∈ [0.05, 0.10].
+H.E.2a — Eficiencia estructural (SIMP).
+El método SIMP con p = 3, fV = 0.5 y filtro de radio rmı́n converge a una distribución
+de material que reduce la compliance en al menos un 40 % respecto del diseño
+uniforme de igual volumen ρ ≡ fV .
+
+9
+
+UAGRM · Maestría en Matemática · (2026)
+
+10
+
+H.E.2b — Estabilidad del descriptor topológico (SIMP).
+El número de Betti β1 (Ωsólido ) del diseño convergido es independiente de la resolución
+de malla —para Ne ∈ {1600, 6400, 14400} con rmı́n escalado de modo que su longitud
+física permanezca constante— y del radio del filtro dentro del rango rmı́n ∈ [1.5, 4.0]
+elementos. Además, los dos métodos independientes de cálculo (característica de
+Euler y homología cúbica persistente) coinciden en el 100 % de las configuraciones.
+
+4.3.
+
+Operacionalización de las variables
+
+La operacionalización traduce cada hipótesis en variables medibles. En matemática
+computacional las variables son parámetros, operadores o indicadores de rendimiento,
+no entidades cualitativas. La Tabla 1 organiza las variables.
+Nota: las variables intervinientes no se manipulan durante el experimento; se controlan
+fijándolas en los valores indicados para garantizar la reproducibilidad.
+
+4.4.
+
+Estudio piloto y fundamento de la reformulación de hipótesis
+
+Antes de fijar las hipótesis definitivas se ejecutó un estudio piloto sobre siete nubes
+de referencia con topología conocida (700 réplicas: 7 nubes × 5 niveles de ruido × 20
+repeticiones) y sobre 17 configuraciones de SIMP. El piloto reveló tres problemas en la
+formulación inicial. Documentarlos no debilita la propuesta: la vuelve falsable.
+Hallazgo 1 — El teorema de estabilidad no protege a βk
+La formulación original afirmaba que β0 y β1 «permanecen estables bajo perturbaciones del 15–20 %», invocando el teorema de Cohen-Steiner, Edelsbrunner y Harer
+(2007) [16]. El teorema no dice eso. Acota la distancia bottleneck entre diagramas
+completos, no el valor de βk a una escala fija; una perturbación arbitrariamente
+pequeña puede crear barras cortas y alterar βk en cualquier cantidad.
+Medición. La tasa de acierto de βk a niveles q = 0.15 y q = 0.20 fue de 0.0036,
+frente al criterio ≥ 0.95. Simultáneamente, la cota dB ≤ 2dH se cumplió en el 100 %
+de las 700 réplicas.
+Corrección adoptada. La afirmación se desdobla: H.E.1a mide la cota que el
+teorema sí respalda; H.E.1c convierte el colapso de βk de fracaso en objeto de estudio,
+preguntando dónde está el nivel crítico q ⋆ en lugar de suponer que no existe.
+
+UAGRM · Maestría en Matemática · (2026)
+
+11
+
+Cuadro 1: Operacionalización de las variables de investigación.
+Variable
+
+Tipo
+
+Definición operacional / In- Instrumento
+dicador
+
+Nivel de ruido q
+
+Independienteσn
+=
+q · diam(X), con numpy.random
+q ∈ {0, .05, .10, .15, .20}. Escalado por el diámetro para ser
+invariante a homotecias.
+
+Umbral de sig- IndependientePersistencia relativa mínima pa- Curva de calibranificación τ
+ra contar una barra. Calibrado ción
+sobre el catálogo de referencia;
+rango explorado [0.05, 0.40].
+Distancia bottle- Dependiente dB (Dgm(X), Dgm(Y )) normali- Persim 0.3
+neck dB
+zada por diam(X). Indicador primario de H.E.1a.
+Números
+de
+Betti β0 , β1
+
+(τ )
+
+Dependiente βk = #{barras con persistencia
+> τ diam(X)}. Tasa de acierto
+frente al valor teórico.
+
+Ripser 0.6
+
+Factor de pena- IndependienteExponente de Ee (ρe ) = ρep E0 . Script FEM prolización p
+Valores de prueba p ∈ {1, 2, 3, 4}. pio
+Radio del filtro
+rmı́n
+
+IndependienteRadio del filtro de densidad, en
+elementos. Rango [1.5, 4.0].
+
+Script FEM propio
+
+Compliance
+c(ρ)
+
+Dependiente c = U ⊤ K(ρ)U . Reducción relati- scipy.sparse.linalg
+va ( %) respecto del diseño uniforme de igual volumen.
+
+β1 (Ωsólido )
+
+Dependiente Número de agujeros del diseño bi- GUDHI 3.13 +
+narizado. Calculado por dos vías scipy.ndimage
+independientes; se reporta su concordancia.
+
+Grisura
+
+Dependiente 4ρ(1 − ρ); vale 0 si el diseño es
+binario. Control de la eficacia de
+la penalización.
+
+Script propio
+
+Dimensionalidad Interviniente Atributos por muestra. Acotada: Conjuntos públid
+d ≤ 100, lo que garantiza la fac- cos
+tibilidad de VR(X, ε).
+Densidad
+de
+muestreo n
+
+Interviniente |X|. Fijada en n ≥ 400: por de- Generadores probajo, el meridiano del toro no es pios
+detectable (véase §4.4).
+
+Resolución de
+malla Ne
+
+Interviniente Número de elementos finitos, Script propio
+Ne ∈ {1600, 6400, 14400}.
+
+UAGRM · Maestría en Matemática · (2026)
+
+12
+
+Hallazgo 2 — El referente de H.E.2a hacía la hipótesis imposible
+La formulación original exigía reducir la compliance «en al menos un 40 % respecto
+al bloque sólido de referencia». El bloque sólido emplea el 100 % del material y el
+diseño SIMP el 50 %. Por la Proposición 8.3 (Capítulo II), c es no creciente en cada
+densidad, de modo que c(ρ) ≥ c(1) para todo diseño admisible: quitar material
+nunca reduce la compliance. La hipótesis no era exigente, era lógicamente
+insatisfacible.
+Medición. c(ρ⋆ ) = 75.55 frente a c(1) = 39.54: una variación de −91.07 %. Frente
+al diseño uniforme de igual volumen, c(fV 1) = 316.34, la reducción es de +76.12 %.
+Corrección adoptada. El referente pasa a ser el diseño uniforme de igual volumen.
+Así la hipótesis mide lo que interesa —cuánto se gana redistribuyendo el material—
+y vuelve a ser falsable.
+Hallazgo 3 — La cota β1 ≤ 2 era prescriptiva sobre un invariante no
+controlado
+La formulación original exigía β1 (Ωsólido ) ≤ 2. Esa cota se fijó a priori sobre un
+invariante que —según el propio gap declarado en la §1.3— ningún método actual
+controla durante la optimización. Exigir un valor sin disponer del mecanismo que lo
+produzca es una contradicción interna del planteamiento.
+Medición. El diseño base (60 × 30, p = 3, fV = 0.5) presenta β1 = 3. El valor se
+mantiene en 3 para rmı́n ∈ {1.5, 2.0, 2.4, 3.0, 4.0} y para p ∈ {2, 3, 4}; en el dominio
+cuadrado se mantiene en 0 para las tres resoluciones de malla. Los dos métodos de
+cálculo coincidieron en las 17 configuraciones.
+Corrección adoptada. H.E.2b pasa de prescriptiva a descriptiva: no fija un valor
+de β1 , sino que afirma su invariancia frente a la discretización y al filtro. Ésa es la
+propiedad que un descriptor debe tener para ser candidato a función objetivo, y es
+exactamente lo que los datos sostienen.
+Observación (Sobre el valor de los resultados negativos). Tres afirmaciones del borrador
+no se sostienen, y las tres por razones distintas y diagnosticables: un indicador que el
+teorema invocado no respalda, un referente que hace la hipótesis imposible, y una cota
+fijada sobre un invariante no controlado. Ninguna refuta el valor del enfoque topológico;
+las tres delimitan con precisión qué puede afirmarse. Esa delimitación convierte el gap
+enunciado bibliográficamente en un resultado medido en el propio banco de pruebas, y
+constituye el aporte más defendible de la investigación.
+
+UAGRM · Maestría en Matemática · (2026)
+
+5.
+
+Delimitación del tema
+
+5.1.
+
+Delimitación temporal
+
+13
+
+La revisión bibliográfica cubre literatura publicada entre 2002 y julio de 2026
+en revistas indexadas JCR/Scopus (Web of Science, Scopus, IEEE Xplore, arXiv),
+priorizando artículos Q1/Q2 de los últimos cinco años. El período de implementación
+computacional corresponde al ciclo académico 2025–2026. Las versiones de software
+son: Python 3.11+, Ripser 0.6, Persim 0.3, GUDHI 3.13, NumPy 1.26, SciPy 1.12,
+Matplotlib 3.8 y scikit-learn 1.4.
+
+5.2.
+
+Delimitación sustantiva
+Cuadro 2: Fronteras sustantivas de la investigación.
+
+Ámbito
+
+Dentro del alcance
+
+Fuera del alcance
+
+Campo mate- Topología general y algebraica Topología diferencial, K-teoría,
+mático
+computacional (homología persis- cohomología de de Rham, teoría
+tente y cúbica), análisis numérico de nudos
+(FEM Q4)
+TDA
+
+Complejos de Vietoris–Rips en Homología persistente multiparáRd , d ≤ 100; homología persisten- metro; Laplacianos persistentes;
+te de un solo parámetro, k ≤ 1
+k≥2
+
+SIMP
+
+Problemas 2D de elasticidad li- Optimización 3D, restricciones
+neal; dominio rectangular con de manufactura aditiva, multifíFEM Q4; filtro de densidad li- sica, no linealidad geométrica
+neal
+
+Integración
+
+Evaluación post hoc de la topo- Regularización topológica dentro
+logía del diseño; validación del del bucle (requiere sustituto difeindicador β1
+renciable de β1 )
+
+Software
+
+Python en Google Colab (GPU
+T4/A100); bibliotecas de código
+abierto MIT/BSD
+
+MATLAB, ANSYS, software propietario, hardware de laboratorio
+
+Observación. Se excluyeron del alcance las redes neuronales informadas por física
+(PINNs) y las Neural ODEs, que figuraban en el borrador anterior. La razón es de
+coherencia interna: ninguno de los objetivos específicos ni de las hipótesis las requiere, y
+su inclusión ampliaba el marco sin producir un indicador contrastable. Las referencias
+correspondientes se conservan en la bibliografía por su valor contextual.
+
+UAGRM · Maestría en Matemática · (2026)
+
+6.
+
+Justificación
+
+6.1.
+
+Justificación técnica y científica
+
+14
+
+Los métodos numéricos clásicos resuelven bien problemas locales y lineales, pero
+exhiben limitaciones sistemáticas ante dos escenarios frecuentes en ingeniería moderna:
+datos de alta dimensión con estructura no euclidiana, y diseños estructurales donde la
+topología de la solución importa tanto como su rigidez. Por el Teorema de Estabilidad
+[16], los diagramas de persistencia son robustos frente a perturbaciones continuas
+por construcción, lo que los hace preferibles a los descriptores euclidianos en entornos
+ruidosos —con la precisión, establecida en la §4.4, de que la robustez ampara al diagrama
+y no a cualquier lectura escalar que se extraiga de él.
+La brecha identificada es suficientemente bien definida, computacionalmente abordable y de alto impacto como para constituir el núcleo de una investigación de maestría
+original.
+
+6.2.
+
+Justificación social y aplicada
+
+Bolivia y América Latina enfrentan necesidades concretas en los dos dominios elegidos.
+En ingeniería de datos, el análisis topológico ofrece herramientas robustas para datos
+genómicos, agrícolas e hidrológicos, ruidosos y de alta dimensión por naturaleza. En
+ingeniería civil, la optimización topológica puede reducir el uso de material entre el
+30 % y el 50 %, con impacto directo en el costo de infraestructura pública.
+
+6.3.
+
+Justificación académica
+
+Este trabajo contribuye a las líneas Mod. 7 (Geometría y Topología), Mod. 8 (Matemática Computacional) y Mod. 9 (Modelación Matemática) de la Maestría en Matemática
+de la UAGRM-FII. Genera tres aportes institucionales: (i) material docente formal
+—definiciones, teoremas y código Python comentado— incorporable a cursos de posgrado; (ii) un framework computacional reproducible sin hardware especializado; y (iii)
+antecedentes bibliográficos actualizados (2020–2026) para investigaciones futuras.
+
+UAGRM · Maestría en Matemática · (2026)
+
+15
+
+CAPÍTULO II.
+FUNDAMENTACIÓN TEÓRICA
+7.
+
+Bases teóricas
+
+7.1.
+
+Espacio topológico: definición y axiomas
+
+Definición 7.1 (Espacio topológico). Sea E un conjunto no vacío. Una topología
+sobre E es una familia T ⊆ P(E) que satisface:
+(T1)
+
+∅∈T yE ∈T;
+
+(T2)
+
+estabilidad bajo uniones arbitrarias: si {Gα }α∈I ⊆ T , entonces
+
+(T3)
+
+estabilidad bajo intersecciones finitas: si G1 , G2 ∈ T , entonces G1 ∩ G2 ∈ T .
+
+⋃︁
+
+α∈I Gα ∈ T ;
+
+El par (E, T ) es el espacio topológico; los elementos de T se llaman conjuntos
+abiertos.
+Observación (Por qué finitas en (T3)). La asimetría entre (T2) y (T3) no es una
+convención:
+es el contenido no trivial de la axiomática. En R con la topología usual,
+)︂
+(︂
+⋂︁
+1 1
+n≥1 − n , n = {0}; si (T3) admitiera intersecciones arbitrarias, todo singulete sería
+abierto y la topología colapsaría a la discreta, volviendo trivial toda la teoría.
+La topología usual de R está inducida por la métrica euclídea d(x, y) = |x − y|:
+un conjunto G ⊆ R es abierto si y solo si para cada x0 ∈ G existe ε > 0 tal que
+(x0 − ε, x0 + ε) ⊆ G. Este ejemplo conecta la abstracción topológica con el cálculo
+numérico.
+
+7.2.
+
+Homeomorfismo e invariantes topológicos
+
+Definición 7.2 (Homeomorfismo). Una función f : E → F entre espacios topológicos
+es un homeomorfismo si es biyectiva, continua y de inversa continua. Si tal f existe
+se escribe E ∼
+= F . Un invariante topológico es una propiedad que toma el mismo
+valor en espacios homeomorfos.
+Observación. La continuidad de la inversa debe exigirse explícitamente: la identidad
+id : (R, τℓ ) → (R, τusual ) desde la recta de Sorgenfrey es una biyección continua que
+no es homeomorfismo. La implicación se recupera solo si el dominio es compacto y el
+codominio Hausdorff, resultado que se usa en la §8.5.
+Los números de Betti βk = dim Hk son los invariantes más directamente interpretables: β0 cuenta componentes conexas, β1 ciclos unidimensionales (agujeros) y β2
+cavidades. Son los descriptores que el TDA cuantifica a lo largo de una filtración.
+
+UAGRM · Maestría en Matemática · (2026)
+
+7.3.
+
+16
+
+Compacidad, conexidad y separación de Hausdorff
+
+Un espacio (E, T ) es compacto si toda cubierta abierta admite una subcubierta
+finita; en Rn , por el Teorema de Heine-Borel, esto equivale a ser cerrado y acotado.
+Un espacio es conexo si no puede expresarse como unión de dos abiertos disjuntos no
+vacíos; en TDA, la conexidad se cuantifica por β0 . La condición de Hausdorff (T2 )
+—para cualesquiera a ̸= b existen entornos disjuntos— garantiza la unicidad de límites,
+condición necesaria para el análisis numérico riguroso:
+(︂
+
+)︂
+
+(︂
+
+)︂
+
+d(a, b) = r =⇒ B a, 2r ∩ B b, 2r = ∅.
+Observación (Alcance real de la equivalencia de Heine-Borel). La equivalencia «compacto
+⇐⇒ cerrado y acotado» vale en Rn y falla en dimensión infinita: la bola unidad de ℓ2
+es cerrada y acotada pero no compacta, pues los vectores de la base ortonormal distan
+√
+2 entre sí. El enunciado válido en espacios métricos generales es compacto ⇐⇒
+completo y totalmente acotado. Esta distinción es la que obliga, en la §8.3, a trabajar
+con compacidad débil-∗ en lugar de compacidad en norma.
+
+8.
+
+Desarrollo de la sustentación teórica
+
+Bloque A — Análisis Topológico de Datos (TDA)
+8.1.
+
+Homología persistente y filtraciones
+
+El TDA, inaugurado por Edelsbrunner et al. (2002) [1] y algebraicamente fundamentado por Zomorodian y Carlsson (2005) [5], responde a la pregunta: dada una
+nube de puntos X = {x1 , . . . , xn } ⊂ Rd , ¿qué rasgos topológicos son estadísticamente
+significativos? La herramienta es la filtración de Vietoris–Rips:
+{︃
+
+}︃
+
+VR(X, ε) = σ ⊆ X : d(xi , xj ) ≤ ε ∀ xi , xj ∈ σ ,
+
+(1)
+
+que forma una familia anidada {VR(X, ε)}ε≥0 cuyos grupos de homología Hk evolucionan
+con ε. Cada rasgo k-dimensional nace en ε = bi y muere en ε = di , formando el diagrama
+de persistencia Dgmk (X) = {(bi , di )}i ⊂ R2 .
+Teorema 8.1 (Estabilidad; formulación para nubes de puntos). Sean X, Y ⊂ Rd
+conjuntos finitos. Entonces, para todo k,
+(︂
+
+)︂
+
+dB Dgmk VR(X), Dgmk VR(Y )
+
+≤ 2 dH (X, Y ),
+
+(2)
+
+donde dB (A, B) = ı́nf ϕ:A→B supp∈A ∥p − ϕ(p)∥∞ sobre todas las biyecciones, y dH es la
+distancia de Hausdorff.
+Observación (Precisión sobre el enunciado). El borrador anterior citaba la versión del
+teorema para funciones de Morse sobre un complejo simplicial fijo, con cota ∥f − g∥∞ .
+
+UAGRM · Maestría en Matemática · (2026)
+
+17
+
+Esa versión no se aplica a nubes de puntos, donde el complejo cambia con los datos. La
+formulación correcta es (2), debida a Chazal et al. [27], con la constante 2 y la distancia
+de Hausdorff. La diferencia no es cosmética: determina qué se puede afirmar en H.E.1a.
+Definición 8.1 (Número de Betti persistente). Sea τ ∈ (0, 1) un umbral relativo. Se
+define
+{︂
+}︂
+(τ )
+βk (X) = # (b, d) ∈ Dgmk (X) : d − b > τ · diam(X) .
+Proposición
+8.2 (La lectura por umbral hereda la estabilidad). Si dB (Dgmk (X), Dgmk (Y )) <
+(︂
+)︂
+(τ )
+1
+′
+τ − τ diam(X) con τ ′ < τ , entonces toda barra contada por βk (X) tiene una com2
+(τ ′ )
+
+pañera contada por βk (Y ).
+Demostración. Sea δ = dB y φ un emparejamiento óptimo. Si (b, d) cumple d − b >
+τ diam(X), su imagen (b′ , d′ ) satisface |b−b′ | ≤ δ, |d−d′ | ≤ δ, luego d′ −b′ ≥ (d−b)−2δ >
+τ diam(X) − 2δ > τ ′ diam(X).
+Observación. La Proposición 8.2 garantiza que las barras largas no desaparecen; no
+garantiza que no nazcan barras nuevas. Ésa es la razón matemática exacta del Hallazgo 1
+de la §4.4, y por qué H.E.1c debe medirse empíricamente en lugar de suponerse.
+
+8.2.
+
+Laplacianos topológicos persistentes
+
+Wang y Wei (2020) [18] introdujeron los Laplacianos Combinatorios Persistentes
+∗
+,
+∆k = ∂k∗ ∂k + ∂k+1 ∂k+1
+
+(3)
+
+cuyo espectro armónico recupera la homología y cuyo espectro no armónico aporta
+información geométrica que el código de barras pierde. La revisión de Su et al. (2025) [4]
+documenta aplicaciones a predicción de variantes virales y ligación proteína-ligando. Se
+consignan como contexto; quedan fuera del alcance (Tabla de delimitación sustantiva).
+
+Bloque B — Optimización Topológica SIMP
+8.3.
+
+Formulación matemática del método SIMP
+
+El método SIMP [2,7] modela el módulo de Young de cada elemento mediante la ley
+de potencias
+Ee (ρe ) = ρep E0 ,
+ρe ∈ (0, 1], p ≥ 3.
+(4)
+
+UAGRM · Maestría en Matemática · (2026)
+
+18
+
+El problema de optimización es
+mı́n c(ρ) = U ⊤ K(ρ) U =
+ρ
+
+N
+e
+∑︂
+
+ρep u⊤
+e K0 ue ,
+
+e=1
+
+s.a. K(ρ) U = F,
+
+(5)
+
+∑︁
+
+ρe ve
+V (ρ)
+= ∑︁e
+= fV ,
+V0
+e ve
+0 < ρmı́n ≤ ρe ≤ 1,
+
+e = 1, . . . , Ne .
+
+Las sensibilidades, obtenidas por el método adjunto (el problema es autoadjunto), son
+∂c
+= −p ρep−1 u⊤
+e K0 ue ≤ 0.
+∂ρe
+
+(6)
+
+Proposición 8.3 (Cota inferior de la compliance). Sea c(ρ) la compliance del diseño
+ρ ∈ [0, 1]Ne y 1 el bloque sólido. Entonces c(ρ) ≥ c(1) para todo ρ admisible.
+Demostración. Por (6) y la semidefinición positiva de K0 , c es no creciente en cada
+coordenada. Como ρ ≤ 1 componente a componente, c(ρ) ≥ c(1).
+Observación (Consecuencia directa sobre H.E.2a). La Proposición 8.3 es la justificación
+formal del Hallazgo 2: comparar un diseño de fV = 0.5 contra el bloque sólido solo
+puede arrojar un aumento de compliance. El referente correcto es el diseño uniforme de
+igual volumen.
+
+8.4.
+
+El filtro de densidad como condición de existencia
+
+El problema (5) restringido a ρe ∈ {0, 1} es mal puesto: el conjunto admisible no
+es cerrado en la topología débil-∗ de L∞ (Ω), y las sucesiones minimizantes desarrollan
+microestructura (checkerboarding) sin límite admisible. El filtro de densidad
+∑︁
+
+w(xi , xe ) ρi
+ρ̃e = ∑︁i
+,
+i w(xi , xe )
+
+w(xi , xe ) = máx{0, rmı́n − ∥xi − xe ∥},
+
+(7)
+
+es un operador lineal de rango finito, por tanto compacto. Al componerlo con el
+funcional de compliance se recupera la semicontinuidad inferior débil-∗, y el método
+directo del cálculo de variaciones da existencia de mínimo sobre el conjunto débil-∗
+compacto que provee el teorema de Banach–Alaoglu, corolario de Tychonoff.
+Observación. rmı́n no es un recurso numérico contra el tablero de ajedrez: es la hipótesis
+que hace que el problema tenga solución. De ahí que su valor deba declararse como
+parámetro del modelo y no como detalle de implementación, y que H.E.2b exija
+invariancia de β1 en un rango de rmı́n .
+
+UAGRM · Maestría en Matemática · (2026)
+
+8.5.
+
+19
+
+Instrumento para el cálculo de β1 : homología cúbica
+
+Corrección de instrumento
+El borrador proponía calcular β1 (Ωsólido ) «con Ripser sobre la malla resultante».
+Ripser construye complejos de Vietoris–Rips sobre nubes de puntos; una malla
+de elementos finitos es un complejo cúbico. Aplicar VR a los centroides introduce
+dos artefactos: (a) el resultado depende de un ε sin significado físico, pues la malla
+√
+ya fija la escala h; y (b) para ε ∈ (h, 2 h) los vecinos diagonales conectan o no
+según la elección, de modo que β1 cambia por una decisión arbitraria del analista.
+El objeto correcto es la homología del complejo cúbico Ωsólido = {e : ρ̃e ≥ 12 }, donde
+cada elemento es un cuadrado cerrado. Se adoptan dos cálculos independientes
+cuya coincidencia valida el indicador:
+Método A — característica de Euler.
+β0 por etiquetado de componentes 4-conexas; χ = V − E + F por conteo
+celular; y como Ω ⊂ R2 implica H2 = 0,
+β1 = β0 − χ.
+Método B — homología cúbica persistente.
+gudhi.CubicalComplex con filtración binaria (f = 0 en el sólido, f = 1 en el
+vacío).
+
+8.6.
+
+Tabla de notación adoptada
+
+UAGRM · Maestría en Matemática · (2026)
+
+20
+
+Cuadro 3: Notación matemática adoptada en la investigación.
+Símbolo
+
+Descripción
+
+Dominio
+
+X = {x1 , . . . , xn } ⊂ Rd
+
+Nube de puntos de entrada
+
+TDA
+
+VR(X, ε)
+
+Complejo de Vietoris–Rips a escala ε
+
+TDA
+
+Dgmk (X)
+
+Diagrama de persistencia de dimensión k
+
+TDA
+
+dB (A, B)
+
+Distancia bottleneck entre diagramas
+
+TDA
+
+dH (X, Y )
+
+Distancia de Hausdorff entre conjuntos
+
+TDA
+
+q
+
+Nivel relativo de ruido, σn = q diam(X)
+
+TDA
+
+τ
+
+Umbral relativo de persistencia (Def. 8.1)
+
+TDA
+
+βk = dim Hk
+
+Número de Betti de dimensión k
+
+General
+
+χ=V −E+F
+
+Característica de Euler del complejo cúbico
+
+SIMP
+
+ρe ∈ (0, 1]
+
+Densidad de diseño del elemento e
+
+SIMP
+
+ρ̃e
+
+Densidad filtrada
+
+SIMP
+
+rmı́n
+
+Radio del filtro de densidad
+
+SIMP
+
+Ee = ρep E0
+
+Módulo de Young penalizado
+
+SIMP
+
+c(ρ) = U ⊤ KU
+
+Función compliance
+
+SIMP
+
+fV
+
+Fracción de volumen objetivo
+
+SIMP
+
+CAPÍTULO III. MARCO
+METODOLÓGICO
+9.
+
+Marco metodológico
+
+9.1.
+
+Paradigma de investigación
+
+La investigación se inscribe en el paradigma positivista-cuantitativo. Se parte de
+proposiciones teóricas precisas (hipótesis medibles), se diseñan experimentos computacionales reproducibles, se recolectan datos numéricos y se contrastan las hipótesis mediante
+indicadores estadísticos. La verdad de una proposición se juzga por su correspondencia
+con los resultados de la simulación, no por autoridad bibliográfica. En coherencia con
+ese principio, el estudio piloto de la §4.4 condujo a reformular tres hipótesis del borrador
+inicial.
+
+UAGRM · Maestría en Matemática · (2026)
+
+9.2.
+
+21
+
+Métodos de investigación
+
+Se emplean dos métodos combinados. El método deductivo y de modelación
+experimental opera desde la teoría (axiomas topológicos, teorema de estabilidad,
+formulación SIMP) hacia predicciones verificables. El método comparativo contrasta el rendimiento de los descriptores topológicos frente a sus análogos euclidianos,
+cuantificando la mejora relativa mediante las métricas de la Tabla 1.
+
+9.3.
+
+Tipo de investigación
+
+La investigación es de tipo aplicada, descriptivo-explicativa y de carácter
+documental-computacional. Es aplicada porque utiliza teoría matemática establecida para resolver problemas concretos de ingeniería. Es descriptivo-explicativa
+porque no solo describe los fenómenos sino que explica su comportamiento mediante los
+invariantes topológicos. Es documental-computacional porque combina la revisión sistemática de la literatura con la simulación numérica como fuente primaria de evidencia,
+sin requerir laboratorio físico.
+
+9.4.
+
+Técnicas e instrumentos
+
+9.4.1.
+
+Diseño de los casos de simulación
+
+Caso 1 — Ingeniería de Datos (TDA).
+Homología persistente sobre un catálogo de siete nubes con topología conocida a
+priori: círculo, disco, anillo, dos círculos, toro, esfera y gaussiana. El catálogo
+incluye controles positivos (β1 > 0), controles negativos (β1 = 0) y, en particular,
+el par disco/anillo, construido para tener media, covarianza y soporte convexo
+casi idénticos: sin ese par la comparación de H.E.1b sería vacua. Perturbación
+gaussiana a niveles q ∈ {0, 0.05, 0.10, 0.15, 0.20}, con 100 réplicas por celda.
+Instrumento: Ripser 0.6 y Persim 0.3.
+Caso 2 — Ingeniería Estructural (SIMP).
+Viga en voladizo 2D, 60 × 30 elementos Q4, borde izquierdo empotrado, carga
+puntual vertical en el extremo libre, fV = 0.5, p = 3, rmı́n = 2.4. Métrica
+primaria: compliance relativa al diseño uniforme de igual volumen. Métrica
+topológica: β0 , β1 por homología cúbica (§8.5). Barridos: p ∈ {1, 2, 3, 4}, rmı́n ∈
+{1.5, 2.0, 2.4, 3.0, 4.0} y mallas {402 , 802 , 1202 }.
+9.4.2.
+
+Protocolo de calibración del umbral τ
+
+El umbral τ de la Definición 8.1 es un hiperparámetro. Fijarlo por inspección visual
+del código de barras invalidaría el contraste, de modo que se calibra contra el patrón de
+
+UAGRM · Maestría en Matemática · (2026)
+
+22
+
+oro del catálogo antes de ejecutar el ensayo de estabilidad. El piloto arrojó la curva de
+calibración de la Tabla 4.
+Cuadro 4: Aciertos de (β0 , β1 ) sobre las siete nubes de referencia (n = 600, ruido nulo).
+τ
+
+0.05
+
+0.10
+
+0.15
+
+0.20
+
+0.25
+
+0.30
+
+Aciertos / 7
+
+3
+
+5
+
+7
+
+7
+
+6
+
+5
+
+La ventana válida es τ ∈ [0.15, 0.20]; se adopta τ = 0.15. Los dos modos de fallo
+son informativos: con τ demasiado bajo el ruido de muestreo genera ciclos espurios (con
+τ = 0.05 la esfera reporta (179, 21) en vez de (1, 0)); con τ demasiado alto se pierden
+rasgos reales de persistencia moderada (con τ ≥ 0.25 desaparece el meridiano del toro).
+Observación (Requisito de densidad de muestreo). La calibración exige n ≥ 400 puntos. Con n = 250, R = 2, r = 0.8 las persistencias relativas de H1 del toro son
+(0.279, 0.160, 0.106, . . . ): no hay separación entre las dos clases reales y el ruido. Con
+n = 600, R = 2, r = 1.0 pasan a (0.222, 0.212, 0.092, . . . ), y el salto permite leer
+β1 = 2. La densidad de muestreo es una precondición del método, no un detalle de
+implementación; por eso figura como variable interviniente controlada en la Tabla 1.
+9.4.3.
+
+Herramientas computacionales
+Cuadro 5: Herramientas computacionales y su caso de uso.
+
+Herramienta
+
+Versión
+
+Caso de uso
+
+Python
+
+3.11+
+
+Lenguaje base de ambos casos
+
+Ripser
+
+0.6.x
+
+Homología persistente de Vietoris–Rips (Caso 1)
+
+Persim
+
+0.3.x
+
+Diagramas y distancia bottleneck (Caso 1)
+
+GUDHI
+
+3.13.x
+
+Homología cúbica del diseño (Caso 2)
+
+NumPy / SciPy
+
+1.26 / 1.12
+
+Álgebra lineal dispersa, ensamblaje FEM, optimización
+
+scikit-learn
+
+1.4.x
+
+Clasificación, validación cruzada, PCA, kmedias
+
+Matplotlib
+
+3.8.x
+
+Visualización científica
+
+Google Colab
+
+GPU
+T4/A100
+
+Entorno de ejecución sin hardware especializado
+
+9.4.4.
+
+Criterios de validación y reproducibilidad
+
+Reproducibilidad. Semilla maestra 42. La semilla de cada réplica es determinista,
+42 + 1000r + ⌊105 q⌋, de modo que cualquier réplica individual puede regenerarse aisla-
+
+UAGRM · Maestría en Matemática · (2026)
+
+23
+
+damente sin repetir el experimento completo. El entorno se registra en entorno.json
+y el código se versiona en repositorio público con licencia MIT.
+Validación cruzada del indicador topológico. Los dos métodos de cálculo de
+βk (§8.5) se ejecutan sobre toda configuración y se reporta su concordancia. Una
+discrepancia invalidaría el resultado y detendría el análisis.
+Convergencia SIMP. Criterio dual: cambio máximo de densidad < 10−2 y cambio
+relativo de compliance < 10−4 entre iteraciones consecutivas. Se reporta explícitamente
+el estado de convergencia junto a cada valor de compliance; los diseños que agoten el
+máximo de iteraciones se marcan como no convergidos.
+Comparación estadística. Los resultados de estabilidad se reportan como media
+± desviación estándar sobre 100 réplicas. La comparación de H.E.1b se resuelve
+mediante contraste de McNemar sobre predicciones pareadas, con ≥ 200 muestras
+por clase.
+Decisiones de coste declaradas. La filtración se trunca en 0.6 · diam(X); verificado
+que los aciertos son idénticos a los de truncamiento total, con reducción de tiempo
+de 4.3 s a 0.16 s por nube. Para la distancia bottleneck se podan las barras de H0 con
+persistencia < 0.02 diam: toda barra de persistencia < ϵ se empareja con la diagonal
+a coste < ϵ/2, de modo que la poda altera dB en a lo sumo 0.01 diam, dos órdenes
+por debajo de los valores medidos.
+Documentación. Cada caso se entrega como notebook Jupyter con celdas comentadas, figuras embebidas y tablas exportadas a CSV. Ninguna cifra del informe se
+transcribe manualmente.
+9.4.5.
+
+Limitaciones reconocidas y trabajo pendiente
+
+Se declaran las siguientes limitaciones, cuya omisión comprometería la validez de
+las conclusiones:
+1. Alcance de OE4 y del gap. Este trabajo evalúa la topología post hoc y valida el
+indicador. La regularización topológica dentro del bucle —el gap declarado— no se
+aborda: requiere una derivada de β1 respecto de ρ, inexistente en sentido clásico por
+ser β1 un entero. La vía plausible, que se propone como continuación, es un sustituto
+diferenciable construido sobre la persistencia de la filtración por sobrenivel de ρ.
+2. Potencia estadística de H.E.1b. El piloto, con 80 muestras y validación cruzada
+de 5 particiones, arrojó 0.950 ± 0.047 para TDA frente a 0.925 ± 0.025 para el
+descriptor euclidiano: la ventaja existe pero las desviaciones se solapan y la diferencia
+no es significativa. El diseño definitivo eleva a ≥ 200 muestras por clase e incorpora
+el contraste de McNemar. Si tras ese ajuste la diferencia sigue sin ser significativa,
+se reportará como tal.
+
+UAGRM · Maestría en Matemática · (2026)
+
+24
+
+3. Fuga metodológica corregida. En una primera versión del experimento comparativo ambos descriptores alcanzaron el 100 % de exactitud. El diagnóstico fue que
+la dispersión radial es un sustituto directo del agujero, de modo que el descriptor
+de referencia tenía una fuga y la comparación estaba sesgada a su favor. Se corrigió
+aplicando a cada nube una transformación afín aleatoria invertible, que preserva βk
+por ser un homeomorfismo pero destruye el espectro PCA, la inercia de k-medias y
+la dispersión radial. El protocolo definitivo incorpora esa transformación.
+4. Régimen de muestreo. El ensayo piloto de estabilidad se ejecutó con n = 300,
+por debajo del umbral n ≥ 400 que la calibración exige; esfera y gaussiana quedaron
+fuera del régimen validado. El experimento definitivo se ejecuta con n ≥ 400.
+5. Volumen de réplicas. El piloto empleó 20 réplicas por celda en lugar de 100,
+por restricción de un solo núcleo de cómputo. La paralelización por nube está
+implementada y en Google Colab permite las 100 réplicas sin modificar el código.
+6. Generalidad del hallazgo sobre β1 . La invariancia de β1 se verificó para un
+dominio rectangular y uno cuadrado con una única condición de carga. La extensión
+a otras geometrías y estados de carga queda como trabajo futuro; no se afirma
+generalidad más allá de lo medido.
+
+UAGRM · Maestría en Matemática · (2026)
+
+25
+
+Bibliografía
+Referencias ordenadas por primera aparición en el texto. Todos los artículos de revista están
+indexados en JCR (Web of Science) o Scopus.
+
+Referencias
+[1] Edelsbrunner, H., Letscher, D., & Zomorodian, A. (2002). Topological persistence and
+simplification. Discrete & Computational Geometry, 28(4), 511–533.
+[2] Bendsøe, M. P. (1989). Optimal shape design as a material distribution problem. Structural
+Optimization, 1(4), 193–202.
+[3] Raissi, M., Perdikaris, P., & Karniadakis, G. E. (2019). Physics-informed neural networks.
+Journal of Computational Physics, 378, 686–707.
+[4] Su, Z., Liu, X., Bou Hamdan, L., Maroulas, V., Wu, J., Carlsson, G., & Wei, G.-W. (2025).
+Topological data analysis and topological deep learning beyond persistent homology: A
+review. Artificial Intelligence Review, 58.
+[5] Zomorodian, A., & Carlsson, G. (2005). Computing persistent homology. Discrete &
+Computational Geometry, 33(2), 249–274.
+[6] Carlsson, G. (2009). Topology and data. Bulletin of the American Mathematical Society,
+46(2), 255–308.
+[7] Bendsøe, M. P., & Sigmund, O. (2004). Topology Optimization: Theory, Methods, and
+Applications (2.ª ed.). Springer-Verlag.
+[8] Sigmund, O., & Maute, K. (2013). Topology optimization approaches: A comparative
+review. Structural and Multidisciplinary Optimization, 48(6), 1031–1055.
+[9] Andreassen, E., Clausen, A., Schevenels, M., Lazarov, B. S., & Sigmund, O. (2011).
+Efficient topology optimization in MATLAB using 88 lines of code. Structural and
+Multidisciplinary Optimization, 43(1), 1–16.
+[10] Bourdin, B. (2001). Filters in topology optimization. International Journal for Numerical
+Methods in Engineering, 50(9), 2143–2158.
+[11] Hensel, F., Moor, M., & Rieck, B. (2021). A survey of topological machine learning
+methods. Frontiers in Artificial Intelligence, 4, 681108.
+[12] Gowdridge, T., Dervilis, N., & Worden, K. (2022). On topological data analysis for
+structural dynamics: An introduction to persistent homology. ASME Open Journal of
+Engineering, 1, 011038.
+[13] Yoo, S., Lee, S., Kim, S., Hwang, K. H., Park, J. H., & Kang, N. (2023). Topology
+optimization via machine learning and deep learning: A review. Journal of Computational
+Design and Engineering, 10(4), 1736–1766.
+
+UAGRM · Maestría en Matemática · (2026)
+
+26
+
+[14] Abueidda, D. W., Koric, S., Sobh, N. A., & Sehitoglu, H. (2023). Topology optimization
+with physics-informed neural networks. Computer Methods in Applied Mechanics and
+Engineering, 415, 116276.
+[15] Toscano, J. D., Oommen, V., Varghese, A. J., Zou, Z., Ahmadi Daryakenari, N., Wu, C., &
+Karniadakis, G. E. (2025). From PINNs to PIKANs: Recent advances in physics-informed
+machine learning. Machine Learning for Computational Science and Engineering, 1(1).
+[16] Cohen-Steiner, D., Edelsbrunner, H., & Harer, J. (2007). Stability of persistence diagrams.
+Discrete & Computational Geometry, 37(1), 103–120.
+[17] Xu, Z., Zhang, Y., & Li, M. (2025). Physics-informed neural networks: A review of
+methodological evolution, theoretical foundations, and interdisciplinary frontiers. Applied
+Sciences, 15(14), 8092.
+[18] Wang, R., & Wei, G.-W. (2020). Persistent spectral graph. International Journal for
+Numerical Methods in Biomedical Engineering, 36(9), e3376.
+[19] Bendsøe, M. P., & Kikuchi, N. (1988). Generating optimal topologies in structural
+design using a homogenization method. Computer Methods in Applied Mechanics and
+Engineering, 71(2), 197–224.
+[20] Chazal, F., & Michel, B. (2021). An introduction to topological data analysis: Fundamental
+and practical aspects for data scientists. Frontiers in Artificial Intelligence, 4, 667963.
+[21] Bauer, U. (2021). Ripser: Efficient computation of Vietoris–Rips persistence barcodes.
+Journal of Applied and Computational Topology, 5, 391–423.
+[22] Ameneyro, B., Maroulas, V., & Siopsis, G. (2024). Quantum persistent homology. Journal
+of Applied and Computational Topology, 8, 1961–1983.
+[23] Svanberg, K. (1987). The method of moving asymptotes: A new method for structural
+optimization. International Journal for Numerical Methods in Engineering, 24(2), 359–
+373.
+[24] Xu, B., Jiang, H., & Chen, L. (2024). Topology optimization: A review for structural
+designs under statics problems. Materials, 17(23), 5970.
+[25] Farea, A., Yli-Harja, O., & Emmert-Streib, F. (2024). Understanding physics-informed
+neural networks: Techniques, applications, trends, and challenges. Artificial Intelligence
+Review, 57(12).
+[26] Kaczynski, T., Mischaikow, K., & Mrozek, M. (2004). Computational Homology. Applied
+Mathematical Sciences, vol. 157. Springer-Verlag.
+[27] Chazal, F., Cohen-Steiner, D., Guibas, L. J., Mémoli, F., & Oudot, S. Y. (2009). Gromov–
+Hausdorff stable signatures for shapes using persistence. Computer Graphics Forum,
+28(5), 1393–1403.
+[28] Maria, C., Boissonnat, J.-D., Glisse, M., & Yvinec, M. (2014). The GUDHI library:
+Simplicial complexes and persistent homology. Mathematical Software – ICMS 2014,
+LNCS 8592, 167–174.
+
+

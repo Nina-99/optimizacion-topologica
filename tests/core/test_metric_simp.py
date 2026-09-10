@@ -4,7 +4,7 @@ Verifica el Algoritmo 1 completo:
   - FASE 1: init con geometría y parámetros correctos
   - FASE 2: definir_problema asigna cargas y condiciones de contorno
   - FASE 3: optimizar con malla 2×2 y max_iter=2 (iteración corta)
-  - FASE 4: fase_tda sin ripser (skip graceful)
+  - FASE 4: fase_tda con doble cómputo (Euler + GUDHI)
 """
 
 import numpy as np
@@ -56,9 +56,10 @@ class TestInit:
         assert np.all(m.H <= 2.4)
 
     def test_default_tolerance(self):
-        """tol por defecto debe ser 1e-4."""
+        """tol_c y tol_rho por defecto deben ser 1e-4 y 1e-2 (Perfil §9.4.4)."""
         m = MetricaTDA_SIMP(nex=2, ney=2)
-        assert m.tol == 1e-4
+        assert m.tol_c == 1e-4
+        assert m.tol_rho == 1e-2
 
     def test_default_max_iter(self):
         """max_iter por defecto debe ser 200."""
@@ -176,7 +177,7 @@ class TestOptimizar:
 
 
 class TestFaseTDA:
-    """Fase de análisis topológico (homología persistente)."""
+    """Fase de análisis topológico (doble cómputo Euler + GUDHI)."""
 
     @pytest.fixture
     def m_2x2(self):
@@ -204,17 +205,11 @@ class TestFaseTDA:
         assert isinstance(m_2x2.beta1, int)
         assert isinstance(mu, float)
 
-    def test_fase_tda_sets_nube(self, m_2x2):
-        """fase_tda debe setear nube con shape (n_s, 2)."""
+    def test_fase_tda_sets_concordancia(self, m_2x2):
+        """fase_tda debe setear betti_concordancia (bool)."""
         m_2x2.fase_tda()
-        assert m_2x2.nube is not None
-        assert m_2x2.nube.shape[1] == 2 if len(m_2x2.nube) > 0 else True
-
-    def test_fase_tda_sets_eps_star(self, m_2x2):
-        """fase_tda debe setear eps_star > 0."""
-        m_2x2.fase_tda()
-        assert m_2x2.eps_star is not None
-        assert m_2x2.eps_star > 0
+        assert m_2x2._betti_concordancia is not None
+        assert isinstance(m_2x2._betti_concordancia, bool)
 
     def test_fase_tda_sets_mu(self, m_2x2):
         """fase_tda debe setear mu (métrica compuesta)."""
@@ -232,6 +227,49 @@ class TestFaseTDA:
         """obtener_resultados debe incluir campos clave."""
         m_2x2.fase_tda()
         res = m_2x2.obtener_resultados()
-        for key in ["rho_final", "c_final", "c_hist", "beta1",
-                     "nube", "eps_star", "mu", "nex", "ney"]:
+        for key in ["rho_final", "rho_tilde_final", "c_final", "c_hist", "beta1",
+                     "betti_concordancia", "mu", "nex", "ney",
+                     "tol_c", "tol_rho"]:
             assert key in res, f"Falta clave '{key}' en resultados"
+
+
+class TestFiltrarDensidad:
+    """Tests del filtro de densidad ρ̃ (§8.4 del Perfil)."""
+
+    def test_filtrar_densidad_uniforme(self):
+        """Densidad uniforme ρ ≡ fV debe dar ρ̃ ≈ fV."""
+        m = MetricaTDA_SIMP(nex=4, ney=4, f_V=0.5, r_min=2.4)
+        rho = np.full(16, 0.5)
+        rho_tilde = m.filtrar_densidad(rho)
+        # Para densidad uniforme, ρ̃ = ρ (el filtro preserva constantes)
+        assert_allclose(rho_tilde, 0.5, atol=1e-10)
+
+    def test_filtrar_densidad_shape(self):
+        """ρ̃ debe tener mismo shape que ρ."""
+        m = MetricaTDA_SIMP(nex=3, ney=3)
+        rho = np.random.rand(9)
+        rho_tilde = m.filtrar_densidad(rho)
+        assert rho_tilde.shape == rho.shape
+
+    def test_rho_tilde_hist_se_guarda(self):
+        """optimizar() debe guardar rho_tilde_hist."""
+        m = MetricaTDA_SIMP(nex=2, ney=2, max_iter=2)
+        F = np.zeros(m.n_dof)
+        F[17] = -1.0
+        fixed = np.array([0, 1, 6, 7, 12, 13], dtype=int)
+        m.definir_problema(F, fixed)
+        m.optimizar(verbose=False)
+        assert len(m.rho_tilde_hist) == m.n_iter
+
+    def test_fase_tda_usa_rho_tilde(self):
+        """fase_tda debe usar rho_tilde_final para binarización (§8.4)."""
+        m = MetricaTDA_SIMP(nex=2, ney=2, max_iter=2)
+        F = np.zeros(m.n_dof)
+        F[17] = -1.0
+        fixed = np.array([0, 1, 6, 7, 12, 13], dtype=int)
+        m.definir_problema(F, fixed)
+        m.optimizar(verbose=False)
+        m.fase_tda(verbose=False)
+        # rho_tilde_final debe existir y tener shape correcto
+        assert m.rho_tilde_final is not None
+        assert m.rho_tilde_final.shape == (4,)

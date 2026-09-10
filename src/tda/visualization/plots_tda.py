@@ -224,7 +224,7 @@ def plot_sweep_persistence_animation(results):
     for dgms_s, dgms_t in zip(diagrams_s, diagrams_t):
         for dgm in [dgms_s, dgms_t]:
             for dim_dgm in dgm:
-                if len(dim_dgm) > 0:
+                if hasattr(dim_dgm, 'shape') and dim_dgm.ndim == 2 and len(dim_dgm) > 0:
                     finite = dim_dgm[np.isfinite(dim_dgm[:, 1])]
                     if len(finite) > 0:
                         all_births.extend(finite[:, 0].tolist())
@@ -249,7 +249,7 @@ def plot_sweep_persistence_animation(results):
     dgms_t0 = diagrams_t[0]
 
     def _filter_finite(dgm):
-        if len(dgm) == 0:
+        if not hasattr(dgm, 'shape') or dgm.ndim != 2 or len(dgm) == 0:
             return np.empty((0, 2))
         finite = dgm[np.isfinite(dgm[:, 1])]
         return finite
@@ -322,7 +322,10 @@ def plot_sweep_persistence_animation(results):
         dgms_t = diagrams_t[idx]
 
         def _get_data(dgm):
-            finite = dgm[np.isfinite(dgm[:, 1])] if len(dgm) > 0 else np.empty((0, 2))
+            if hasattr(dgm, 'shape') and dgm.ndim == 2 and len(dgm) > 0:
+                finite = dgm[np.isfinite(dgm[:, 1])]
+            else:
+                finite = np.empty((0, 2))
             return finite[:, 0], finite[:, 1]
 
         f_data = []

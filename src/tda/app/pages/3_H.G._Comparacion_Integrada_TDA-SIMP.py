@@ -98,7 +98,7 @@ if ejecutar_hg:
                 nex=nelx, ney=nely, E=E_acero, nu=0.3,
                 Lx=120.0, Ly=40.0, t=espesor,
                 f_V=volfrac, p=p_val, r_min=rmin,
-                alpha=ALPHA_FIJO, tol=1e-4, max_iter=max_iter
+                alpha=ALPHA_FIJO, tol_c=1e-4, tol_rho=1e-2, max_iter=max_iter
             )
             F = np.zeros(2 * nnx * (nely + 1))
             F[dof_load] = -F_carga

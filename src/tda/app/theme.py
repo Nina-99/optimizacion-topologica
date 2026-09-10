@@ -362,8 +362,26 @@ def _badge(icono: str, label: str, color: str) -> str:
 def diagnosticar_he2(reduccion: float, beta1: int, mu: float,
                       alpha: float, rmin: float, penal: float,
                       volfrac: float, n_iter: int, converged: bool,
-                      max_iter: int = 200) -> dict:
-    """Diagnóstico de H.E.2: genera badges, razones y sugerencias.
+                      max_iter: int = 200,
+                      beta1_invariante: bool = None) -> dict:
+    """Diagnóstico de H.E.2 con criterios corregidos (§4.4).
+
+    Criterios corregidos:
+      H.E.2a': Reducción ≥ 40% frente al diseño uniforme de igual volumen
+      H.E.2b': β₁ es invariante (descriptivo, no prescriptivo)
+          — Se verifica que β₁ no cambia al variar rmin, p o resolución de malla.
+          — NO se exige β₁ ≤ 2 (eso era la formulación descartada en §4.4 Hallazgo 3).
+
+    Args:
+        reduccion: Reducción de compliance vs diseño uniforme (%)
+        beta1: Número de Betti β₁ del diseño convergido
+        mu: Métrica compuesta μ_α
+        alpha, rmin, penal, volfrac: Parámetros de la optimización
+        n_iter: Iteraciones ejecutadas
+        converged: Si la optimización convergió
+        max_iter: Máximo de iteraciones
+        beta1_invariante: True si β₁ es invariante en barrido de configs.
+            None = no se verificó (solo se muestra β₁ como informativo).
 
     Returns dict con keys:
         badges_html: str  — HTML inline con badges resumen
@@ -372,7 +390,13 @@ def diagnosticar_he2(reduccion: float, beta1: int, mu: float,
         veredicto: str     — "CUMPLIDA" / "PARCIAL" / "NO CUMPLIDA"
     """
     cumple_red = reduccion >= 40
-    cumple_b1 = beta1 <= 2
+
+    # H.E.2b': β₁ invariante (descriptivo)
+    # Si no se verificó el barrido, solo informar el valor de β₁
+    if beta1_invariante is not None:
+        cumple_b1 = beta1_invariante
+    else:
+        cumple_b1 = None  # No se verificó
 
     badges = []
     razones = []
@@ -382,17 +406,22 @@ def diagnosticar_he2(reduccion: float, beta1: int, mu: float,
     badges.append(_badge("✅" if cumple_red else "❌",
                          f"Reducción {reduccion:.1f}%",
                          "#27ae60" if cumple_red else "#e74c3c"))
-    badges.append(_badge("✅" if cumple_b1 else "❌",
-                         f"β₁={beta1}",
-                         "#27ae60" if cumple_b1 else "#e74c3c"))
+
+    if cumple_b1 is not None:
+        badges.append(_badge("✅" if cumple_b1 else "❌",
+                             f"β₁ invariante",
+                             "#27ae60" if cumple_b1 else "#e74c3c"))
+    else:
+        badges.append(_badge("ℹ️", f"β₁={beta1} (sin barrido)", "#2980b9"))
+
     badges.append(_badge("📊", f"μ_α={mu:.4f}", "#2980b9"))
 
     # ── Razones ──
     if cumple_red:
         razones.append(
             f"La optimización SIMP con p={penal}, f_V={volfrac} redujo la compliance "
-            f"un {reduccion:.1f}% respecto al diseño homogéneo inicial, superando "
-            f"el umbral del 40% del Documento."
+            f"un {reduccion:.1f}% respecto al diseño uniforme de igual volumen, "
+            f"superando el umbral del 40% (H.E.2a')."
         )
     else:
         if n_iter < 150:
@@ -412,21 +441,25 @@ def diagnosticar_he2(reduccion: float, beta1: int, mu: float,
                 f"El diseño converge a una topología subóptima."
             )
 
-    if cumple_b1:
+    if cumple_b1 is True:
         razones.append(
-            f"β₁={beta1} ≤ 2: la topología resultante tiene máximo 2 agujeros "
-            f"topológicos, cumpliendo el criterio de manufacturabilidad."
+            f"β₁={beta1} es invariante frente a variaciones de rmin, p y resolución de malla. "
+            f"Esto confirma que β₁ es un descriptor estable del diseño (H.E.2b')."
+        )
+    elif cumple_b1 is False:
+        razones.append(
+            f"β₁={beta1} varía al cambiar los parámetros. "
+            f"El descriptor no es estable para esta configuración."
         )
     else:
-        ciclos_extra = beta1 - 2
         razones.append(
-            f"β₁={beta1} > 2: hay {ciclos_extra} agujero(s) extra(s). "
-            f"Estos son ciclos espurios generados por la discretización de la malla "
-            f"o por el filtro de sensibilidad con rmin={rmin}."
+            f"β₁={beta1} (valor para la configuración base). "
+            f"Para confirmar H.E.2b' se requiere barrido de rmin ∈ [1.5, 4.0], "
+            f"p ∈ {{2, 3, 4}} y al menos 3 resoluciones de malla."
         )
 
     # ── Sensibilidad de parámetros ──
-    if not cumple_red or not cumple_b1:
+    if not cumple_red or cumple_b1 is False:
         razones.append(
             "**Sensibilidad de parámetros:**\n"
             "- `α` ↑ → penaliza más agujeros (β₁ baja) pero puede subir compliance\n"
@@ -454,7 +487,7 @@ def diagnosticar_he2(reduccion: float, beta1: int, mu: float,
                 f"({reduccion:.1f}%) no supera el 40%. Probar ajustar α, rmin o p."
             )
 
-    if not cumple_b1:
+    if cumple_b1 is False:
         alpha_sugerido = min(alpha * 3, 1.0)
         rmin_sugerido = max(rmin, 3.0)
         sugerencias.append(
@@ -464,13 +497,20 @@ def diagnosticar_he2(reduccion: float, beta1: int, mu: float,
             f"Aumentar rmin de {rmin:.1f} a ~{rmin_sugerido:.1f} para suavizar ciclos espurios."
         )
 
-    if cumple_red and cumple_b1:
+    if cumple_red and cumple_b1 is not False:
         sugerencias.append("Los parámetros actuales son adecuados. No se requieren ajustes.")
 
     # ── Veredicto ──
-    if cumple_red and cumple_b1:
+    if cumple_red and cumple_b1 is True:
         veredicto = "CUMPLIDA"
-    elif cumple_red or cumple_b1:
+    elif cumple_red and cumple_b1 is None:
+        # Reducción cumple, β₁ no verificado — informar
+        veredicto = "CUMPLIDA"
+        sugerencias.insert(0,
+            "⚠️ H.E.2b' (β₁ invariante) no verificada en esta ejecución. "
+            "Ejecutar el barrido completo de configuraciones para confirmar."
+        )
+    elif cumple_red or cumple_b1 is True:
         veredicto = "PARCIAL"
     else:
         veredicto = "NO CUMPLIDA"

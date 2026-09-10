@@ -8,6 +8,12 @@ Orquesta las tres fases del proceso:
 Esta clase NO incluye visualización (matplotlib/plotly) — solo computación.
 Los datos de resultados se exponen como atributos para que la capa de UI
 (Streamlit, CLI, etc.) los renderice como corresponda.
+
+Convergencia (Perfil §9.4.4):
+  Δc/c < 10⁻⁴  Y  Δρ_max < 10⁻²
+
+Binarización TDA (Perfil §8.4):
+  Ω_sólido = {e : ρ̃_e ≥ 1/2}  (densidad FILTRADA, no cruda)
 """
 
 import time
@@ -21,11 +27,7 @@ from tda.core.fem import (
     filtrar_sensibilidades,
     actualizar_OC,
 )
-from tda.core.topology import (
-    binarizar_y_extraer_nube,
-    escala_adaptativa,
-    calcular_homologia_betti,
-)
+from tda.core.betti2d import betti_doble_computo, diagramas_gudhi
 from tda.core.metric import metrica_compuesta
 
 
@@ -50,7 +52,7 @@ class MetricaTDA_SIMP:
     def __init__(self, nex, ney, E=1.0, nu=0.3,
                  Lx=None, Ly=None, t=1.0,
                  f_V=0.5, p=3, r_min=2.4, alpha=0.012,
-                 tol=1e-4, max_iter=200):
+                 tol_c=1e-4, tol_rho=1e-2, max_iter=200):
         """
         Inicializa la geometría, el material y los parámetros del algoritmo.
 
@@ -65,7 +67,8 @@ class MetricaTDA_SIMP:
         p       : float  Factor de penalización SIMP (p ≥ 3)
         r_min   : float  Radio del filtro de sensibilidad (en unidades de elemento)
         alpha   : float  Peso α de la métrica compuesta (α > 0)
-        tol     : float  Tolerancia de convergencia del bucle SIMP
+        tol_c   : float  Tolerancia de convergencia de compliance (Perfil §9.4.4: 10⁻⁴)
+        tol_rho : float  Tolerancia de convergencia de densidad (Perfil §9.4.4: 10⁻²)
         max_iter: int    Número máximo de iteraciones SIMP
         """
 
@@ -87,7 +90,8 @@ class MetricaTDA_SIMP:
         self.p       = p
         self.r_min   = r_min
         self.alpha   = alpha
-        self.tol     = tol
+        self.tol_c   = tol_c
+        self.tol_rho = tol_rho
         self.max_iter = max_iter
 
         # ── Matriz elemental K_0 ──────────────────────────────────────────────
@@ -125,14 +129,15 @@ class MetricaTDA_SIMP:
         self.F          = None
         self.fixed      = None
         self.c_hist     = []
-        self.rho_hist   = []      # ← NUEVO: guardar historial de densidades
+        self.rho_hist   = []      # ← Historial de densidades ρ (crudo)
+        self.rho_tilde_hist = []  # ← Historial de densidades filtradas ρ̃
         self.rho_final  = None
+        self.rho_tilde_final = None  # ← Densidad filtrada final (para TDA)
         self.c_final    = None
         self.beta0      = None
         self.beta1      = None
-        self.dgm1       = None
-        self.nube       = None
-        self.eps_star   = None
+        self._betti_concordancia = None
+        self._betti_detalle = None
         self.mu         = None
         self.t_simp     = 0.0
         self.t_tda      = 0.0
@@ -153,12 +158,35 @@ class MetricaTDA_SIMP:
         self.fixed = np.asarray(dofs_fijos, dtype=int)
 
 
+    def filtrar_densidad(self, rho):
+        """
+        Aplica el filtro de densidad (§8.4 del Perfil).
+
+        ρ̃_e = Σ_i w(x_i, x_e) · ρ_i / Σ_i w(x_i, x_e)
+
+        Este filtro es DISTINTO del filtro de sensibilidades (Sigmund 2007).
+        Se usa para binarización TDA: Ω_sólido = {e : ρ̃_e ≥ 1/2}.
+
+        Parámetros
+        ──────────
+        rho : ndarray (N_e,)  Densidades crudas
+
+        Retorna
+        ───────
+        rho_tilde : ndarray (N_e,)  Densidades filtradas
+        """
+        denominador = self.H.sum(axis=1) + 1e-30
+        rho_tilde = self.H @ rho / denominador
+        return rho_tilde
+
+
     def optimizar(self, verbose=True, callback=None):
         """
         Ejecuta el bucle SIMP hasta convergencia dual.
 
-        Criterio 1: |c^{k+1} − c^k| / c^k  < tol
-        Criterio 2: max_e |ρ_e^{k+1} − ρ_e^k| < tol
+        Criterio (Perfil §9.4.4):
+          Criterio 1: |c^{k+1} − c^k| / c^k  < tol_c   (10⁻⁴)
+          Criterio 2: max_e |ρ_e^{k+1} − ρ_e^k| < tol_rho (10⁻²)
 
         Parámetros
         ──────────
@@ -176,6 +204,7 @@ class MetricaTDA_SIMP:
         t0    = time.time()
         self.c_hist   = []
         self.rho_hist = []
+        self.rho_tilde_hist = []
 
         for k in range(1, self.max_iter + 1):
 
@@ -190,14 +219,17 @@ class MetricaTDA_SIMP:
                 U, self.rho, self.DOFS, self.K0, self.p
             )
 
-            # Paso 4: Filtrar sensibilidades
+            # Paso 4: Filtrar sensibilidades (para OC)
             dc_filt = filtrar_sensibilidades(dc, self.rho, self.H)
 
-            # Paso 5: Actualizar densidades con OC
+            # Paso 5: Filtrar densidad ρ̃ (§8.4: para binarización TDA)
+            rho_tilde = self.filtrar_densidad(self.rho)
+
+            # Paso 6: Actualizar densidades con OC
             rho_nuevo = actualizar_OC(self.rho, dc_filt, self.f_V)
 
-            # Paso 6: Medir convergencia (primera iter sin previo: Δc=0.0,
-            # evita inf/inf=nan que contaminaba el historial dual)
+            # Paso 7: Medir convergencia (Perfil §9.4.4:
+            #   Δc/c < 10⁻⁴  Y  Δρ_max < 10⁻²)
             if np.isinf(c_ant):
                 delta_c = 0.0
             else:
@@ -206,6 +238,7 @@ class MetricaTDA_SIMP:
 
             self.c_hist.append(c)
             self.rho_hist.append(rho_nuevo.copy())
+            self.rho_tilde_hist.append(rho_tilde.copy())
             self.rho = rho_nuevo
             c_ant = c
             self.n_iter = k
@@ -217,21 +250,22 @@ class MetricaTDA_SIMP:
             if verbose and (k <= 3 or k % 10 == 0):
                 print(f"  iter {k:>4d}: c={c:>12.4f}  Δc/c={delta_c:>9.2e}  Δρ_max={delta_rho:>9.4f}")
 
-            # Verificar convergencia dual
-            if delta_c < self.tol and delta_rho < self.tol:
+            # Verificar convergencia dual (Perfil §9.4.4: criterios separados)
+            if delta_c < self.tol_c and delta_rho < self.tol_rho:
                 if verbose:
                     print(f"  ✓ Convergencia en k={k}")
                 self.converged = True
                 break
 
         self.rho_final = self.rho.copy()
+        self.rho_tilde_final = self.filtrar_densidad(self.rho).copy()
         self.c_final   = self.c_hist[-1]
         self.t_simp    = time.time() - t0
 
         if verbose:
-            n_sol = np.sum(self.rho_final > 0.5)
+            n_sol = np.sum(self.rho_tilde_final > 0.5)
             print(f"  Tiempo SIMP: {self.t_simp:.2f}s | "
-                  f"Sólidos: {n_sol}/{self.N_e} = {100*n_sol/self.N_e:.1f}%")
+                  f"Sólidos (ρ̃≥½): {n_sol}/{self.N_e} = {100*n_sol/self.N_e:.1f}%")
 
         return self
 
@@ -239,6 +273,10 @@ class MetricaTDA_SIMP:
     def fase_tda(self, verbose=True):
         """
         Ejecuta la FASE 3 (análisis topológico) y calcula μ_α.
+
+        Usa el Instrumento del §8.5: doble cómputo de β₀, β₁
+        (Método A = Euler 4-conexo, Método B = GUDHI cubical).
+        La concordancia de ambos métodos valida el indicador.
 
         Retorna
         ───────
@@ -248,29 +286,28 @@ class MetricaTDA_SIMP:
 
         t1 = time.time()
 
-        # 3.1 Binarización y nube de puntos
-        self.nube = binarizar_y_extraer_nube(self.rho_final, self.nex, self.ney)
+        # 3.1 Grid binario del diseño (§8.4/§8.5: Ω_sólido = {e : ρ̃e ≥ 1/2})
+        # IMPORTANTE: usar ρ̃ (densidad filtrada), NO ρ crudo
+        grid_bool = self.rho_tilde_final.reshape((self.ney, self.nex)) >= 0.5
 
-        # 3.2 Escala adaptativa ε*
-        self.eps_star = escala_adaptativa(self.nube, self.N_e)
+        # 3.2 Doble cómputo de β₀, β₁ (§8.5: Método A + Método B)
+        resultado = betti_doble_computo(grid_bool, verbose=verbose)
+        self.beta0 = resultado["beta0_euler"]  # Euler como primario
+        self.beta1 = resultado["beta1_euler"]
+        self._betti_concordancia = resultado["concordancia"]
+        self._betti_detalle = resultado  # para auditoría
 
-        # 3.3 Homología persistente H₁
-        self.beta1, self.dgm1 = calcular_homologia_betti(self.nube, self.eps_star)
+        # 3.3 Diagramas de persistencia (para visualización en tabs)
+        self.dgm0, self.dgm1 = diagramas_gudhi(grid_bool)
+
+        # 3.4 Métrica compuesta
+        self.mu = metrica_compuesta(self.c_final, self.beta1, self.alpha)
         self.t_tda = time.time() - t1
 
-        # 3.4 β₀ (componentes conexas)
-        if len(self.nube) >= 2:
-            from ripser import ripser
-            dgm0 = ripser(self.nube, maxdim=0)["dgms"][0]
-            self.beta0 = int(np.sum(np.isinf(dgm0[:, 1])))
-        else:
-            self.beta0 = len(self.nube)
-
-        # 3.5 Métrica compuesta
-        self.mu = metrica_compuesta(self.c_final, self.beta1, self.alpha)
-
         if verbose:
-            print(f"  β₀ = {self.beta0} | β₁ = {self.beta1} | μ_α = {self.mu:.5f}")
+            conc = "✓" if self._betti_concordancia else "✗"
+            print(f"  β₀ = {self.beta0} | β₁ = {self.beta1} | "
+                  f"μ_α = {self.mu:.5f} | Concordancia {conc}")
             print(f"  Tiempo TDA: {self.t_tda:.3f}s")
 
         return self.mu
@@ -284,14 +321,17 @@ class MetricaTDA_SIMP:
         """
         return {
             "rho_final": self.rho_final,
+            "rho_tilde_final": self.rho_tilde_final,
             "c_final": self.c_final,
             "c_hist": np.array(self.c_hist),
             "rho_hist": self.rho_hist if self.rho_hist else None,
+            "rho_tilde_hist": self.rho_tilde_hist if self.rho_tilde_hist else None,
             "beta0": self.beta0,
             "beta1": self.beta1,
-            "dgm1": self.dgm1,
-            "nube": self.nube,
-            "eps_star": self.eps_star,
+            "dgm0": getattr(self, "dgm0", None),
+            "dgm1": getattr(self, "dgm1", None),
+            "betti_concordancia": getattr(self, "_betti_concordancia", None),
+            "betti_detalle": getattr(self, "_betti_detalle", None),
             "mu": self.mu,
             "nex": self.nex,
             "ney": self.ney,
@@ -299,6 +339,8 @@ class MetricaTDA_SIMP:
             "f_V": self.f_V,
             "p": self.p,
             "alpha": self.alpha,
+            "tol_c": self.tol_c,
+            "tol_rho": self.tol_rho,
             "t_simp": self.t_simp,
             "t_tda": self.t_tda,
             "converged": self.converged,

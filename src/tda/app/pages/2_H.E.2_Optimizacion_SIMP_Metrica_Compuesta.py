@@ -1,19 +1,31 @@
 """Página 2: H.E.2 — Optimización SIMP + Métrica Compuesta.
 
-Valida la Hipótesis Específica 2 (H.E.2):
-"El método SIMP con p = 3 y fracción de volumen fV = 0.5 converge
-a una distribución de material que reduce la compliance global en
-al menos un 40% respecto al diseño base uniforme (ρ = fV), generando
-una topología con β₁(Ω) ≤ 2 verificable computacionalmente."
+Valida las hipótesis corregidas tras el estudio piloto (§4.4):
 
-Referencias del Documento:
-- Definición 1.6: Malla FEM y variable de diseño ρ
-- Definición 1.7: Problema SIMP
-- Definición 1.8: Nube de Puntos del Diseño SIMP
-- Definición 1.9: Métrica Compuesta TDA-SIMP (μ_α = c + α·β₁)
-- Teorema 1.1: Bien-definición y acotación de μ_α
-- Algoritmo 1: Métrica Compuesta TDA-SIMP
-- Cuadro 1: Parámetros de la simulación
+H.E.2a' (CORREGIDA — §4.4 Hallazgo 2):
+    (c(fV·1) − c(ρ⋆)) / c(fV·1) ≥ 0.40
+    Reducción ≥ 40% frente al diseño uniforme de igual volumen.
+    El referente original (bloque sólido) era lógicamente imposible
+    por la Proposición 8.3: c(ρ) ≥ c(1) para todo ρ admisible.
+
+H.E.2b' (CORREGIDA — §4.4 Hallazgo 3):
+    β₁(Ω_sólido) es independiente de la resolución de malla y del
+    radio del filtro rmin ∈ [1.5, 4.0].
+    Descriptor invariante (descriptivo, no prescriptivo).
+    La cota original β₁ ≤ 2 era prescriptiva sobre un invariante
+    que el método no controla.
+
+H.E.2a original (FALSIFICADA — reducción = −91.07%):
+    Reducción ≥ 40% vs bloque sólido. Imposible por Prop. 8.3.
+
+H.E.2b original (FALSIFICADA — β₁ = 2 ≤ 2):
+    β₁ ≤ 2. Cota fijada a priori sobre invariante no controlado.
+
+Referencias:
+- Perfil §4.4: Estudio piloto y reformulación de hipótesis
+- Perfil §8.3: Formulación SIMP, Proposición 8.3
+- metodologia_implementacion.txt §2.3: El referente hace la hipótesis imposible
+- metodologia_implementacion.txt §8: Resultados del Caso 2
 """
 
 import streamlit as st
@@ -49,13 +61,13 @@ st.set_page_config(page_title="H.E.2 — Optimización SIMP + Métrica Compuesta
 st.markdown(responsive_style(), unsafe_allow_html=True)
 
 # ── Modo Defensa Toggle ──
-_modo_original = st.sidebar.checkbox("🔄 Usar parámetros de la tesis (α=0.012, r_min=2.4)", value=False,
+_modo_original = st.sidebar.checkbox("🔄 Usar parámetros de la tesis (α=0.012, r_min=2.4)", value=True,
     help="Restaura los valores del Cuadro 1 de la tesis. Default: α=0.036, r_min=3.0 (validados experimentalmente).")
 
 # ── Page Header ──
 st.markdown(page_header(
     "H.E.2 — Optimización SIMP + Métrica Compuesta μ_α",
-    "Algoritmo 1: μ_α = c + α·β₁ | p=3, f_V=0.5, reducción ≥40%"
+    "H.E.2a': reducción ≥40% vs uniforme | H.E.2b': β₁ invariante (§4.4 corregido)"
 ), unsafe_allow_html=True)
 
 # ── Sidebar ──
@@ -418,11 +430,11 @@ if ejecutar_simp:
     st.session_state.simp_mu = m.mu
     st.session_state.simp_n_iter = m.n_iter
     st.session_state.simp_converged = m.converged
+    st.session_state.simp_dgm0 = m.dgm0
     st.session_state.simp_dgm1 = m.dgm1
-    st.session_state.simp_nube = m.nube
-    st.session_state.simp_eps_star = m.eps_star
     st.session_state.simp_c_hist = np.array(m.c_hist)
     st.session_state.simp_rho_hist = m.rho_hist
+    st.session_state.simp_rho_tilde_hist = m.rho_tilde_hist
     st.session_state.simp_volfrac = volfrac
     st.session_state.simp_penal_stored = penal
     st.session_state.simp_alpha_stored = alpha
@@ -446,9 +458,9 @@ if st.session_state.get('simp_optimized', False):
     c_final = st.session_state.simp_c_final
     c_hist = st.session_state.simp_c_hist
     rho_hist = st.session_state.get('simp_rho_hist', None)
+    rho_tilde_hist = st.session_state.get('simp_rho_tilde_hist', None)
+    dgm0 = st.session_state.get('simp_dgm0', None)
     dgm1 = st.session_state.simp_dgm1
-    nube = st.session_state.simp_nube
-    eps_star = st.session_state.simp_eps_star
 
     tab_evol, tab_res, tab_tda, tab_report = st.tabs([
         "📈 Evolución", "🏗️ Resultados", "🔬 Análisis TDA", "📊 Reporte"
@@ -607,9 +619,6 @@ if st.session_state.get('simp_optimized', False):
                 plt.colorbar(sc, ax=axes[0, 1], label='Persistencia', fraction=0.046, pad=0.04)
                 max_val = np.max(dgm1[finite]) * 1.1 if len(dgm1[finite]) > 0 else 2.0
                 axes[0, 1].plot([0, max_val], [0, max_val], 'k--', alpha=0.4, label='Diagonal (ruido)')
-                if eps_star is not None:
-                    axes[0, 1].axhline(y=eps_star / 2, color='red', linestyle=':', alpha=0.7,
-                                       label=f'Umbral = ε*/2')
                 axes[0, 1].legend(fontsize=8)
         axes[0, 1].set_xlabel("Nacimiento b")
         axes[0, 1].set_ylabel("Muerte d")
@@ -626,10 +635,12 @@ if st.session_state.get('simp_optimized', False):
         axes[1, 0].set_title(f"Convergencia SIMP | {len(c_hist)} iteraciones")
         axes[1, 0].grid(True, linestyle='--', alpha=0.3)
 
-        # (1,1): Nube de puntos
-        if nube is not None and len(nube) > 0:
-            axes[1, 1].scatter(nube[:, 0], nube[:, 1], s=8, alpha=0.5, c='navy')
-        axes[1, 1].set_xlim(0, nex_)
+        # (1,1): Diseño filtrado ρ̃
+        if rho_tilde_hist is not None and len(rho_tilde_hist) > 0:
+            rho_tilde_plot = rho_tilde_hist[-1].reshape((ney_, nex_))
+            im = axes[1, 1].imshow(rho_tilde_plot, cmap='gray_r', origin='lower', vmin=0, vmax=1)
+            plt.colorbar(im, ax=axes[1, 1], label='ρ̃', fraction=0.046, pad=0.04)
+        axes[1, 1].set_title("Diseño filtrado ρ̃ (Ω_sólido = ρ̃ ≥ ½)")
         axes[1, 1].set_ylim(0, ney_)
         axes[1, 1].set_aspect('equal')
         axes[1, 1].set_xlabel("x (elementos)")
@@ -651,9 +662,11 @@ if st.session_state.get('simp_optimized', False):
         # Métricas TDA en tarjetas visuales adaptables al tema
         b1 = st.session_state.simp_beta1
         color_b1 = "#27ae60" if b1 == 0 else "#e74c3c"
+        # β₁ = 0 → ideal (sin agujeros, manufacturabilidad máxima)
+        # β₁ > 0 → revisar si son ciclos intencionales o espurios
         manufacturable = b1 == 0
-        estado = "✅ APTA" if manufacturable else "⚠️ REVISAR"
-        color_est = "#27ae60" if manufacturable else "#e74c3c"
+        estado = "✅ ÓPTIMA (β₁=0)" if manufacturable else f"⚠️ β₁={b1} — revisar ciclos"
+        color_est = "#27ae60" if manufacturable else "#f39c12"
 
         col_t1, col_t2, col_t3, col_t4 = st.columns(4)
         with col_t1:
@@ -738,16 +751,6 @@ if st.session_state.get('simp_optimized', False):
             name='Nacimiento = Muerte'
         ))
 
-        # Umbral
-        eps_star_local = st.session_state.simp_eps_star
-        if eps_star_local is not None and eps_star_local > 0:
-            fig_tda.add_hline(
-                y=eps_star_local / 2,
-                line=dict(color='red', dash='dot'),
-                annotation_text=f'Umbral = ε*/2 = {eps_star_local / 2:.3f}',
-                annotation_position='right'
-            )
-
         fig_tda.update_layout(
             xaxis_title="Tiempo de Nacimiento (Birth)",
             yaxis_title="Tiempo de Muerte (Death)",
@@ -777,12 +780,17 @@ if st.session_state.get('simp_optimized', False):
             - Menor μ_α → mejor balance entre eficiencia mecánica y simplicidad topológica.
             """)
 
-        # ── Validación H.E.2 ──
-        with st.expander("✅ Validación H.E.2", expanded=True):
+        # ── Validación H.E.2 (criterios corregidos §4.4) ──
+        with st.expander("✅ Validación H.E.2 (criterios corregidos)", expanded=True):
             st.markdown("""
-            **Hipótesis H.E.2:** SIMP con p=3 y fV=0.5 reduce la compliance
-            en al menos un 40% respecto al diseño base uniforme (ρ=fV),
-            generando una topología con β₁(Ω) ≤ 2.
+            **H.E.2a' (corregida):** SIMP con p=3 y fV=0.5 reduce la compliance
+            en al menos un 40% respecto al **diseño uniforme de igual volumen** (ρ=fV).
+
+            **H.E.2b' (corregida):** β₁(Ω_sólido) es **independiente** de la resolución
+            de malla y del radio del filtro rmin ∈ [1.5, 4.0]. Descriptor invariante.
+
+            > ⚠️ Las formulaciones originales (β₁ ≤ 2 y comparación vs bloque sólido)
+            > fueron descartadas en §4.4 por razones técnicas documentadas.
             """)
             reduccion = st.session_state.simp_reduccion
 
@@ -845,9 +853,8 @@ if st.session_state.get('simp_optimized', False):
         ney_ = st.session_state.simp_ney
         rho_final = st.session_state.simp_rho_final
         c_hist = st.session_state.simp_c_hist
+        dgm0 = st.session_state.get('simp_dgm0', None)
         dgm1 = st.session_state.simp_dgm1
-        nube = st.session_state.simp_nube
-        eps_star = st.session_state.simp_eps_star
         manufacturable = beta1 == 0
 
         # ── Header del reporte ──
@@ -956,8 +963,6 @@ if st.session_state.get('simp_optimized', False):
                             plt.colorbar(sc, ax=axes_pdf[0, 1], label='Persistencia', fraction=0.046, pad=0.04)
                             mv = np.max(dgm1[finite]) * 1.1
                             axes_pdf[0, 1].plot([0, mv], [0, mv], 'k--', alpha=0.4)
-                            if eps_star:
-                                axes_pdf[0, 1].axhline(eps_star / 2, color='r', ls=':', alpha=0.7, label=f'ε*/2')
                             axes_pdf[0, 1].legend(fontsize=7)
                     axes_pdf[0, 1].set_title(f'Diagrama H₁ | β₁={beta1}')
                     axes_pdf[0, 1].set_xlabel('Birth')
@@ -974,13 +979,12 @@ if st.session_state.get('simp_optimized', False):
                     axes_pdf[1, 0].set_ylabel('Compliance c')
                     axes_pdf[1, 0].grid(True, alpha=0.3)
 
-                    # (1,1) Point cloud
-                    if nube is not None and len(nube) > 0:
-                        axes_pdf[1, 1].scatter(nube[:, 0], nube[:, 1], s=5, alpha=0.5, c='navy')
-                    axes_pdf[1, 1].set_xlim(0, nex_)
-                    axes_pdf[1, 1].set_ylim(0, ney_)
-                    axes_pdf[1, 1].set_aspect('equal')
-                    axes_pdf[1, 1].set_title(f'Nube X(ρ*) | β₀={beta0} | β₁={beta1} | μ_α={mu:.4f}')
+                    # (1,1) Diseño filtrado ρ̃
+                    if rho_tilde_hist is not None and len(rho_tilde_hist) > 0:
+                        rho_tilde_plot = rho_tilde_hist[-1].reshape((ney_, nex_))
+                        im = axes_pdf[1, 1].imshow(rho_tilde_plot, cmap='gray_r', origin='lower', vmin=0, vmax=1)
+                        plt.colorbar(im, ax=axes_pdf[1, 1], label='ρ̃', fraction=0.046, pad=0.04)
+                    axes_pdf[1, 1].set_title(f'Diseño ρ̃ | β₀={beta0} | β₁={beta1} | μ_α={mu:.4f}')
                     axes_pdf[1, 1].set_xlabel('x (elem.)')
                     axes_pdf[1, 1].set_ylabel('y (elem.)')
                     axes_pdf[1, 1].grid(True, alpha=0.3)
@@ -1077,8 +1081,6 @@ if st.session_state.get('simp_optimized', False):
                         axes_png[0, 1].scatter(dgm1[finite, 0], dgm1[finite, 1], c='orange', marker='^', alpha=0.7)
                         mv = np.max(dgm1[finite]) * 1.1
                         axes_png[0, 1].plot([0, mv], [0, mv], 'k--', alpha=0.4)
-                        if eps_star:
-                            axes_png[0, 1].axhline(eps_star / 2, color='r', ls=':', alpha=0.7)
                 axes_png[0, 1].set_title('Diagrama H₁')
                 axes_png[0, 1].set_xlabel('Birth')
                 axes_png[0, 1].set_ylabel('Death')
@@ -1093,13 +1095,14 @@ if st.session_state.get('simp_optimized', False):
                 axes_png[1, 0].set_ylabel('c')
                 axes_png[1, 0].grid(True, alpha=0.3)
 
-                # Point cloud
-                if nube is not None and len(nube) > 0:
-                    axes_png[1, 1].scatter(nube[:, 0], nube[:, 1], s=5, alpha=0.5, c='navy')
-                axes_png[1, 1].set_title(f'Nube X(ρ*)')
+                # Diseño filtrado ρ̃
+                if rho_tilde_hist is not None and len(rho_tilde_hist) > 0:
+                    rho_tilde_plot = rho_tilde_hist[-1].reshape((ney_, nex_))
+                    im = axes_png[1, 1].imshow(rho_tilde_plot, cmap='gray_r', origin='lower', vmin=0, vmax=1)
+                    plt.colorbar(im, ax=axes_png[1, 1], label='ρ̃', fraction=0.046, pad=0.04)
+                axes_png[1, 1].set_title(f'Diseño ρ̃')
                 axes_png[1, 1].set_xlabel('x')
                 axes_png[1, 1].set_ylabel('y')
-                axes_png[1, 1].set_aspect('equal')
                 axes_png[1, 1].grid(True, alpha=0.3)
 
                 plt.tight_layout()
@@ -1195,9 +1198,9 @@ if st.session_state.get('simp_optimized', False):
         df_display = pd.DataFrame({
             "Métrica": [
                 "Compliance Final c(ρ*)", "β₀ (Componentes conexas)", "β₁ (Agujeros)",
-                "μ_α (Métrica Compuesta)", "Reducción vs Sólido",
+                "μ_α (Métrica Compuesta)", "Reducción vs Uniforme",
                 "Fracción de Volumen f_V", "Penalización p", "Peso α",
-                "Iteraciones", "Convergencia", "Tiempo SIMP", "Tiempo TDA", "Manufacturable"
+                "Iteraciones", "Convergencia", "Tiempo SIMP", "Tiempo TDA", "Manufacturabilidad"
             ],
             "Valor": [
                 f"{c_final:.5f}", str(beta0), str(beta1),
@@ -1220,10 +1223,15 @@ methodology_expander(
     [
         (
             "fórmulas",
-            r"""\mu_\alpha = c + \alpha \cdot \beta_1
-\quad \text{sujeto a:} \quad K(\rho) \cdot U = F, \quad \int_\Omega \rho \, d\Omega \leq f_V \cdot |\Omega|
-\quad \text{Algoritmo 1: inicializar } \rho_e = f_V, \text{ resolver FEM, calcular } c \text{ y } \beta_1,
-\quad \text{actualizar } \rho_e \text{ con OC hasta convergencia dual}"""
+            r"""**H.E.2a' (corregida — la que SÍ se valida):**
+$$\frac{c(f_V \cdot \mathbf{1}) - c(\rho^\star)}{c(f_V \cdot \mathbf{1})} \geq 0.40$$
+
+**H.E.2b' (corregida):** β₁(Ω_sólido) es invariante para rmin ∈ [1.5, 4.0], p ∈ {2,3,4}, Ne ∈ {1600, 6400, 14400}
+
+**Métrica compuesta:**
+$$\mu_\alpha = c + \alpha \cdot \beta_1 \quad \text{sujeto a:} \quad K(\rho) \cdot U = F, \quad \sum_e \rho_e v_e = f_V \cdot V_0$$
+
+**Proposición 8.3 (cota inferior):** c(ρ) ≥ c(1) para todo ρ admisible → comparar vs bloque sólido es imposible"""
         )
     ],
     "H.E.2"

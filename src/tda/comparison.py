@@ -37,8 +37,6 @@ import pandas as pd
 from pathlib import Path
 
 from tda.optimization.simp_optimizer import SimpTda2DOptimizer
-from tda.core.topology import binarizar_y_extraer_nube, escala_adaptativa, calcular_homologia_betti
-from tda.processing.sampling import compute_diameter
 from tda.core.metric import metrica_compuesta, calibrar_alpha_optimo
 
 

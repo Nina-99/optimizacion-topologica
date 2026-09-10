@@ -216,18 +216,24 @@ class TestStability:
             assert key in result, f"Clave '{key}' no encontrada en resultado"
 
     def test_betti_filtrado(self):
-        """_betti_filtrado debe filtrar por persistencia > ε*/2."""
-        from tda.analysis.stability import _betti_filtrado
+        """betti_persistente debe filtrar por persistencia > τ · diam."""
+        from tda.analysis.stability import betti_persistente
         # Diagrama con un punto de alta persistencia y uno de baja
-        dgm = np.array([
-            [0.0, 1.0],  # persistencia = 1.0 (alta)
-            [0.0, 0.01],  # persistencia = 0.01 (baja)
-        ])
-        eps_star = 1.0
-        # Umbral = 0.5, solo el primer punto pasa
-        b0, b1 = _betti_filtrado(dgm, eps_star)
-        # El filtrado depende de la implementación exacta
-        assert b0 + b1 >= 0
+        dgm = {
+            "dgms": [
+                np.array([[0.0, 1.0]]),  # H₀: 1 bar infinita
+                np.array([
+                    [0.0, 1.0],  # persistencia = 1.0 (alta)
+                    [0.0, 0.01],  # persistencia = 0.01 (baja)
+                ]),
+            ]
+        }
+        # τ=0.15, diam=1.0 → threshold = 0.15
+        b0, b1 = betti_persistente(dgm, tau=0.15, diam=1.0)
+        # H₀: 1 bar infinita → β₀=1
+        # H₁: solo persistence > 0.15 → 1 bar → β₁=1
+        assert b0 == 1
+        assert b1 == 1
 
 
 class TestAnomaly:
