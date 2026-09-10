@@ -300,8 +300,9 @@ class MetricaTDA_SIMP:
         # 3.3 Diagramas de persistencia (para visualización en tabs)
         self.dgm0, self.dgm1 = diagramas_gudhi(grid_bool)
 
-        # 3.4 Métrica compuesta
-        self.mu = metrica_compuesta(self.c_final, self.beta1, self.alpha)
+        # 3.4 Métrica compuesta (usando β₁ diferenciable para optimización, β₁ discreto para reporte)
+        self.beta1_diff = self.beta1_differentiable(grid_bool, tau=0.1, k=10.0)
+        self.mu = metrica_compuesta(self.c_final, self.beta1_diff, self.alpha)
         self.t_tda = time.time() - t1
 
         if verbose:
@@ -309,9 +310,39 @@ class MetricaTDA_SIMP:
             print(f"  β₀ = {self.beta0} | β₁ = {self.beta1} | "
                   f"μ_α = {self.mu:.5f} | Concordancia {conc}")
             print(f"  Tiempo TDA: {self.t_tda:.3f}s")
-
         return self.mu
 
+    # Método diferenciable de β₁ para uso dentro del bucle SIMP (OE4)
+    def beta1_differentiable(self, grid_bool, tau=0.1, k=10.0):
+        """
+        Calcula una aproximación diferenciable de β₁ usando persistencia de filtración.
+        
+        En lugar de contar discretamente pares (nacimiento, muerte) con persistencia > τ,
+        usa una suma suavizada de funciones sigmoide para permitir gradientes.
+        
+        Args:
+            grid_bool: np.ndarray binario (True = sólido) de forma (ny, nx)
+            tau: float, umbral de persistencia relativo (default 0.1)
+            k: float, parámetro de suavidad de la sigmoide (default 10.0)
+                   Valores mayores = aproximación más cercana al escalón
+        
+        Returns:
+            float: β₁ diferenciable (aproximado)
+        """
+        # Obtener diagrama de persistencia H₁
+        _, dgm1 = diagramas_gudhi(grid_bool)
+        
+        if len(dgm1) == 0:
+            return 0.0
+        
+        # Calcular persistencia (muerte - nacimiento) para cada par H₁
+        persistencias = dgm1[:, 1] - dgm1[:, 0]
+        
+        # Aplicar función sigmoide suavizada: σ(k * (persistencia - tau))
+        # Esto cuenta suavemente los pares con persistencia > tau
+        beta1_smooth = np.sum(1.0 / (1.0 + np.exp(-k * (persistencias - tau))))
+        
+        return float(beta1_smooth)
 
     def obtener_resultados(self):
         """

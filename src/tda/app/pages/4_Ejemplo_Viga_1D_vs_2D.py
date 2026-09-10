@@ -1,4 +1,4 @@
-"""Página 4: Playground — Laboratorio Interactivo de Optimización.
+"""Página 4: Ejemplo Viga 1D vs 2D — Comparación Unificada.
 
 Modos:
   1D  — Perfil de altura óptimo (analytical, viga voladizo)
@@ -15,6 +15,7 @@ from matplotlib.colors import LinearSegmentedColormap
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import time
+import pandas as pd
 
 from tda.optimization.beam_optimizer import BeamOptimizer
 from tda.optimization.metric_simp import MetricaTDA_SIMP
@@ -28,11 +29,11 @@ from tda.app.download_utils import export_settings_ui
 export_settings_ui()
 apply_mpl_theme()
 
-st.set_page_config(page_title="Playground — Laboratorio TDA-SIMP", layout="wide", page_icon="🧪")
+st.set_page_config(page_title="Ejemplo Viga 1D vs 2D", layout="wide", page_icon="🧪")
 st.markdown(responsive_style(), unsafe_allow_html=True)
 
 st.markdown(page_header(
-    "Playground — Laboratorio Interactivo",
+    "Ejemplo Viga 1D vs 2D — Comparación Unificada",
     "Experimentá con optimización 1D, SIMP 2D, barridos y comparaciones"
 ), unsafe_allow_html=True)
 
@@ -490,9 +491,9 @@ elif modo == "Comparación 1D vs 2D":
         st.markdown("### Resumen Comparativo")
         df_resumen = pd.DataFrame({
             "Métrica": ["Ahorro material", "Compliance", "β₁", "μ_α", "Iteraciones"],
-            "1D (Perfil)": [f"{res1d['saving_pct']:.1f}%", "N/A (analítico)", "N/A", "N/A", res1d['iterations']],
-            "2D (SIMP)": [f"—", f"{res2d['c_final']:.2f}", res2d['beta1'],
-                          f"{res2d['mu']:.5f}", res2d['n_iter']]
+            "1D (Perfil)": [f"{res1d['saving_pct']:.1f}%", "N/A (analítico)", "N/A", "N/A", f"{res1d['iterations']}"],
+            "2D (SIMP)": ["—", f"{res2d['c_final']:.2f}", res2d['beta1'],
+                          f"{res2d['mu']:.5f}", f"{res2d['n_iter']}" ]
         })
         st.dataframe(df_resumen.set_index("Métrica"), use_container_width=True)
 
@@ -505,7 +506,7 @@ from tda.app.theme import footer_style
 st.markdown(f"""
 <div style="{footer_style()}">
     <p style="margin:0;color:{ORANGE};font-weight:700;">
-        Playground — Laboratorio Interactivo de Optimización
+        Ejemplo Viga 1D vs 2D — Comparación Unificada de Optimización
     </p>
     <p style="margin:0.3rem 0 0 0;">
         BeamOptimizer (1D) · MetricaTDA_SIMP (2D) · GUDHI (TDA)
