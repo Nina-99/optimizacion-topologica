@@ -245,8 +245,8 @@ def plot_sweep_persistence_animation(results):
     noise_pct = noise_vals * 100
 
     # Frame 0 (primer nivel de ruido) para figura base
-    dgms_s0 = diagrams_s[0]
-    dgms_t0 = diagrams_t[0]
+    dgms_s0 = diagrams_s[0]["dgms"]
+    dgms_t0 = diagrams_t[0]["dgms"]
 
     def _filter_finite(dgm):
         if not hasattr(dgm, 'shape') or dgm.ndim != 2 or len(dgm) == 0:

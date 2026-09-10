@@ -44,7 +44,7 @@ from tda.optimization.metric_simp import MetricaTDA_SIMP
 from tda.app.theme import (
     apply_mpl_theme, apply_plotly_theme, is_dark,
     metric_card, report_header, responsive_style, diagnosticar_he2,
-    methodology_expander, page_header
+    methodology_expander, page_header, ORANGE
 )
 
 # ── Configuración de exportación (.exe) ──
