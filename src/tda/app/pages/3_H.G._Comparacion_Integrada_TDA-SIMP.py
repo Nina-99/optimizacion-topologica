@@ -10,7 +10,7 @@ y análisis infinitesimal local."
 Estructura de validación (Documento, Sección 6):
 1. Correr SIMP con p=2, p=3, p=4 en la misma malla
 2. Calcular μ_α para cada configuración
-3. Validar Corolario 1.1: μ_α identifica p=3 como Pareto-óptimo
+3. Validar H.G.: μ_α identifica p=3 como Pareto-óptimo
 4. Sensibilidad de μ a α (Cuadro 4)
 5. Sintetizar H.E.1 (robustez TDA) + H.E.2 (SIMP+μ_α)
 """
@@ -38,7 +38,7 @@ st.markdown(responsive_style(), unsafe_allow_html=True)
 # ── Page Header ──
 st.markdown(page_header(
     "H.G. — Comparación Integrada TDA-SIMP",
-    "Validación del Corolario 1.1: μ_α identifica diseños Pareto-óptimos"
+    "Validación H.G.: μ_α identifica diseños Pareto-óptimos"
 ), unsafe_allow_html=True)
 st.header("H.G. — Comparación Integrada TDA-SIMP")
 st.markdown("""
@@ -164,16 +164,18 @@ if st.session_state.get('hg_run', False):
     st.plotly_chart(fig_comp, width='stretch')
 
     # ══════════════════════════════════════════════════════════════
-    # SECCIÓN 2: Validación del Corolario 1.1
+    # SECCIÓN 2: Validación H.G.: μ_α identifica p=3 como Pareto-óptimo
     # ══════════════════════════════════════════════════════════════
-    st.subheader("2. Validación del Corolario 1.1")
+    st.subheader("2. Validación H.G.: μ_α identifica p=3 como Pareto-óptimo")
 
     r2, r3, r4 = resultados[2], resultados[3], resultados[4]
     alpha = params['alpha_fijo']
 
     st.markdown("""
-    **Corolario 1.1:** Si ρ*_A tiene c ≤ c*_B y β₁ ≤ β₁*_B (con al menos una estricta),
-    entonces μ_α(ρ*_A) < μ_α(ρ*_B) para todo α > 0.
+    **Criterio de Pareto según H.G. y Cuadro 9 del documento:**
+    La métrica compuesta μ_α = c + α·β₁ (con α > 0) resuelve el orden parcial entre 
+    configuraciones SIMP. p=3 es Pareto-óptimo si minimiza c manteniendo β₁ = 2 (invariante 
+    topológico), evitando los agujeros espurios de p=2 (β₁ = 3).
     """)
 
     # Condición 1: p=3 vs p=2
@@ -199,13 +201,13 @@ if st.session_state.get('hg_run', False):
 
     if cumple_3v2 and cumple_3v4:
         st.success(
-            "✅ **Corolario 1.1 VALIDADO:** p=3 domina en sentido Pareto tanto a p=2 como a p=4. "
+            "✅ **H.G. VALIDADA: p=3 Pareto-óptimo:** p=3 domina en sentido Pareto tanto a p=2 como a p=4. "
             "μ_α identifica correctamente la configuración óptima."
         )
     elif cumple_3v2 or cumple_3v4:
-        st.warning("⚠️ Corolario 1.1 parcialmente validado.")
+        st.warning("⚠️ H.G. parcialmente validada.")
     else:
-        st.error("❌ Corolario 1.1 no validado en esta configuración.")
+        st.error("❌ H.G. no validada en esta configuración.")
 
     with st.expander("📖 Detalle de dominancia Pareto"):
         for (p_a, r_a, p_b, r_b, label) in [
@@ -409,39 +411,68 @@ if st.session_state.get('hg_run', False):
     apply_plotly_theme(fig_dgm)
     st.plotly_chart(fig_dgm, width='stretch')
 
-    # ══════════════════════════════════════════════════════════════
-    # SECCIÓN 7: Síntesis Transversal (Cuadro 9 del Documento)
-    # ══════════════════════════════════════════════════════════════
-    st.subheader("7. Síntesis y Relación entre Aplicaciones (Cuadro 9)")
+    # SECCIÓN 7: Síntesis Transversal — Cuadro 9 del Documento
+    # ═══════════════════════════════════════════════════════════════
+    st.subheader("7. Cuadro 9: Veredicto sobre cada afirmación del perfil")
 
     st.markdown("""
-    La demostración definitiva de la **Hipótesis General** radica en la capacidad 
-    de la metodología TDA-SIMP para operar de forma consistente en distintos dominios 
-    de ingeniería. A continuación se consolidan los hallazgos de las dos aplicaciones 
-    desarrolladas en este software.
+    La tabla siguiente consolida el veredicto final sobre cada hipótesis del perfil,
+    tal como se reporta en la documentación (metodologia_implementacion.txt, Cuadro 9).
     """)
 
     df_cuadro9 = pd.DataFrame({
-        "Dimensión": [
-            "Problema",
-            "Rol del TDA",
-            "Rol del SIMP",
-            "β₁ resultante",
-            "Aporte de μ_α",
-            "Impacto ingenieril"
+        "Ítem": [
+            "H.E.1a",
+            "H.E.1a′",
+            "H.E.1b",
+            "H.E.1c",
+            "H.E.2a",
+            "H.E.2a′",
+            "H.E.2b"
         ],
-        "Caso 2: Viga en Voladizo (H.E.2)": [
-            "Diseño óptimo desde cero",
-            "Verificación post hoc de β₁",
-            "Optimización topológica principal",
-            "β₁ = 2 (invariante)",
-            "Detecta p=2 como subóptimo (agujeros espurios)",
-            "Reducción compliance 77.58% vs uniforme"
+        "Afirmación": [
+            "βk estable ante ruido 15–20 %",
+            "dB / diam ≤ 2q (reformulación)",
+            "TDA > descriptores euclidianos",
+            "Cota dB ≤ 2dH",
+            "Reducción ≥ 40 % vs. bloque sólido",
+            "Reducción ≥ 40 % vs. uniforme",
+            "β₁ (Ω) ≤ 2"
+        ],
+        "Valor": [
+            "0.0036",
+            "1.000",
+            "0.950 vs 0.925",
+            "1.000",
+            "−79.39 %",
+            "+77.58 %",
+            "2"
+        ],
+        "Veredicto": [
+            "❌ No se sostiene",
+            "✅ Se sostiene",
+            "⚠️ Parcial, no significativo",
+            "✅ Se sostiene",
+            "❌ No se sostiene",
+            "✅ Se sostiene",
+            "❌ No se sostiene"
         ]
     })
     
-    st.table(df_cuadro9.set_index("Dimensión"))
+    st.table(df_cuadro9.set_index("Ítem"))
 
+    st.markdown("""
+    **Observación (del documento §9):**
+    Tres afirmaciones del borrador no se sostienen, y las tres por razones distintas y diagnosticables: 
+    un indicador que el teorema invocado no respalda (H.E.1a), un referente que hace la hipótesis 
+    imposible (H.E.2a) y una cota fijada a priori sobre un invariante no controlado (H.E.2b). 
+    Ninguna refuta el valor del enfoque topológico; las tres delimitan con precisión qué puede 
+    y qué no puede afirmarse. Esa delimitación es, de hecho, la contribución más defendible del 
+    trabajo: convierte el gap enunciado bibliográficamente en un resultado medido en el propio 
+    banco de pruebas.
+    """)
+
+    # ═══════════════════════════════════════════════════════════════
     # ══════════════════════════════════════════════════════════════
     # SECCIÓN 8: Conclusión General
     # ══════════════════════════════════════════════════════════════
@@ -477,46 +508,127 @@ if st.session_state.get('hg_run', False):
         "p=4": [r4['c_final'], r4['beta0'], r4['beta1'], r4['mu'], alpha, 4]
     })
     csv_comp = df_export.to_csv(index=False).encode('utf-8')
+
+    # ── Generar PDF de reporte H.G. ──
+    import io
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    pdf_buf = io.BytesIO()
+    plt.style.use('default')
+    fig_pdf = plt.figure(figsize=(12, 10))
+    fig_pdf.patch.set_facecolor('white')
+
+    # Distribución de material (3 subplots)
+    for i, p_val in enumerate([2, 3, 4]):
+        ax = fig_pdf.add_subplot(2, 3, i + 1)
+        rho_2d = resultados[p_val]['rho_final'].reshape(params['nely'], params['nelx'])
+        ax.imshow(rho_2d, cmap='Greys', aspect='auto')
+        ax.set_title(f"p={p_val} (β₁={resultados[p_val]['beta1']})")
+        ax.axis('off')
+
+    # Sensibilidad a α
+    ax_sens = fig_pdf.add_subplot(2, 3, 4)
+    alphas = list(sensibilidad.keys())
+    mus = [sensibilidad[a]['mu'] for a in alphas]
+    ax_sens.plot(alphas, mus, 'o-', color='darkorange', linewidth=2)
+    ax_sens.set_xscale('log')
+    ax_sens.set_xlabel('α')
+    ax_sens.set_ylabel('μ_α')
+    ax_sens.set_title('Sensibilidad μ_α vs α (p=3)')
+    ax_sens.grid(True, alpha=0.3)
+
+    # Tabla de métricas
+    ax_tabla = fig_pdf.add_subplot(2, 3, 5)
+    ax_tabla.axis('off')
+    tabla_data = [
+        ["Métrica", "p=2", "p=3", "p=4"],
+        ["Compliance", f"{r2['c_final']:.2f}", f"{r3['c_final']:.2f}", f"{r4['c_final']:.2f}"],
+        ["β₀", str(r2['beta0']), str(r3['beta0']), str(r4['beta0'])],
+        ["β₁", str(r2['beta1']), str(r3['beta1']), str(r4['beta1'])],
+        ["μ_α", f"{r2['mu']:.4f}", f"{r3['mu']:.4f}", f"{r4['mu']:.4f}"],
+    ]
+    tabla = ax_tabla.table(cellText=tabla_data, loc='center', cellLoc='center')
+    tabla.auto_set_font_size(False)
+    tabla.set_fontsize(10)
+    tabla.scale(1, 1.5)
+    ax_tabla.set_title('Resumen Comparativo')
+
+    # Veredicto
+    ax_veredicto = fig_pdf.add_subplot(2, 3, 6)
+    ax_veredicto.axis('off')
+    corollary_ok = cumple_3v2 and cumple_3v4
+    veredicto = ("✅ HIPÓTESIS GENERAL VALIDADA" if corollary_ok
+                 else "⚠️ Requiere ajustes")
+    ax_veredicto.text(0.5, 0.5, veredicto, ha='center', va='center',
+                      fontsize=12, fontweight='bold',
+                      color='green' if corollary_ok else 'orange')
+    ax_veredicto.set_title('Veredicto')
+
+    fig_pdf.suptitle(f"H.G. — Comparación Integrada TDA-SIMP | Malla {params['nelx']}×{params['nely']}, fV={params['volfrac']}, α={params['alpha_fijo']}")
+    plt.tight_layout()
+    fig_pdf.savefig(pdf_buf, format='pdf')
+    plt.close(fig_pdf)
+    pdf_bytes = pdf_buf.getvalue()
+
+    # ── Fila Única: Exportar TODO en un solo ZIP ───────────────────────
+    st.markdown("---")
+    st.markdown("#### 📥 Exportación Completa")
+
+    import zipfile
+    from datetime import datetime
+    ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    folder_name = f"hg_comparacion_{params['nelx']}x{params['nely']}_{ts}"
+
+    zf_buf = io.BytesIO()
+    with zipfile.ZipFile(zf_buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr(f"{folder_name}/comparacion_metricas.csv", csv_comp)
+        zf.writestr(f"{folder_name}/reporte_hg.pdf", pdf_bytes)
+        zf.writestr(f"{folder_name}/parametros.txt",
+                    f"Malla: {params['nelx']}×{params['nely']}\\n"
+                    f"fV: {params['volfrac']}\\n"
+                    f"r_min: {params['rmin']}\\n"
+                    f"α: {params['alpha_fijo']}\\n"
+                    f"E: {E_acero:.0f} MPa\\n"
+                    f"F: {F_carga:.0f} N\\n"
+                    f"Espesor: {espesor:.1f} mm\\n"
+                    f"Timestamp: {ts}")
+    zip_bytes = zf_buf.getvalue()
+
     download_button(
-        label="📥 CSV Comparación",
-        data=csv_comp,
-        file_name="hg_comparacion.csv",
-        mime="text/csv",
-        key="btn_csv_hg"
+        label="📦 Descargar TODO (ZIP completo)",
+        data=zip_bytes,
+        file_name=f"{folder_name}.zip",
+        mime="application/zip",
+        width='stretch',
+        help="Incluye: CSV comparativo, PDF con visualizaciones y tabla, archivo de parámetros - todo organizado en una carpeta con timestamp"
     )
 
-# ══════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════
 # METODOLOGÍA
 # ══════════════════════════════════════════════════════════════
-methodology_expander(
+    methodology_expander(
     "📖 Metodología — H.G.",
     [
         (
-            "Corolario 1.1",
-            r"""Si ρ^*_A tiene c(ρ^*_A) \leq c(ρ^*_B) y \beta_1(\rho^*_A) = \beta_1(\rho^*_B),
-\quad \text{con al menos una desigualdad estricta en } c, \text{ entonces}
-\quad \mu_\alpha(\rho^*_A) < \mu_\alpha(\rho^*_B) \quad \forall \alpha > 0"""
+            "Métrica Compuesta (Pareto)",
+            r"\mu_{\alpha} = c + \alpha \cdot \beta_{1} \quad \text{con } \alpha > 0"
         ),
         (
-            "Comparación de configuraciones",
-            r"""Correr SIMP con p \in \{2, 3, 4\} en la misma malla 60×30.
-\quad \mu_\alpha = c + \alpha \cdot \beta_1
-            \quad \text{β₁ = 2 invariante bajo malla/rmin}"""
+            "Criterio de Optimidad",
+            r"p=3 \text{ es Pareto-óptimo si minimiza } c \text{ manteniendo } \beta_{1} = 2"
         ),
         (
-            "Dominancia Pareto",
-            r"""p=3 es Pareto-óptimo: minimiza c con β₁=2 (invariante topológico).
-            \quad \text{p=2 tiene agujeros espurios (β₁=3)}"""
+            "Configuración de Barrido",
+            r"p \in \{2, 3, 4\} \text{ en malla } 60 \times 30"
         ),
         (
-            "Veredicto de hipótesis",
-            r"""H.E.2a′ (corregida): reducción 77.58% vs uniforme ≥ 40% ✓
-            \quad H.E.2b′ (corregida): β₁=2 invariante bajo malla/rmin ✓
-            \quad H.E.2b original (β₁ ≤ 2): descartada en §4.4"""
+            "Veredicto Final",
+            r"\text{H.E.2a}' \text{ (reducción 77.58\%)} \ge 40\% \quad \text{y} \quad \beta_{1}=2 \text{ invariante}"
         )
     ],
     "H.G."
-)
-st.markdown("---")
+    )
+    st.markdown("---")
 
 apply_mpl_theme()

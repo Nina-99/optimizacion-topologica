@@ -1086,24 +1086,14 @@ if st.session_state.get('simp_optimized', False):
 
             pdf_bytes = pdf_buf.getvalue()
 
-            download_button(
-                label="📄 PDF",
-                data=pdf_bytes,
-                file_name=f"reporte_TDA-SIMP_{nex_}x{ney_}.pdf",
-                mime="application/pdf",
-                width='stretch',
-                help="PDF de 3 páginas: portada + figura + tabla de métricas"
-            )
-
-        # ── Exportar PNG 2×2 ───────────────────────────────────────────────
-        with col_r2:
+            # Generate PNG
             with plt.style.context('default'):
                 fig_png, axes_png = plt.subplots(2, 2, figsize=(12, 9))
                 fig_png.patch.set_facecolor('white')
                 for ax_row in axes_png:
                     for ax in ax_row:
                         ax.set_facecolor('white')
-                fig_png.suptitle(f'Resultados SIMP-TDA | {nex_}×{ney_} | f_V={volfrac} | μ_α={mu:.4f}',
+                fig_png.suptitle(f'Resultados SIMP-TDA | {nex_}x{ney_} | f_V={volfrac} | μ_α={mu:.4f}',
                                  fontsize=13, fontweight='bold')
 
                 # Density
@@ -1149,87 +1139,82 @@ if st.session_state.get('simp_optimized', False):
                 plt.close(fig_png)
                 png_bytes = png_buf.getvalue()
 
-            download_button(
-                label="🖼️ PNG",
-                data=png_bytes,
-                file_name=f"figura_resultados_{nex_}x{ney_}.png",
-                mime="image/png",
-                width='stretch',
-                help="Figura 2×2 a 300 DPI lista para la tesis"
-            )
+            # ── Fila Única: Exportar TODO en un solo ZIP ───────────────────────
+            st.markdown("---")
+            st.markdown("#### 📥 Exportación Completa")
 
-        # ── Fila 2: ZIP con todos los datos ──────────────────────────────────
-        st.markdown("---")
-        st.markdown("#### 📊 Datos numéricos")
+            ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            folder_name = f"optimizacion_{nex_}x{ney_}_{ts}"
 
-        ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        folder_name = f"optimizacion_{nex_}x{ney_}_{ts}"
+            # CSV Métricas
+            df_metrics = pd.DataFrame({
+                "Metrica": [
+                    "Compliance_Final", "Beta_0", "Beta_1", "Mu_alpha",
+                    "Reduccion_vs_homogeneo_%", "Volumen", "Penalizacion_p",
+                    "Alpha", "Iteraciones", "Convergio", "Tiempo_SIMP_s",
+                    "Tiempo_TDA_s", "Malla_Nx", "Malla_Ny"
+                ],
+                "Valor": [
+                    float(c_final), int(beta0), int(beta1), float(mu),
+                    float(reduccion), float(volfrac), float(penal),
+                    float(alpha_val), int(n_iter), 1 if converged else 0,
+                    float(t_simp), float(t_tda), int(nex_), int(ney_)
+                ]
+            })
 
-        # CSV Métricas
-        df_metrics = pd.DataFrame({
-            "Metrica": [
-                "Compliance_Final", "Beta_0", "Beta_1", "Mu_alpha",
-                "Reduccion_vs_homogeneo_%", "Volumen", "Penalizacion_p",
-                "Alpha", "Iteraciones", "Convergio", "Tiempo_SIMP_s",
-                "Tiempo_TDA_s", "Malla_Nx", "Malla_Ny"
-            ],
-            "Valor": [
-                float(c_final), int(beta0), int(beta1), float(mu),
-                float(reduccion), float(volfrac), float(penal),
-                float(alpha_val), int(n_iter), 1 if converged else 0,
-                float(t_simp), float(t_tda), int(nex_), int(ney_)
+            # CSV Historia
+            df_history = pd.DataFrame({
+                "Iteracion": range(1, len(c_hist) + 1),
+                "Compliance": c_hist
+            })
+
+            # CSV Densidades
+            rho_flat = rho_final.flatten()
+            y_idx, x_idx = np.meshgrid(range(ney_), range(nex_), indexing='ij')
+            df_dens = pd.DataFrame({
+                "Elemento_X": x_idx.flatten(),
+                "Elemento_Y": y_idx.flatten(),
+                "Densidad_rho": rho_flat
+            })
+
+            # Resumen TXT
+            resumen_lines = [
+                f"H.E.2 — Optimización SIMP + Métrica Compuesta",
+                f"Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                f"Malla: {nex_}x{ney_}",
+                f"Parámetros: f_V={volfrac}, p={penal}, α={alpha_val}, r_min={rmin}",
+                f"",
+                f"Resultados:",
+                f"  Compliance final: {c_final:.8f}",
+                f"  Reducción vs base: {reduccion:.2f}%",
+                f"  β₀={beta0}, β₁={beta1}",
+                f"  μ_α={mu:.8f}",
+                f"  Convergió: {'Sí' if converged else 'No'}",
+                f"  Iteraciones: {n_iter}",
             ]
-        })
+            resumen_txt = "\n".join(resumen_lines)
 
-        # CSV Historia
-        df_history = pd.DataFrame({
-            "Iteracion": range(1, len(c_hist) + 1),
-            "Compliance": c_hist
-        })
+            # Empaquetar TODO en ZIP (PDF, PNG, CSVs, TXT)
+            zip_buf = io.BytesIO()
+            with zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+                # Documentos
+                zf.writestr(f"{folder_name}/reporte_TDA-SIMP_{nex_}x{ney_}.pdf", pdf_bytes)
+                zf.writestr(f"{folder_name}/figura_resultados_{nex_}x{ney_}.png", png_bytes)
+                # Datos CSV
+                zf.writestr(f"{folder_name}/metricas.csv", df_metrics.to_csv(index=False))
+                zf.writestr(f"{folder_name}/historial_convergencia.csv", df_history.to_csv(index=False))
+                zf.writestr(f"{folder_name}/densidades.csv", df_dens.to_csv(index=False))
+                zf.writestr(f"{folder_name}/resumen.txt", resumen_txt)
+            zip_bytes = zip_buf.getvalue()
 
-        # CSV Densidades
-        rho_flat = rho_final.flatten()
-        y_idx, x_idx = np.meshgrid(range(ney_), range(nex_), indexing='ij')
-        df_dens = pd.DataFrame({
-            "Elemento_X": x_idx.flatten(),
-            "Elemento_Y": y_idx.flatten(),
-            "Densidad_rho": rho_flat
-        })
-
-        # Resumen TXT
-        resumen_lines = [
-            f"H.E.2 — Optimización SIMP + Métrica Compuesta",
-            f"Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-            f"Malla: {nex_}x{ney_}",
-            f"Parámetros: f_V={volfrac}, p={penal}, α={alpha_val}, r_min={rmin}",
-            f"",
-            f"Resultados:",
-            f"  Compliance final: {c_final:.8f}",
-            f"  Reducción vs base: {reduccion:.2f}%",
-            f"  β₀={beta0}, β₁={beta1}",
-            f"  μ_α={mu:.8f}",
-            f"  Convergió: {'Sí' if converged else 'No'}",
-            f"  Iteraciones: {n_iter}",
-        ]
-        resumen_txt = "\n".join(resumen_lines)
-
-        # Empaquetar ZIP
-        zip_buf = io.BytesIO()
-        with zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED) as zf:
-            zf.writestr(f"{folder_name}/metricas.csv", df_metrics.to_csv(index=False))
-            zf.writestr(f"{folder_name}/historial_convergencia.csv", df_history.to_csv(index=False))
-            zf.writestr(f"{folder_name}/densidades.csv", df_dens.to_csv(index=False))
-            zf.writestr(f"{folder_name}/resumen.txt", resumen_txt)
-        zip_bytes = zip_buf.getvalue()
-
-        download_button(
-            label="📥 Descargar ZIP (todos los datos)",
-            data=zip_bytes,
-            file_name=f"{folder_name}.zip",
-            mime="application/zip",
-            width='stretch',
-            help="Metricas + historial + densidades + resumen en una sola carpeta"
-        )
+            download_button(
+                label="📦 Descargar TODO (ZIP completo)",
+                data=zip_bytes,
+                file_name=f"{folder_name}.zip",
+                mime="application/zip",
+                width='stretch',
+                help="Incluye: PDF (3 páginas), PNG (figura 2×2), CSV métricas, historial, densidades y resumen - todo organizado en una carpeta con timestamp"
+            )
 
         # ── Fila 3: Tabla de métricas expandible ───────────────────────────
         st.markdown("---")
@@ -1256,24 +1241,29 @@ if st.session_state.get('simp_optimized', False):
 # ════════════════════════════════════════════════════════════════
 # METODOLOGÍA
 # ════════════════════════════════════════════════════════════════
-methodology_expander(
+    methodology_expander(
     "📖 Metodología — H.E.2",
     [
         (
-            "fórmulas",
-            r"""**H.E.2a' (corregida — la que SÍ se valida):**
-$$\frac{c(f_V \cdot \mathbf{1}) - c(\rho^\star)}{c(f_V \cdot \mathbf{1})} \geq 0.40$$
-
-**H.E.2b' (corregida):** β₁(Ω_sólido) es invariante para rmin ∈ [1.5, 4.0], p ∈ {2,3,4}, Ne ∈ {1600, 6400, 14400}
-
-**Métrica compuesta:**
-$$\mu_\alpha = c + \alpha \cdot \beta_1 \quad \text{sujeto a:} \quad K(\rho) \cdot U = F, \quad \sum_e \rho_e v_e = f_V \cdot V_0$$
-
-**Proposición 8.3 (cota inferior):** c(ρ) ≥ c(1) para todo ρ admisible → comparar vs bloque sólido es imposible"""
+            "H.E.2a' (corregida — la que SÍ se valida)",
+            r"\frac{c(f_{V}\cdot \mathbf{1}) - c(\rho^{\star})}{c(f_{V}\cdot \mathbf{1})} \ge 0.40"
+        ),
+        (
+            "H.E.2b' (corregida)",
+            r"\beta_{1}(\Omega_{\text{sólido}}) \text{ es invariante para } r_{\min} \in [1.5,\ 4.0], p \in \{2,3,4\}, N_{e} \in \{1600,\ 6400,\ 14400\}"
+        ),
+        (
+            "Métrica compuesta",
+            r"\mu_{\alpha} = c + \alpha \cdot \beta_{1} \quad \text{sujeto a:}\quad K(\rho)\cdot U = F,\quad \sum_{e} \rho_{e} v_{e} = f_{V}\cdot V_{0}"
+        ),
+        (
+            "Proposición 8.3 (cota inferior)",
+            r"c(\rho) \ge c(1) \text{ para todo } \rho \text{ admisible } \rightarrow \text{comparar vs bloque sólido es imposible}"
         )
     ],
     "H.E.2"
 )
-st.markdown("---")
+
+    st.markdown("---")
 
 

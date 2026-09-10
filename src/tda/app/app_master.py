@@ -172,9 +172,9 @@ with col5:
         description="Experimentá con optimización 1D, SIMP 2D,<br>barridos de p y comparaciones lado a lado",
         variant="orange"
     ), unsafe_allow_html=True)
-    st.page_link("pages/4_Playground.py",
-                 label="🧪 Abrir Playground",
-                 width='stretch')
+st.page_link("pages/4_Ejemplo_Viga_1D_vs_2D.py",
+                   label="🧪 Abrir Ejemplo Viga 1D vs 2D",
+                   width='stretch')
 
 # ── Footer ──
 st.markdown("---")

@@ -492,19 +492,22 @@ if st.session_state.get('tda_he1_run', False):
             if "show_persist_anim" not in st.session_state:
                 st.session_state["show_persist_anim"] = False
 
-            if st.button("▶ Animación: Diagramas de Persistencia", key="toggle_persist_anim"):
-                st.session_state["show_persist_anim"] = not st.session_state["show_persist_anim"]
-
-            if st.session_state["show_persist_anim"]:
-                if st.button("🔄 Reiniciar", key="restart_persist_anim"):
-                    st.session_state["_persist_anim_key"] = st.session_state.get("_persist_anim_key", 0) + 1
-
-                fig_anim = plot_sweep_persistence_animation(sweep)
-                apply_plotly_theme(fig_anim)
-                import streamlit.components.v1 as _components
-                _anim_key = st.session_state.get("_persist_anim_key", 0)
-                _html = fig_anim.to_html(include_plotlyjs="cdn", full_html=False)
-                _components.html(_html, height=550)
+# Animation of persistence diagrams has been disabled due to instability.
+# If you wish to re‑enable it, uncomment the block below.
+#
+# if st.button("▶ Animación: Diagramas de Persistencia", key="toggle_persist_anim"):
+#     st.session_state["show_persist_anim"] = not st.session_state.get("show_persist_anim", False)
+#
+# if st.session_state.get("show_persist_anim", False):
+#     if st.button("🔄 Reiniciar", key="restart_persist_anim"):
+#         st.session_state["_persist_anim_key"] = st.session_state.get("_persist_anim_key", 0) + 1
+#
+#     fig_anim = plot_sweep_persistence_animation(sweep)
+#     apply_plotly_theme(fig_anim)
+#     import streamlit.components.v1 as _components
+#     _anim_key = st.session_state.get("_persist_anim_key", 0)
+#     _html = fig_anim.to_html(include_plotlyjs="cdn", full_html=False)
+#     _components.html(_html, height=550)
 
         df_sweep = pd.DataFrame({
             "Ruido (%)": [f"{n*100:.0f}%" for n in sweep["noise_vals"]],
@@ -627,44 +630,62 @@ if st.session_state.get('tda_he1_run', False):
     })
     csv_tda = df_export.to_csv(index=False).encode('utf-8')
 
-    c1, c2 = st.columns(2)
-    with c1:
-        download_button(label="📥 CSV", data=csv_tda,
-                        file_name="nube_puntos_tda.csv", mime="text/csv",
-                        key="btn_csv_he1")
-    with c2:
-        pdf_buf = io.BytesIO()
-        plt.style.use('default')
-        fig_pdf = plt.figure(figsize=(12, 10))
-        fig_pdf.patch.set_facecolor('white')
-        ax1 = fig_pdf.add_subplot(2, 2, 1, projection='3d')
-        ax1.scatter(dataset_noisy[:, 0], dataset_noisy[:, 1], dataset_noisy[:, 2],
-                    c=cls['y_kmeans'], cmap='viridis', s=5)
-        ax1.set_title("Clasificación Euclidiana (K-Medias)")
-        ax2 = fig_pdf.add_subplot(2, 2, 2, projection='3d')
-        ax2.scatter(dataset_noisy[:, 0], dataset_noisy[:, 1], dataset_noisy[:, 2],
-                    c=cls['y_true'], cmap='plasma', s=5)
-        ax2.set_title("Ground Truth")
-        ax3 = fig_pdf.add_subplot(2, 2, 3)
-        if len(cls['res_sphere'][1]) > 0:
-            fin = cls['res_sphere'][1][np.isfinite(cls['res_sphere'][1][:, 1])]
-            if len(fin) > 0:
-                ax3.scatter(fin[:, 0], fin[:, 1], alpha=0.6)
-        ax3.set_title(f"Persistencia Esfera (β₁={cls['b1_s']})")
-        ax4 = fig_pdf.add_subplot(2, 2, 4)
-        if len(cls['res_torus'][1]) > 0:
-            fin = cls['res_torus'][1][np.isfinite(cls['res_torus'][1][:, 1])]
-            if len(fin) > 0:
-                ax4.scatter(fin[:, 0], fin[:, 1], alpha=0.6)
-        ax4.set_title(f"Persistencia Toro (β₁={cls['b1_t']})")
-        fig_pdf.suptitle(f"H.E.1 — Robustez TDA | Ruido: {params['noise_level']:.0%}")
-        plt.tight_layout()
-        pdf_buf_io = io.BytesIO()
-        fig_pdf.savefig(pdf_buf_io, format='pdf')
-        plt.close(fig_pdf)
-        download_button(label="📄 PDF", data=pdf_buf_io.getvalue(),
-                        file_name="reporte_he1.pdf", mime="application/pdf",
-                        key="btn_pdf_he1")
+    # Generate PDF
+    pdf_buf = io.BytesIO()
+    plt.style.use('default')
+    fig_pdf = plt.figure(figsize=(12, 10))
+    fig_pdf.patch.set_facecolor('white')
+    ax1 = fig_pdf.add_subplot(2, 2, 1, projection='3d')
+    ax1.scatter(dataset_noisy[:, 0], dataset_noisy[:, 1], dataset_noisy[:, 2],
+                c=cls['y_kmeans'], cmap='viridis', s=5)
+    ax1.set_title("Clasificación Euclidiana (K-Medias)")
+    ax2 = fig_pdf.add_subplot(2, 2, 2, projection='3d')
+    ax2.scatter(dataset_noisy[:, 0], dataset_noisy[:, 1], dataset_noisy[:, 2],
+                c=cls['y_true'], cmap='plasma', s=5)
+    ax2.set_title("Ground Truth")
+    ax3 = fig_pdf.add_subplot(2, 2, 3)
+    if len(cls['res_sphere'][1]) > 0:
+        fin = cls['res_sphere'][1][np.isfinite(cls['res_sphere'][1][:, 1])]
+        if len(fin) > 0:
+            ax3.scatter(fin[:, 0], fin[:, 1], alpha=0.6)
+    ax3.set_title(f"Persistencia Esfera (β₁={cls['b1_s']})")
+    ax4 = fig_pdf.add_subplot(2, 2, 4)
+    if len(cls['res_torus'][1]) > 0:
+        fin = cls['res_torus'][1][np.isfinite(cls['res_torus'][1][:, 1])]
+        if len(fin) > 0:
+            ax4.scatter(fin[:, 0], fin[:, 1], alpha=0.6)
+    ax4.set_title(f"Persistencia Toro (β₁={cls['b1_t']})")
+    fig_pdf.suptitle(f"H.E.1 — Robustez TDA | Ruido: {params['noise_level']:.0%}")
+    plt.tight_layout()
+    fig_pdf.savefig(pdf_buf, format='pdf')
+    plt.close(fig_pdf)
+    pdf_bytes = pdf_buf.getvalue()
+
+    # ── Fila Única: Exportar TODO en un solo ZIP ───────────────────────
+    st.markdown("---")
+    st.markdown("#### 📥 Exportación Completa")
+
+    ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    folder_name = f"he1_robustez_{params['noise_level']:.0%}_{ts}"
+
+    # CSV datos
+    zf_buf = io.BytesIO()
+    with zipfile.ZipFile(zf_buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+        # Documentos
+        zf.writestr(f"{folder_name}/nube_puntos_tda.csv", csv_tda)
+        zf.writestr(f"{folder_name}/reporte_he1.pdf", pdf_bytes)
+        # Incluir información del parámetro utilizado
+        zf.writestr(f"{folder_name}/parametros.txt", f"Noise level: {params['noise_level']:.0%}\\nTimestamp: {ts}")
+    zip_bytes = zf_buf.getvalue()
+
+    download_button(
+        label="📦 Descargar TODO (ZIP completo)",
+        data=zip_bytes,
+        file_name=f"{folder_name}.zip",
+        mime="application/zip",
+        width='stretch',
+        help="Incluye: CSV de puntos, PDF con visualizaciones y archivo de parámetros - todo organizado en una carpeta con timestamp"
+    )
 
 # ════════════════════════════════════════════════════════════════
 # METODOLOGÍA
@@ -673,17 +694,20 @@ methodology_expander(
     "📖 Metodología — H.E.1",
     [
         (
-            "fórmulas",
-            r"""**H.E.1a' (corregida — la que SÍ se valida):**
-$$\frac{d_B\bigl(\text{Dgm}_k^{\text{VR}}(X),\ \text{Dgm}_k^{\text{VR}}(Y)\bigr)}{\text{diam}(X)} \leq 2q$$
-
-**H.E.1a original (FALSIFICADA en §4.4, tasa de acierto = 0.0036):**
-$$\beta_k^{(\tau)}(X) = \beta_k^{(\tau)}(Y) \quad \text{para } q \in \{0.15, 0.20\}$$
-
-**H.E.1c (confirmada):**
-$$d_B \leq 2 \cdot d_H(X, Y) \quad \text{(100\% de las 700 réplicas)}$$
-
-**Métrica de clasificación:** Exactitud = correctos/total"""
+            "H.E.1a' (corregida — la que SÍ se valida)",
+            r"\frac{d_{B}\bigl(\text{Dgm}_{k}^{\text{VR}}(X),\ \text{Dgm}_{k}^{\text{VR}}(Y)\bigr)}{\operatorname{diam}(X)} \le 2q"
+        ),
+        (
+            "H.E.1a original (FALSIFICADA en §4.4, tasa de acierto = 0.0036)",
+            r"\beta_{k}^{(\tau)}(X) = \beta_{k}^{(\tau)}(Y) \quad \text{para } q \in \{0.15,\ 0.20\}"
+        ),
+        (
+            "H.E.1c (confirmada)",
+            r"d_{B} \le 2\, d_{H}(X, Y) \quad \text{(100\% de las 700 réplicas)}"
+        ),
+        (
+            "Métrica de clasificación",
+            "Exactitud = correctos/total"
         )
     ],
     "H.E.1"

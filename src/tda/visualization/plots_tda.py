@@ -245,8 +245,8 @@ def plot_sweep_persistence_animation(results):
     noise_pct = noise_vals * 100
 
     # Frame 0 (primer nivel de ruido) para figura base
-    dgms_s0 = diagrams_s[0]["dgms"]
-    dgms_t0 = diagrams_t[0]["dgms"]
+    dgms_s0 = diagrams_s[0] if diagrams_s else []
+    dgms_t0 = diagrams_t[0] if diagrams_t else []
 
     def _filter_finite(dgm):
         if not hasattr(dgm, 'shape') or dgm.ndim != 2 or len(dgm) == 0:
@@ -268,7 +268,7 @@ def plot_sweep_persistence_animation(results):
     )
 
     # Esfera 0D
-    d0 = _filter_finite(dgms_s0["dgms"][0])
+    d0 = _filter_finite(dgms_s0[0]) if len(dgms_s0) > 0 else np.empty((0, 2))
     fig.add_trace(
         go.Scatter(
             x=d0[:, 0] if len(d0) > 0 else [],
@@ -280,7 +280,7 @@ def plot_sweep_persistence_animation(results):
     )
 
     # Esfera 1D
-    d1 = _filter_finite(dgms_s0["dgms"][1])
+    d1 = _filter_finite(dgms_s0[1]) if len(dgms_s0) > 0 else np.empty((0, 2))
     fig.add_trace(
         go.Scatter(
             x=d1[:, 0] if len(d1) > 0 else [],
@@ -292,7 +292,7 @@ def plot_sweep_persistence_animation(results):
     )
 
     # Toro 0D
-    d0_t = _filter_finite(dgms_t0["dgms"][0])
+    d0_t = _filter_finite(dgms_t0[0])
     fig.add_trace(
         go.Scatter(
             x=d0_t[:, 0] if len(d0_t) > 0 else [],
@@ -304,7 +304,7 @@ def plot_sweep_persistence_animation(results):
     )
 
     # Toro 1D
-    d1_t = _filter_finite(dgms_t0["dgms"][1])
+    d1_t = _filter_finite(dgms_t0[1])
     fig.add_trace(
         go.Scatter(
             x=d1_t[:, 0] if len(d1_t) > 0 else [],
