@@ -268,7 +268,7 @@ def plot_sweep_persistence_animation(results):
     )
 
     # Esfera 0D
-    d0 = _filter_finite(dgms_s0["dgm0"])
+    d0 = _filter_finite(dgms_s0["dgms"][0])
     fig.add_trace(
         go.Scatter(
             x=d0[:, 0] if len(d0) > 0 else [],
@@ -280,7 +280,7 @@ def plot_sweep_persistence_animation(results):
     )
 
     # Esfera 1D
-    d1 = _filter_finite(dgms_s0["dgm1"])
+    d1 = _filter_finite(dgms_s0["dgms"][1])
     fig.add_trace(
         go.Scatter(
             x=d1[:, 0] if len(d1) > 0 else [],
@@ -292,7 +292,7 @@ def plot_sweep_persistence_animation(results):
     )
 
     # Toro 0D
-    d0_t = _filter_finite(dgms_t0["dgm0"])
+    d0_t = _filter_finite(dgms_t0["dgms"][0])
     fig.add_trace(
         go.Scatter(
             x=d0_t[:, 0] if len(d0_t) > 0 else [],
@@ -304,7 +304,7 @@ def plot_sweep_persistence_animation(results):
     )
 
     # Toro 1D
-    d1_t = _filter_finite(dgms_t0["dgm1"])
+    d1_t = _filter_finite(dgms_t0["dgms"][1])
     fig.add_trace(
         go.Scatter(
             x=d1_t[:, 0] if len(d1_t) > 0 else [],
