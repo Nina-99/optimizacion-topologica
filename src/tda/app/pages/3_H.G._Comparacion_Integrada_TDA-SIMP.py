@@ -24,7 +24,7 @@ from plotly.subplots import make_subplots
 
 from tda.app.theme import (
     apply_mpl_theme, apply_plotly_theme, responsive_style,
-    methodology_expander, page_header
+    methodology_expander, page_header, ORANGE
 )
 
 export_settings_ui()

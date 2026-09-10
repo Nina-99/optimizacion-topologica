@@ -837,7 +837,7 @@ if st.session_state.get('simp_optimized', False):
         n_iter = st.session_state.simp_n_iter
         converged = st.session_state.simp_converged
         c_hist = st.session_state.simp_c_hist
-        c_hist_arr = np.array(c_hist) if c_hist else np.array([])
+        c_hist_arr = np.array(c_hist) if c_hist is not None else np.array([])
 
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Iteraciones", f"{n_iter}")
