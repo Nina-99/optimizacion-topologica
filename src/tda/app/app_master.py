@@ -126,55 +126,45 @@ div[data-testid="stPageLink"] a:hover {
 </style>
 """, unsafe_allow_html=True)
 
-col1, col2, col3, col4 = st.columns(4)
+# ── Fila de Tarjetas de Acceso ──
+cols = st.columns(4)
 
-with col1:
+with cols[0]:
     st.markdown(landing_card(
-        icon="📊",
-        title="H.E.1 — Robustez TDA",
-        description="Homología persistente estable bajo ruido 15–20%<br>superando K-Medias y PCA (Def. 1.4, Teo. Estabilidad)",
+        icon="📐",
+        title="H.E.1 — Robustez",
+        description="Validación de invariantes topológicos bajo ruido gaussiano y comparación con descriptores euclidianos.",
         variant="orange"
     ), unsafe_allow_html=True)
-    st.page_link("pages/1_H.E.1_Robustez_TDA_vs_Euclidianos.py",
-                 label="📊 Abrir H.E.1",
-                 width='stretch')
+    st.page_link("pages/1_H.E.1_Robustez_TDA_vs_Euclidianos.py", label="📐 Abrir H.E.1", width='stretch')
 
-with col2:
+with cols[1]:
     st.markdown(landing_card(
         icon="🧮",
-        title="H.E.2 — SIMP + μ_α",
-        description="Optimización estructural con μ_α = c + α·β₁<br>p=3, fV=0.5, reducción compliance ≥40% (Def. 1.9)",
+        title="H.E.2 — Optimización",
+        description="Implementación de SIMP con métrica compuesta μ_α para optimización de compliance y topología.",
         variant="orange"
     ), unsafe_allow_html=True)
-    st.page_link("pages/2_H.E.2_Optimizacion_SIMP_Metrica_Compuesta.py",
-                 label="🧮 Abrir H.E.2",
-                 width='stretch')
+    st.page_link("pages/2_H.E.2_Optimizacion_SIMP_Metrica_Compuesta.py", label="🧮 Abrir H.E.2", width='stretch')
 
-with col3:
+with cols[2]:
     st.markdown(landing_card(
         icon="🔬",
-        title="H.G. — Comparación Integrada",
-        description="TDA+SIMP vs euclidianos: compliance, β₁, μ_α<br>Validación integral (Cuadro 9, Objetivo General)",
+        title="H.G. — Comparación",
+        description="Síntesis integral de TDA+SIMP: Validación de la Hipótesis General y Pareto-optimalidad.",
         variant="orange"
     ), unsafe_allow_html=True)
-    st.page_link("pages/3_H.G._Comparacion_Integrada_TDA-SIMP.py",
-                 label="🔬 Abrir H.G.",
-                 width='stretch')
+    st.page_link("pages/3_H.G._Comparacion_Integrada_TDA-SIMP.py", label="🔬 Abrir H.G.", width='stretch')
 
-# Segunda fila de tarjetas
-st.markdown("<br>", unsafe_allow_html=True)
-col5, col6, _ = st.columns(3)
-
-with col5:
+with cols[3]:
     st.markdown(landing_card(
         icon="🧪",
-        title="Playground — Laboratorio",
-        description="Experimentá con optimización 1D, SIMP 2D,<br>barridos de p y comparaciones lado a lado",
+        title="Ejemplo Viga 1D vs 2D",
+        description="Laboratorio interactivo: Comparación de optimización analítica 1D vs topológica SIMP 2D.",
         variant="orange"
     ), unsafe_allow_html=True)
-st.page_link("pages/4_Ejemplo_Viga_1D_vs_2D.py",
-                   label="🧪 Abrir Ejemplo Viga 1D vs 2D",
-                   width='stretch')
+    st.page_link("pages/4_Ejemplo_Viga_1D_vs_2D.py", label="🧪 Abrir Ejemplo", width='stretch')
+
 
 # ── Footer ──
 st.markdown("---")
