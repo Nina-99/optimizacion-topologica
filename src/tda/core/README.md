@@ -1,6 +1,13 @@
 # Módulo Core (Análisis Topológico de Datos)
 
-Este módulo contiene la base matemática y algorítmica del proyecto para el cálculo de invariantes topológicos y distancias entre diagramas de persistencia.
+Este módulo contiene la base matemática y algorítmica del proyecto para el cálculo de invariantes topológicos, distancias entre diagramas de persistencia y métricas compuestas.
+
+## Archivos
+
+- `topology.py` — Wasserstein, bottleneck, betti_numbers, binarización y homología sobre nubes de puntos.
+- `betti2d.py` — Cálculo de betti y diagramas de persistencia sobre grillas 2D (GUDHI). Utilizado por MetricaTDA_SIMP en la fase TDA post-hoc.
+- `fem.py` — Motor FEM Q4: ensamble de rigidez, solver, sensibilidades y actualización OC.
+- `metric.py` — Métrica compuesta μ_α = c + α·β₁ y calibración de α*.
 
 ## Contexto Matemático
 
@@ -44,6 +51,20 @@ Este módulo provee las métricas fundamentales para la validación de la **Hip�
 * **Salidas:**
   * `Tuple[int, int]`: Tupla $(\beta_0, \beta_1)$ con los números de Betti correspondientes.
 
+### `betti_doble_computo(S, verbose)` (betti2d.py)
+* **Entradas:**
+  * `S` (np.ndarray): Grid binario 2D de dimensiones $(nely, nelx)$.
+  * `verbose` (bool): Si True, imprime info de depuración.
+* **Salidas:**
+  * `dict`: Diccionario con `beta0`, `beta1`, `dgm0`, `dgm1` (diagramas de persistencia GUDHI).
+
+### `diagramas_gudhi(S)` (betti2d.py)
+* **Entradas:**
+  * `S` (np.ndarray): Grid binario 2D.
+* **Salidas:**
+  * `Tuple[dgm0, dgm1]`: Diagramas de persistencia para H_0 y H_1.
+
 ## Dependencias
 * `numpy`
+* `gudhi` (para cálculo de homología en grillas 2D)
 * `persim` (para el cálculo eficiente de distancias)

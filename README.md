@@ -33,7 +33,7 @@ La arquitectura sigue un diseño modular y desacoplado, estructurado de la sigui
 ```mermaid
 graph TD
     subgraph Cliente / Interfaz de Usuario
-        App[src/tda/app/app_master.py]
+        App[src/tda/app/plataforma_tda_simp.py]
     end
     
     subgraph Orquestación de Simulación
@@ -90,10 +90,15 @@ EstructuraTopologica/
         │   └── stability.py         # Barrido de ruido gaussiano para validar H.E.1
         ├── app/                     # Interfaz de usuario (Streamlit)
         │   ├── __init__.py
-        │   ├── app_master.py        # App principal interactiva (Master App)
+        │   ├── plataforma_tda_simp.py  # Landing page: Plataforma TDA-SIMP
+        │   ├── theme.py              # Tema visual, estilos y funciones de UI
+        │   ├── download_utils.py     # Utilidades de exportacion y configuracion .exe
         │   └── pages/
         │       ├── __init__.py
-        │       └── page_tda_kmedias.py  # Página: TDA vs K-Medias bajo ruido (H.E.1)
+        │       ├── 1_H.E.1_Robustez_TDA_vs_Euclidianos.py  # H.E.1: Robustez TDA vs Euclidianos
+        │       ├── 2_H.E.2_Optimizacion_SIMP_Metrica_Compuesta.py  # H.E.2: Optimizacion SIMP + metrica compuesta
+        │       ├── 3_H.G._Comparacion_Integrada_TDA-SIMP.py  # H.G.: Comparacion integrada TDA-SIMP
+        │       └── 4_Ejemplo_Viga_1D_vs_2D.py  # Ejemplo: Viga 1D vs 2D con load cases y STL
         ├── core/                    # Núcleo matemático
         │   ├── __init__.py
         │   ├── fem.py               # Motor FEM Q4: ensamble, solver, sensibilidades, OC
@@ -213,23 +218,27 @@ venv\Scripts\python -m tda.simulation.pipeline   # Windows
 
 Esto procesará la optimización de una viga en voladizo (cantilever beam), generará los archivos de datos correspondientes en el directorio de salida y computará los números de Betti y diagramas de persistencia de la topología final obtenida.
 
-### Modo 2: Aplicación Master en Streamlit
+### Modo 2: Plataforma TDA-SIMP en Streamlit
 
-Para iniciar el panel de control gráfico e interactivo:
+Para iniciar la plataforma interactiva:
 
 ```bash
 # Con el venv activado:
-streamlit run src/tda/app/app_master.py
+streamlit run src/tda/app/plataforma_tda_simp.py
 
 # 0 sin activar, usando la ruta directa:
-venv/bin/streamlit run src/tda/app/app_master.py     # Linux/macOS
-venv\Scripts\streamlit run src\tda\app\app_master.py  # Windows
+venv/bin/streamlit run src/tda/app/plataforma_tda_simp.py     # Linux/macOS
+venv\Scripts\streamlit run src\tda\app\plataforma_tda_simp.py  # Windows
 ```
 
-Una vez ejecutado, abra el navegador web en la dirección indicada por la consola (usualmente `http://localhost:8501`). La interfaz interactiva le permitirá:
+Una vez ejecutado, abra el navegador web en la direccion indicada por la consola (usualmente `http://localhost:8501`). La interfaz interactiva contiene 4 modulos:
 
-1. Configurar y simular la optimización SIMP 2D de vigas bajo diferentes mallas.
-2. Añadir ruido de perturbación a nubes de puntos y evaluar en vivo la estabilidad de los códigos de barra y diagramas de persistencia calculados por Ripser.
-3. Exportar resultados visuales en formato PNG y datos analíticos en CSV.
+1. **H.E.1 — Robustez TDA vs Euclidianos:** Genera nubes de puntos sinteticas (esfera, toro) con ruido gaussiano, ejecuta K-Medias y valida la estabilidad de invariantes topologicos (beta_0, beta_1) frente a descriptores euclidianos. Incluye Cuadro 4 (tasa de acierto por nivel de ruido), Cuadro 5 (exactitud TDA vs Euclidiano con/sin deformacion afina) y estimacion de q*.
+
+2. **H.E.2 — Optimizacion SIMP + Metrica Compuesta:** Optimizacion topologica 2D con SIMP, metrica compuesta mu_alpha y barrido multi-configuracion (rmin, p, malla). Valida H.E.2a' (reduccion >=40% vs uniforme) y H.E.2b' (beta_1 invariante bajo variacion de malla y r_min). Incluye Cuadro 7 (barrido p) y Cuadro 8 (barrido malla).
+
+3. **H.G. — Comparacion Integrada TDA-SIMP:** Sintesis integral: barrido de penalizacion p={2,3,4}, analisis de dominancia, sensibilidad al parametro alpha, diagramas de persistencia lado a lado y veredicto consolidado.
+
+4. **Ejemplo Viga 1D vs 2D:** Laboratorio interactivo con 3 modos de carga (Voladizo-Puntual, Articulado-Central, Voladizo-Distribuida), optimizacion analitica 1D, SIMP 2D con animacion, barrido de penalizacion, comparacion lado a lado y exportacion STL del diseno binario.
 
 > **Citación:** Si utilizás este framework en publicaciones académicas, por favor referenciá el repositorio y el proyecto de investigación asociado, disponible en la documentación del repositorio.

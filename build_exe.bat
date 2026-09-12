@@ -21,7 +21,7 @@ REM   dist\EstructuraTopologica.exe
 REM ============================================
 
 set VENV_DIR=build_venv
-set APP_SCRIPT=src\tda\app\app_master.py
+set APP_SCRIPT=src\tda\app\plataforma_tda_simp.py
 set APP_NAME=EstructuraTopologica
 set REQUIREMENTS=requirements.txt
 

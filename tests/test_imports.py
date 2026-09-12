@@ -20,7 +20,7 @@ def test_package_importable(package_name: str) -> None:
 
 
 # Módulos que requieren streamlit — se skippean si no está disponible
-STREAMLIT_MODULES = {"tda.app.theme", "tda.app.app_master", "tda.app.download_utils"}
+STREAMLIT_MODULES = {"tda.app.theme", "tda.app.plataforma_tda_simp", "tda.app.download_utils"}
 STREAMLIT_PAGE_PREFIX = "tda.app.pages."
 
 

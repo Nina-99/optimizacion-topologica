@@ -8,7 +8,7 @@ REM ============================================
 
 set VENV_DIR=.venv
 set REQUIREMENTS=requirements.txt
-set APP_PATH=src\tda\app\app_master.py
+set APP_PATH=src\tda\app\plataforma_tda_simp.py
 
 echo.
 echo === Verificando Gestor de Paquetes (uv) ===

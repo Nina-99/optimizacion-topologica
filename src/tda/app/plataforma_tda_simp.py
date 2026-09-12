@@ -31,7 +31,7 @@ from tda.app.theme import landing_card, footer_style, update_hero_orange, respon
 # CONFIGURACIÓN DE PÁGINA (DEBE SER EL PRIMER COMANDO STREAMLIT)
 # ==========================================
 st.set_page_config(
-    page_title="TDA-SIMP Master Suite",
+    page_title="Plataforma TDA-SIMP",
     layout="wide",
     page_icon="📐"
 )

@@ -60,7 +60,7 @@ La visualización incluye tres subplots:
 
 La funcionalidad se basa en una arquitectura modular:
 
-1. **Interfaz de usuario**: Implementada con Streamlit en `src/tda/app/app_master.py`
+1. **Interfaz de usuario**: Implementada con Streamlit en `src/tda/app/plataforma_tda_simp.py`
 2. **Motor de optimización**: Clase `BeamOptimizer` en `src/tda/optimization/beam_optimizer.py`
 3. **Visualización**: Utiliza Plotly para gráficos interactivos
 

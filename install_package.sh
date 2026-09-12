@@ -8,7 +8,7 @@ set -euo pipefail
 
 VENV_DIR=".venv"
 REQUIREMENTS="requirements.txt"
-APP_PATH="src/tda/app/app_master.py"
+APP_PATH="src/tda/app/plataforma_tda_simp.py"
 
 # Colores para mensajes
 reset="\033[0m"
