@@ -1,31 +1,31 @@
 """Página 2: H.E.2 — Optimización SIMP + Métrica Compuesta.
 
-Valida las hipótesis corregidas tras el estudio piloto (§4.4):
+Valida las hipótesis corregidas tras el estudio piloto (4.4):
 
-H.E.2a' (CORREGIDA — §4.4 Hallazgo 2):
+H.E.2a' (CORREGIDA — 4.4 Hallazgo 2):
     (c(fV·1) − c(ρ⋆)) / c(fV·1) ≥ 0.40
     Reducción ≥ 40% frente al diseño uniforme de igual volumen.
     El referente original (bloque sólido) era lógicamente imposible
     por la Proposición 8.3: c(ρ) ≥ c(1) para todo ρ admisible.
 
-H.E.2b' (CORREGIDA — §4.4 Hallazgo 3):
-    β₁(Ω_sólido) es independiente de la resolución de malla y del
+H.E.2b' (CORREGIDA — 4.4 Hallazgo 3):
+    β1(Ω_sólido) es independiente de la resolución de malla y del
     radio del filtro rmin ∈ [1.5, 4.0].
     Descriptor invariante (descriptivo, no prescriptivo).
-    La cota original β₁ ≤ 2 era prescriptiva sobre un invariante
+    La cota original β1 ≤ 2 era prescriptiva sobre un invariante
     que el método no controla.
 
 H.E.2a original (FALSIFICADA — reducción = −91.07%):
     Reducción ≥ 40% vs bloque sólido. Imposible por Prop. 8.3.
 
-H.E.2b original (FALSIFICADA — β₁ = 2 ≤ 2):
-    β₁ ≤ 2. Cota fijada a priori sobre invariante no controlado.
+H.E.2b original (FALSIFICADA — β1 = 2 ≤ 2):
+    β1 ≤ 2. Cota fijada a priori sobre invariante no controlado.
 
 Referencias:
-- Perfil §4.4: Estudio piloto y reformulación de hipótesis
-- Perfil §8.3: Formulación SIMP, Proposición 8.3
-- metodologia_implementacion.txt §2.3: El referente hace la hipótesis imposible
-- metodologia_implementacion.txt §8: Resultados del Caso 2
+- Perfil 4.4: Estudio piloto y reformulación de hipótesis
+- Perfil 8.3: Formulación SIMP, Proposición 8.3
+- metodologia_implementacion.txt 2.3: El referente hace la hipótesis imposible
+- metodologia_implementacion.txt 8: Resultados del Caso 2
 """
 
 import streamlit as st
@@ -34,17 +34,31 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-from matplotlib.backends.backend_pdf import PdfPages
 import io
 import zipfile
 from datetime import datetime
 
+
+# Helper to create material distribution heatmap Plotly figure
+def plot_material_distribution(density_2d, title: str):
+    """Return a Plotly heatmap figure for material distribution.
+    Applies the global Plotly theme before returning.
+    """
+    fig = go.Figure(data=[go.Heatmap(
+        z=density_2d,
+        colorscale='gray_r',
+        zmin=0, zmax=1,
+        colorbar=dict(title='rho')
+    )])
+    fig.update_layout(title=title)
+    apply_plotly_theme(fig)
+    return fig
+
 from tda.optimization.metric_simp import MetricaTDA_SIMP
 from tda.app.theme import (
-    apply_mpl_theme, apply_plotly_theme, is_dark,
-    metric_card, report_header, responsive_style, diagnosticar_he2,
-    methodology_expander, page_header, ORANGE
+    apply_mpl_theme, apply_plotly_theme,
+    responsive_style,
+    methodology_expander, page_header
 )
 
 # ── Configuración de exportación (.exe) ──
@@ -60,290 +74,121 @@ st.set_page_config(page_title="H.E.2 — Optimización SIMP + Métrica Compuesta
 
 st.markdown(responsive_style(), unsafe_allow_html=True)
 
-# ── Modo Defensa Toggle ──
-_modo_original = st.sidebar.checkbox("🔄 Usar parámetros de la tesis (α=0.012, r_min=2.4)", value=True,
-    help="Restaura los valores del Cuadro 1 de la tesis. Default: α=0.036, r_min=3.0 (validados experimentalmente).")
-
 # ── Page Header ──
 st.markdown(page_header(
     "H.E.2 — Optimización SIMP + Métrica Compuesta μ_α",
-    "H.E.2a': reducción ≥40% vs uniforme | H.E.2b': β₁ invariante (§4.4 corregido)"
+    "H.E.2a': reduccion >=40% vs uniforme | H.E.2b': beta1 invariante"
 ), unsafe_allow_html=True)
+# Intro subheader
+st.subheader("Objetivo de Validacion -- Hipotesis H.E.2")
+st.markdown("""
+**H.E.2a':** La optimizacion SIMP con p=3 y f_V=0.5 reduce la compliance al menos un 40% respecto al diseno uniforme de igual volumen.
+
+**H.E.2b':** El Betti 1 (Omega solido) es independiente de la resolucion de malla y del radio del filtro r_min en [1.5, 4.0].
+""")
 
 # ── Sidebar ──
 st.sidebar.header("🏗️ Optimización SIMP")
+
+# Dominio (determina geometría y mallas disponibles)
+dominio = st.sidebar.radio(
+    "Dominio",
+    ["Rectangular (viga en voladizo, 2:1)", "Cuadrado (independencia de malla)"],
+    key="simp_dominio",
+    help="Rectangular: caso tesis (viga empotrada). "
+         "Cuadrado: para verificar invariancia de malla (H.E.2b)."
+)
+
+# Mallas según dominio (Perfil4.txt 4.3, Cuadro 1)
+if dominio.startswith("Rectangular"):
+    opciones_malla = [
+        "40x20 (800 elem)",
+        "60x30 (1800 elem, Caso Tesis)",
+        "80x40 (3200 elem)",
+        "120x60 (7200 elem)",
+    ]
+    idx_default = 1
+    Lx_val, Ly_val = 120.0, 40.0
+else:
+    # Cuadrado: Ne ∈ {1600, 6400, 14400} → 40², 80², 120²
+    opciones_malla = [
+        "40x40 (1600 elem)",
+        "80x80 (6400 elem)",
+        "120x120 (14400 elem)",
+    ]
+    idx_default = 0
+    Lx_val, Ly_val = 120.0, 120.0
+
 malla_opcion = st.sidebar.selectbox(
     "Resolución de Malla",
-    ["60x30 (Caso Tesis)", "80x50 (4000 elem)", "100x60 (6000 elem)", "80x80 (6400 elem)"],
+    opciones_malla,
+    index=idx_default,
     key="simp_malla",
-    help="Resolución de elementos finitos Q4. 60×30 es el caso de la tesis. Mayor resolución captura detalles más finos pero aumenta el tiempo de cómputo. 80×50 y 100×60 permiten mejores reducciones de compliance (hacia el 40% objetivo)."
 )
-volfrac = st.sidebar.slider("Fracción de Volumen", 0.0, 1.0, 0.5, 0.01, key="simp_volfrac_input",
-    help="Fracción de volumen permitida respecto al dominio completo. f_V = 0.5 significa que solo el 50% del espacio puede tener material. Valores típicos: 0.3-0.7. "
-    "Cuidado: f_V muy cercano a 0 o 1 puede causar problemas de convergencia en el optimizer SIMP.")
-penal = st.sidebar.number_input("Factor Penalización (p)", value=3.0, step=1.0, key="simp_penal",
-    help="Penaliza densidades intermedias (material gris) forzando una solución 0/1. p=3 es el estándar SIMP. p>3 converge más rápido pero puede ser inestable.")
-rmin = st.sidebar.number_input("Radio Filtro", value=(2.4 if _modo_original else 3.0), step=0.1, key="simp_rmin",
-    help="Radio del filtro de sensibilidad. Default: 3.0 (validado). Con valor original: 2.4.")
-alpha = st.sidebar.number_input("Peso α (métrica μ_α)", value=(0.012 if _modo_original else 0.036), step=0.001, format="%.3f", key="simp_alpha",
-    help="Peso del término topológico β₁. Default: 0.036 (validado, β₁≤2). Con valor original: 0.012.")
 
-st.sidebar.markdown("---")
-st.sidebar.header("📐 Parámetros Físicos")
-E_acero = st.sidebar.number_input("Módulo Young E₀ (MPa)", value=200000.0, step=1000.0, help="Acero = 200 GPa = 200,000 MPa")
-F_carga = st.sidebar.number_input("Carga F (N)", value=1000.0, step=100.0, help="Carga aplicada = 1 kN = 1000 N")
-espesor = st.sidebar.number_input("Espesor (mm)", value=1.0, step=0.1, help="Espesor de la viga en 2D plano")
+# fV fijo en 0.5 (Hipótesis H.E.2a': diseño uniforme de igual volumen)
+st.sidebar.markdown("**f_V = 0.5** (fijo, diseño uniforme de igual volumen)")
+volfrac = 0.5
 
-# Nuevo slider para iteraciones máximas
-max_iter = st.sidebar.slider("Iteraciones Máximas", min_value=100, max_value=500, value=200,
-    help="Número máximo de iteraciones del bucle SIMP. Valor por defecto (200) sugiere una convergencia más completa. "
-    "La barra de progreso se ajustará automáticamente a este valor.")
+# Penalización p: variable independiente (Cuadro 1: p ∈ {1, 2, 3, 4})
+penal = st.sidebar.number_input(
+    "Factor Penalización (p)",
+    value=3.0, min_value=1.0, max_value=5.0, step=1.0,
+    key="simp_penal",
+    help="Variable independiente. p=3 es el estándar SIMP. "
+         "El barrido H.E.2b prueba p ∈ {2, 3, 4}."
+)
 
+# Radio del filtro r_min: variable interveniente (Perfil4.txt: r_min ∈ [1.5, 4.0])
+rmin = st.sidebar.number_input(
+    "Radio Filtro (r_min, elementos)",
+    value=2.4, min_value=1.0, max_value=5.0, step=0.1,
+    key="simp_rmin",
+    help="Variable interveniente. Rango válido: [1.5, 4.0] elementos. "
+         "Default tesis: 2.4."
+)
 
-# ==========================================
-# FUNCIÓN DE ANIMACIÓN SIMP CON PLOTLY
-# ==========================================
-def crear_animacion_simp(rho_hist, c_hist, nex, ney, volfrac, penal):
-    """
-    Crea una figura Plotly animada con la evolución del proceso SIMP.
-    Incluye slider de iteración, botones Play/Pause/Reset,
-    y gráfico de convergencia sincronizado.
-    """
-    n_frames = len(rho_hist)
-    dark = is_dark()
-
-    # Colores según tema
-    bg = 'rgba(0,0,0,0)' if dark else '#fafafa'
-    paper_bg = 'rgba(0,0,0,0)' if dark else 'white'
-    grid_c = '#444444' if dark else '#ecf0f1'
-    font_c = '#ecf0f1' if dark else '#2c3e50'
-    annot_bg = 'rgba(30,30,30,0.9)' if dark else 'rgba(255,255,255,0.9)'
-    annot_border = '#555555' if dark else '#bdc3c7'
-
-    # Downsample si hay demasiados frames (>50)
-    if n_frames > 50:
-        step = max(1, n_frames // 50)
-        idx = list(range(0, n_frames, step))
-        if idx[-1] != n_frames - 1:
-            idx.append(n_frames - 1)
-        rho_hist_ds = [rho_hist[i] for i in idx]
-        c_hist_ds = [c_hist[i] for i in idx]
-        n_frames_ds = len(rho_hist_ds)
-    else:
-        rho_hist_ds = rho_hist
-        c_hist_ds = c_hist
-        idx = list(range(n_frames))
-        n_frames_ds = n_frames
-
-    # Crear figura con subplots
-    fig = make_subplots(
-        rows=2, cols=1,
-        row_heights=[0.75, 0.25],
-        vertical_spacing=0.12,
-        subplot_titles=(
-            "Distribución de Material (ρ)",
-            "Convergencia de Compliance c(ρ)"
-        )
+# Peso α (observer, no parte de la hipótesis)
+with st.sidebar.expander("⚙️ Parámetros del Observer", expanded=False):
+    alpha = st.number_input(
+        "Peso α (métrica μ_α)",
+        value=0.012, step=0.001, format="%.3f",
+        key="simp_alpha",
+        help="Peso del término topológico β1 en la métrica compuesta. "
+             "No es parte de la hipótesis, es un parámetro del observer. "
+             "Default tesis: 0.012."
+    )
+    max_iter = st.slider(
+        "Iteraciones Máximas",
+        min_value=100, max_value=500, value=200,
+        key="simp_max_iter",
+        help="Máximo de iteraciones SIMP. Default: 200."
     )
 
-    # Frame inicial (iteración 0)
-    rho_2d_0 = rho_hist_ds[0].reshape(ney, nex)
-
-    # Heatmap de densidades
-    fig.add_trace(
-        go.Heatmap(
-            z=rho_2d_0,
-            colorscale='gray_r',
-            zmin=0, zmax=1,
-            colorbar=dict(title='ρ', x=1.02, len=0.7, thickness=15),
-            hovertemplate='x: %{x}<br>y: %{y}<br>ρ: %{z:.3f}<extra></extra>'
-        ),
-        row=1, col=1
+# Parámetros físicos fijos (no son variables de la hipótesis)
+with st.sidebar.expander("📐 Parámetros Físicos (fijos)", expanded=False):
+    E_acero = st.number_input(
+        "Módulo Young E₀ (MPa)", value=200000.0, step=1000.0,
+        help="Acero = 200 GPa = 200,000 MPa"
+    )
+    F_carga = st.number_input(
+        "Carga F (N)", value=1000.0, step=100.0,
+        help="Carga aplicada = 1 kN = 1000 N"
+    )
+    espesor = st.number_input(
+        "Espesor (mm)", value=1.0, step=0.1,
+        help="Espesor de la viga en 2D plano"
     )
 
-    # Línea de convergencia (vacía inicialmente, se llena en frames)
-    fig.add_trace(
-        go.Scatter(
-            x=[], y=[],
-            mode='lines',
-            line=dict(color='royalblue', width=2),
-            name='Compliance',
-            hovertemplate='Iter: %{x}<br>c: %{y:.4f}<extra></extra>'
-        ),
-        row=2, col=1
-    )
+# Track parameters for stale-data warning (HE.2 specific)
+current_params_he2 = (dominio, malla_opcion, penal, rmin, alpha, max_iter)
+if 'last_params_he2' not in st.session_state:
+    st.session_state.last_params_he2 = current_params_he2
+stale_data_he2 = st.session_state.last_params_he2 != current_params_he2
 
-    # Línea vertical de iteración actual
-    fig.add_trace(
-        go.Scatter(
-            x=[], y=[],
-            mode='lines',
-            line=dict(color='red', width=2, dash='dash'),
-            name='Iteración actual',
-            showlegend=True
-        ),
-        row=2, col=1
-    )
-
-    # Crear frames para la animación
-    frames = []
-    for k, (i_frame, (rho_k, c_k)) in enumerate(zip(idx, zip(rho_hist_ds, c_hist_ds))):
-        rho_2d_k = rho_k.reshape(ney, nex)
-        iter_real = i_frame + 1  # 1-indexed
-
-        # Compliance history UP TO this iteration
-        c_up_to = c_hist[:i_frame + 1]
-
-        # Meter toda la info en una sola string para el título
-        n_solid = int(np.sum(rho_k > 0.5))
-        pct_solid = 100 * n_solid / len(rho_k)
-
-        frame = go.Frame(
-            data=[
-                # Heatmap
-                go.Heatmap(
-                    z=rho_2d_k,
-                    colorscale='gray_r',
-                    zmin=0, zmax=1,
-                    colorbar=dict(title='ρ', x=1.02, len=0.7, thickness=15)
-                ),
-                # Convergence line
-                go.Scatter(
-                    x=np.arange(1, len(c_up_to) + 1),
-                    y=c_up_to,
-                    mode='lines',
-                    line=dict(color='royalblue', width=2)
-                ),
-                # Current iteration marker
-                go.Scatter(
-                    x=[iter_real, iter_real],
-                    y=[min(c_hist), max(c_hist)],
-                    mode='lines',
-                    line=dict(color='red', width=2, dash='dash')
-                )
-            ],
-            name=str(k),
-            layout=go.Layout(
-                annotations=[dict(
-                    x=0.5, y=1.0, xref='paper', yref='paper',
-                    text=f'<b>Iteración {iter_real}/{n_frames}</b> | '
-                         f'c = {c_k:.4f} | Sólidos: {n_solid}/{len(rho_k)} ({pct_solid:.1f}%)',
-                    showarrow=False, font=dict(size=13, color=font_c),
-                    align='center', bgcolor=annot_bg,
-                    bordercolor=annot_border, borderwidth=1,
-                    xanchor='center', yanchor='bottom'
-                )]
-            )
-        )
-        frames.append(frame)
-
-    fig.frames = frames
-
-    # Determinar rango y del convergence plot
-    c_min = min(c_hist)
-    c_max = max(c_hist)
-    c_range = c_max - c_min if c_max != c_min else 1.0
-
-    # Layout general
-    fig.update_layout(
-        title=dict(
-            text=f'<b>Evolución de la Optimización SIMP</b><br>'
-                 f'<sup>Malla {nex}×{ney} | f_V={volfrac} | p={penal}</sup>',
-            font=dict(size=16),
-            x=0.5, xanchor='center'
-        ),
-        height=650,
-        hovermode='x unified',
-        # Ejes del heatmap
-        xaxis1=dict(visible=False, range=[-0.5, nex - 0.5]),
-        yaxis1=dict(visible=False, range=[-0.5, ney - 0.5], scaleanchor='x', autorange='reversed'),
-        # Ejes de la convergencia
-        xaxis2=dict(
-            title='Iteración',
-            range=[0, n_frames + 1],
-            gridcolor=grid_c,
-            zeroline=False
-        ),
-        yaxis2=dict(
-            title='Compliance c(ρ)',
-            type='log',
-            range=[
-                np.log10(max(c_min - 0.1 * c_range, 1e-10)),
-                np.log10(c_max + 0.1 * c_range)
-            ],
-            gridcolor=grid_c,
-            zeroline=False
-        ),
-        # Slider
-        sliders=[{
-            'currentvalue': {
-                'prefix': 'Iteración: ',
-                'font': {'size': 14, 'color': font_c},
-                'xanchor': 'center'
-            },
-            'len': 0.92,
-            'x': 0.04,
-            'y': 0.0,
-            'pad': {'t': 40, 'b': 10},
-            'font': {'size': 11},
-            'steps': [
-                {
-                    'args': [[str(k)], {
-                        'frame': {'duration': 0, 'redraw': True},
-                        'mode': 'immediate',
-                        'transition': {'duration': 0}
-                    }],
-                    'label': str(idx[k] + 1),
-                    'method': 'animate'
-                }
-                for k in range(n_frames_ds)
-            ]
-        }],
-        # Botones de control
-        updatemenus=[{
-            'type': 'buttons',
-            'showactive': False,
-            'x': 0.0,
-            'y': -0.05,
-            'xanchor': 'left',
-            'yanchor': 'top',
-            'font': {'size': 12},
-            'buttons': [
-                {
-                    'label': '▶ Play',
-                    'method': 'animate',
-                    'args': [None, {
-                        'frame': {'duration': 150, 'redraw': True},
-                        'fromcurrent': True,
-                        'mode': 'immediate',
-                        'transition': {'duration': 0}
-                    }]
-                },
-                {
-                    'label': '⏸ Pause',
-                    'method': 'animate',
-                    'args': [[], {
-                        'mode': 'immediate',
-                        'transition': {'duration': 0}
-                    }]
-                },
-                {
-                    'label': '⏪ Reset',
-                    'method': 'animate',
-                    'args': [[None], {
-                        'frame': {'duration': 0, 'redraw': True},
-                        'fromcurrent': False,
-                        'mode': 'immediate',
-                        'transition': {'duration': 0}
-                    }]
-                }
-            ]
-        }],
-        plot_bgcolor=bg,
-        paper_bgcolor=paper_bg,
-    )
-
-    return fig
+# Aviso de datos obsoletos para H.E.2
+if stale_data_he2 and st.session_state.get('simp_optimized', False):
+    st.warning("⚠️ Parámetros modificados – vuelva a ejecutar la optimización para actualizar los resultados.")
 
 
 # ============================================================
@@ -381,6 +226,16 @@ if ejecutar_simp:
     F = np.zeros(n_dof)
     F[2 * node_load + 1] = -F_carga
 
+    # Callback for Streamlit – using top-level plot_material_distribution helper (defined earlier)
+    # Instancia del optimizador MetricaTDA_SIMP con dimensiones físicas reales
+    m = MetricaTDA_SIMP(
+        nex=nelx, ney=nely, E=E_acero, nu=0.3,
+        Lx=Lx_val, Ly=Ly_val, t=espesor,
+        f_V=volfrac, p=penal, r_min=rmin, alpha=alpha, max_iter=max_iter
+    )
+
+    m.definir_problema(F, dofs_fijos)
+
     # Callback para Streamlit
     def ui_callback_simp(k, c, delta_c, delta_rho, rho):
         history.append({
@@ -395,16 +250,7 @@ if ejecutar_simp:
             ax.axis('off')
             plot_ph.pyplot(fig)
             plt.close(fig)
-            metric_ph.markdown(f"**Iteración:** {k} | **Compliance:** {c:.2f} N·mm")
-
-    # Instancia del optimizador MetricaTDA_SIMP con dimensiones físicas reales
-    m = MetricaTDA_SIMP(
-        nex=nelx, ney=nely, E=E_acero, nu=0.3,
-        Lx=120.0, Ly=40.0, t=espesor,
-        f_V=volfrac, p=penal, r_min=rmin, alpha=alpha, max_iter=max_iter
-    )
-
-    m.definir_problema(F, dofs_fijos)
+            metric_ph.markdown(f"**Iteracion:** {k} | **Compliance:** {c:.2f} N-mm")
 
     with st.spinner('Optimizando SIMP...'):
         m.optimizar(callback=ui_callback_simp, verbose=False)
@@ -423,7 +269,6 @@ if ejecutar_simp:
     # Guardar resultados en session_state
     st.session_state.simp_c_base = c_base
     st.session_state.simp_reduccion = reduccion
-    st.session_state.simp_c_final = m.c_final
     st.session_state.simp_c_final = m.c_final
     st.session_state.simp_beta1 = m.beta1
     st.session_state.simp_beta0 = m.beta0
@@ -446,802 +291,488 @@ if ejecutar_simp:
     st.session_state.simp_t_simp = m.t_simp
     st.session_state.simp_t_tda = m.t_tda
     st.session_state.simp_rho_final = m.rho_final
+    st.session_state.simp_concordancia = getattr(m, '_betti_concordancia', None)
     st.session_state.simp_optimized = True
+    st.session_state.last_params_he2 = current_params_he2  # reset stale warning
 
-# Renderizar resultados si existen
+# ═══════════════════════════════════════════════════════════════════
+# RENDERIZADO DE RESULTADOS
+# ═══════════════════════════════════════════════════════════════════
 if st.session_state.get('simp_optimized', False):
 
-    # Extraer datos de session_state
+    # ── Extraer datos de session_state ──
     rho_final = st.session_state.simp_rho_final
     nex_ = st.session_state.simp_nex
     ney_ = st.session_state.simp_ney
     c_final = st.session_state.simp_c_final
+    c_base = st.session_state.simp_c_base
+    reduccion = st.session_state.simp_reduccion
+    beta0 = st.session_state.simp_beta0
+    beta1 = st.session_state.simp_beta1
+    mu = st.session_state.simp_mu
+    volfrac = st.session_state.simp_volfrac
+    alpha_val = st.session_state.simp_alpha_stored
+    rmin_val = st.session_state.simp_rmin_stored
+    penal_val = st.session_state.simp_penal_stored
+    n_iter = st.session_state.simp_n_iter
+    converged = st.session_state.simp_converged
     c_hist = st.session_state.simp_c_hist
-    rho_hist = st.session_state.get('simp_rho_hist', None)
     rho_tilde_hist = st.session_state.get('simp_rho_tilde_hist', None)
     dgm0 = st.session_state.get('simp_dgm0', None)
     dgm1 = st.session_state.simp_dgm1
+    t_simp = st.session_state.simp_t_simp
+    t_tda = st.session_state.simp_t_tda
+    concordancia = st.session_state.get('simp_concordancia', None)
 
-    tab_evol, tab_res, tab_tda, tab_report = st.tabs([
-        "📈 Evolución", "🏗️ Resultados", "🔬 Análisis TDA", "📊 Reporte"
-    ])
+    # Grisura: 4 * rho * (1 - rho) — promedio sobre diseño final
+    grisura = float(np.mean(4.0 * rho_final * (1.0 - rho_final)))
 
-    # ── Banner de parámetros usados (persistencia entre páginas) ──
-    malla_str = st.session_state.get("simp_malla_stored", f"{nex_}x{ney_}")
-    volfrac_str = st.session_state.get("simp_volfrac", "—")
-    penal_str = st.session_state.get("simp_penal_stored", "—")
-    alpha_str = st.session_state.get("simp_alpha_stored", "—")
-    rmin_str = st.session_state.get("simp_rmin_stored", "—")
-    st.info(
-        f"📋 Mostrando resultados previos — "
-        f"Malla: {malla_str}, "
-        f"f_V={volfrac_str}, p={penal_str}, "
-        f"α={alpha_str}, r_min={rmin_str}. "
-        f"Cambiá los parámetros en el sidebar y ejecutá una nueva optimización."
+    # ═══════════════════════════════════════════════════════════════
+    # VEREDICTO GLOBAL — visible y prominente
+    # ═══════════════════════════════════════════════════════════════
+    # H.E.2a' es prescriptiva (≥40%), H.E.2b' es descriptiva (invariancia)
+    he2a_ok = reduccion >= 40
+    if he2a_ok:
+        veredicto = "H.E.2a' CUMPLIDA"
+        st.success("### ✅ H.E.2a' CUMPLIDA — Reducción ≥ 40% vs uniforme")
+    else:
+        veredicto = "H.E.2a' NO CUMPLIDA"
+        st.error("### ❌ H.E.2a' NO CUMPLIDA — Reducción < 40%")
+
+    # Badges resumen
+    b1, b2, b3, b4 = st.columns(4)
+    b1.metric("Reduccion", f"{reduccion:.1f}%", delta="≥40% OK" if he2a_ok else "<40% FAIL",
+              delta_color="normal" if he2a_ok else "inverse")
+    b2.metric("β1 (esta corrida)", str(beta1),
+              delta="Correr barrido para verificar invariancia")
+    b3.metric("μ_α", f"{mu:.4f}")
+    b4.metric("Convergio", "✅ Si" if converged else "❌ No")
+
+    st.markdown("---")
+
+    # ═══════════════════════════════════════════════════════════════
+    # 1. H.E.2a' — Reduccion de Compliance (Cuadro 1)
+    # ═══════════════════════════════════════════════════════════════
+    st.subheader("1. H.E.2a' — Reduccion de Compliance ≥ 40%")
+
+    st.markdown(
+        f"**Formula:** (c_base - c_final) / c_base × 100 = "
+        f"({c_base:.2f} - {c_final:.2f}) / {c_base:.2f} × 100 = **{reduccion:.2f}%**"
     )
 
-    # ═══════════════════════════════════════════════════
-    # TAB 1: EVOLUCIÓN INTERACTIVA
-    # ═══════════════════════════════════════════════════
-    with tab_evol:
-        st.subheader("Animación del Proceso de Optimización")
+    if he2a_ok:
+        st.success(f"✅ Reduccion = {reduccion:.2f}% ≥ 40% → **H.E.2a' CUMPLIDA**")
+    else:
+        st.warning(f"⚠️ Reduccion = {reduccion:.2f}% < 40% → **H.E.2a' NO CUMPLIDA**")
 
-        volfrac = st.session_state.simp_volfrac
-        penal = st.session_state.simp_penal_stored
+    # Cuadro 1: comparacion de referentes
+    st.markdown("**Cuadro 1 — Compliance vs referentes:**")
+    df_cuadro1 = pd.DataFrame({
+        "Configuracion": ["Bloque solido (ρ=1)", "Diseno uniforme (ρ=fV)", "Diseno SIMP (ρ*)"],
+        "Volumen": ["100%", f"{volfrac*100:.0f}%", f"{volfrac*100:.0f}%"],
+        "c(ρ)": ["—", f"{c_base:.2f}", f"{c_final:.2f}"],
+        "Reduccion vs uniforme": ["—", "—", f"{reduccion:.2f}%"],
+    })
+    st.dataframe(df_cuadro1, width="stretch", hide_index=True)
 
-        if rho_hist is not None and len(rho_hist) > 1:
-            fig_anim = crear_animacion_simp(rho_hist, c_hist, nex_, ney_, volfrac, penal)
-            st.plotly_chart(fig_anim, width='stretch')
-        else:
-            st.info("No hay historial de iteraciones para animar.")
-            fig_final, ax_final = plt.subplots(figsize=(8, 4))
-            ax_final.imshow(rho_final.reshape(ney_, nex_), cmap='gray_r', aspect='equal')
-            ax_final.axis('off')
-            ax_final.set_title("Distribución Final de Material")
-            st.pyplot(fig_final)
-            plt.close(fig_final)
-
-        # Métricas rápidas siempre visibles
-        st.markdown("---")
-        col_q1, col_q2, col_q3, col_q4 = st.columns(4)
-        c_final = st.session_state.simp_c_final
-        c_base = st.session_state.simp_c_base
-        reduccion = st.session_state.simp_reduccion
-        
-        col_q1.metric("Compliance Base (ρ=0.5)", f"{c_base:.1f} N·mm")
-        col_q2.metric("Compliance SIMP (50%)", f"{c_final:.1f} N·mm",
-                      delta=f"{reduccion:.1f}% vs Base", delta_color="normal")
-        col_q3.metric("β₁ (Agujeros)", st.session_state.simp_beta1)
-        col_q4.metric("μ_α Compuesta", f"{st.session_state.simp_mu:.2f}")
-
-        # α* calibrado (Proposición 1.1)
-        from tda.core.metric import calibrar_alpha_optimo
-        alpha_star = calibrar_alpha_optimo(
-            [st.session_state.simp_c_base, st.session_state.simp_c_final],
-            [0, st.session_state.simp_beta1]
+    # Grafico de convergencia
+    if c_hist is not None and len(c_hist) > 0:
+        st.markdown("**Historial de compliance (convergencia):**")
+        fig_conv = go.Figure()
+        fig_conv.add_trace(go.Scatter(
+            x=list(range(1, len(c_hist) + 1)),
+            y=c_hist,
+            mode='lines+markers',
+            line=dict(color='royalblue', width=2),
+            name='c(k)'
+        ))
+        fig_conv.add_hline(y=c_base, line=dict(color='orange', dash='dash', width=1),
+                           annotation_text=f'c_base = {c_base:.1f}')
+        fig_conv.add_hline(y=c_final, line=dict(color='green', dash='dash', width=1),
+                           annotation_text=f'c* = {c_final:.1f}')
+        fig_conv.update_layout(
+            title="Convergencia SIMP — Historial de Compliance",
+            xaxis_title="Iteracion k",
+            yaxis_title="Compliance c (N-mm)",
+            height=350,
+            margin=dict(l=0, r=0, b=0, t=40)
         )
-        st.info(
-            f"**α* calibrado (Prop. 1.1):** {alpha_star:.4f} — "
-            f"α ingresado: {st.session_state.simp_alpha_stored:.4f} — "
-            f"{'✅ Consistente' if abs(alpha_star - st.session_state.simp_alpha_stored) < 0.01 else '⚠️ Diferencia significativa'}"
-        )
+        apply_plotly_theme(fig_conv)
+        st.plotly_chart(fig_conv, width="stretch")
 
-        # ── Convergencia Dual: Δc/c y Δρ ──
-        history = st.session_state.get("simp_history", [])
-        if history and len(history) > 1:
-            st.markdown("---")
-            st.subheader("Convergencia Dual (Criterio del Documento)")
-            st.caption(
-                "Criterio de convergencia: Δc/c < 10⁻⁴ AND Δρ < 10⁻⁴ "
-                "(Documento, Algoritmo 1, paso 8)"
-            )
+    st.markdown("---")
 
-            iterations = [h["Iteration"] for h in history]
-            delta_c_vals = [h.get("delta_c", 0) for h in history]
-            delta_rho_vals = [h.get("delta_rho", 0) for h in history]
+    # ═══════════════════════════════════════════════════════════════
+    # 2. H.E.2b' — Invariancia β1
+    # ═══════════════════════════════════════════════════════════════
+    st.subheader("2. H.E.2b' — Invariancia β1 (Descriptor topologico)")
 
-            fig_dual = go.Figure()
+    col_t1, col_t2, col_t3, col_t4 = st.columns(4)
+    col_t1.metric("β0 (Componentes conexas)", str(beta0))
+    col_t2.metric("β1 (Agujeros)", str(beta1))
+    col_t3.metric("Grisura", f"{grisura:.4f}", help="4ρ(1-ρ) promedio. 0 = binario perfecto.")
+    col_t4.metric("Concordancia", "✅ Euler=GUDHI" if concordancia else ("❌ Discordante" if concordancia is not None else "ℹ️ Sin verificar"))
 
-            # Δc/c — el callback ya entrega el cambio relativo |c_k - c_{k-1}|/c_{k-1},
-            # así que NO se normaliza de nuevo (antes se dividía otra vez por c_ref).
-            delta_c_norm = [abs(dc) for dc in delta_c_vals]
-            fig_dual.add_trace(go.Scatter(
-                x=iterations, y=delta_c_norm,
-                mode='lines', name='Δc/c (Compliance)',
-                line=dict(color='royalblue', width=2)
-            ))
+    st.info(
+        f"β1 = {beta1} en esta configuración. "
+        "H.E.2b' es descriptiva: la invariancia se verifica con el barrido multi-configuración."
+    )
 
-            # Δρ
-            fig_dual.add_trace(go.Scatter(
-                x=iterations, y=delta_rho_vals,
-                mode='lines', name='Δρ (Densidades)',
-                line=dict(color='orange', width=2)
-            ))
+    st.caption(
+        "H.E.2b' es descriptiva: β1(Ω_sólido) debe ser invariante bajo variacion "
+        "de malla, r_min y p. Para una sola corrida se reporta el valor; la invariancia "
+        "se verifica con el barrido multi-configuracion."
+    )
 
-            # Umbrales de convergencia (10⁻⁴)
-            fig_dual.add_hline(
-                y=1e-4, line=dict(color='red', dash='dash', width=1),
-                annotation_text='Umbral = 10⁻⁴',
-                annotation_position='right'
-            )
+    # Diagrama de persistencia H1
+    if dgm1 is not None and len(dgm1) > 0:
+        st.markdown("**Diagrama de persistencia H₁:**")
+        finite_mask = np.isfinite(dgm1).all(axis=1)
+        dgm1_finite = dgm1[finite_mask]
 
-            fig_dual.update_layout(
-                xaxis_title="Iteración k",
-                yaxis_title="Valor",
-                yaxis_type="log",
-                height=350,
-                margin=dict(l=0, r=0, b=0, t=0),
-                legend=dict(x=0.01, y=0.99, bgcolor='rgba(255,255,255,0.8)')
-            )
-            apply_plotly_theme(fig_dual)
-            st.plotly_chart(fig_dual, width='stretch')
-
-            # Verificación de convergencia
-            converged_c = delta_c_norm[-1] < 1e-4 if delta_c_norm else False
-            converged_rho = delta_rho_vals[-1] < 1e-4 if delta_rho_vals else False
-
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Δc/c final", f"{delta_c_norm[-1]:.2e}" if delta_c_norm else "—",
-                      delta="✅ < 10⁻⁴" if converged_c else "❌ ≥ 10⁻⁴",
-                      delta_color="normal" if converged_c else "inverse")
-            c2.metric("Δρ final", f"{delta_rho_vals[-1]:.2e}" if delta_rho_vals else "—",
-                      delta="✅ < 10⁻⁴" if converged_rho else "❌ ≥ 10⁻⁴",
-                      delta_color="normal" if converged_rho else "inverse")
-            c3.metric("Convergencia dual",
-                      "✅ Lograda" if (converged_c and converged_rho) else "❌ No lograda",
-                      delta_color="normal" if (converged_c and converged_rho) else "inverse")
-
-    # ═══════════════════════════════════════════════════
-    # TAB 2: RESULTADOS FINALES (figura 2×2)
-    # ═══════════════════════════════════════════════════
-    with tab_res:
-        st.subheader("Resultados Finales de la Optimización")
-
-        fig_res, axes = plt.subplots(2, 2, figsize=(14, 10))
-        fig_res.suptitle(
-            f"Resultados SIMP | {nex_}×{ney_} | f_V={st.session_state.simp_volfrac} | μ_α={st.session_state.simp_mu:.4f}",
-            fontsize=14
-        )
-
-        # (0,0): Mapa de densidades
-        im = axes[0, 0].imshow(rho_final.reshape(ney_, nex_), cmap='gray_r', aspect='equal', vmin=0, vmax=1)
-        axes[0, 0].set_title(f"Distribución de Material ρ* | c = {c_final:.4f}")
-        axes[0, 0].axis('off')
-        plt.colorbar(im, ax=axes[0, 0], label='Densidad ρ', fraction=0.046, pad=0.04)
-
-        # (0,1): Diagrama de persistencia H1
-        if dgm1 is not None and len(dgm1) > 0:
-            finite = np.isfinite(dgm1[:, 1])
-            if np.any(finite):
-                pers = dgm1[finite, 1] - dgm1[finite, 0]
-                sc = axes[0, 1].scatter(dgm1[finite, 0], dgm1[finite, 1], c=pers, cmap='RdYlGn', s=60,
-                                        zorder=5, label='Ciclos H₁')
-                plt.colorbar(sc, ax=axes[0, 1], label='Persistencia', fraction=0.046, pad=0.04)
-                max_val = np.max(dgm1[finite]) * 1.1 if len(dgm1[finite]) > 0 else 2.0
-                axes[0, 1].plot([0, max_val], [0, max_val], 'k--', alpha=0.4, label='Diagonal (ruido)')
-                axes[0, 1].legend(fontsize=8)
-        axes[0, 1].set_xlabel("Nacimiento b")
-        axes[0, 1].set_ylabel("Muerte d")
-        axes[0, 1].set_title(f"Diagrama Persistencia H₁ | β₁ significativo = {st.session_state.simp_beta1}")
-        axes[0, 1].grid(True, linestyle='--', alpha=0.3)
-
-        # (1,0): Convergencia
-        if c_hist is not None and len(c_hist) > 0:
-            axes[1, 0].semilogy(range(1, len(c_hist) + 1), c_hist, 'b-', linewidth=1.5, label='c(k)')
-            axes[1, 0].axhline(y=c_final, color='r', linestyle='--', alpha=0.7, label=f'c* = {c_final:.4f}')
-            axes[1, 0].legend()
-        axes[1, 0].set_xlabel("Iteración k")
-        axes[1, 0].set_ylabel("Compliance c(ρ)")
-        axes[1, 0].set_title(f"Convergencia SIMP | {len(c_hist)} iteraciones")
-        axes[1, 0].grid(True, linestyle='--', alpha=0.3)
-
-        # (1,1): Diseño filtrado ρ̃
-        if rho_tilde_hist is not None and len(rho_tilde_hist) > 0:
-            rho_tilde_plot = rho_tilde_hist[-1].reshape((ney_, nex_))
-            im = axes[1, 1].imshow(rho_tilde_plot, cmap='gray_r', origin='lower', vmin=0, vmax=1)
-            plt.colorbar(im, ax=axes[1, 1], label='ρ̃', fraction=0.046, pad=0.04)
-        axes[1, 1].set_title("Diseño filtrado ρ̃ (Ω_sólido = ρ̃ ≥ ½)")
-        axes[1, 1].set_ylim(0, ney_)
-        axes[1, 1].set_aspect('equal')
-        axes[1, 1].set_xlabel("x (elementos)")
-        axes[1, 1].set_ylabel("y (elementos)")
-        axes[1, 1].set_title(
-            f"Nube X(ρ*) | β₀={st.session_state.simp_beta0} | β₁={st.session_state.simp_beta1} | μ_α={st.session_state.simp_mu:.4f}")
-        axes[1, 1].grid(True, linestyle='--', alpha=0.3)
-
-        plt.tight_layout()
-        st.pyplot(fig_res)
-        plt.close(fig_res)
-
-    # ═══════════════════════════════════════════════════
-    # TAB 3: ANÁLISIS TDA
-    # ═══════════════════════════════════════════════════
-    with tab_tda:
-        st.subheader("Análisis Topológico (TDA)")
-
-        # Métricas TDA en tarjetas visuales adaptables al tema
-        b1 = st.session_state.simp_beta1
-        color_b1 = "#27ae60" if b1 == 0 else "#e74c3c"
-        # β₁ = 0 → ideal (sin agujeros, manufacturabilidad máxima)
-        # β₁ > 0 → revisar si son ciclos intencionales o espurios
-        manufacturable = b1 == 0
-        estado = "✅ ÓPTIMA (β₁=0)" if manufacturable else f"⚠️ β₁={b1} — revisar ciclos"
-        color_est = "#27ae60" if manufacturable else "#f39c12"
-
-        col_t1, col_t2, col_t3, col_t4 = st.columns(4)
-        with col_t1:
-            st.markdown(metric_card(
-                value=str(st.session_state.simp_beta0),
-                title="β₀",
-                subtitle="Componentes conexas",
-                variant="beta0"
-            ), unsafe_allow_html=True)
-
-        with col_t2:
-            st.markdown(metric_card(
-                value=str(b1),
-                title="β₁",
-                subtitle="Agujeros topológicos",
-                variant="beta1",
-                value_color=color_b1
-            ), unsafe_allow_html=True)
-
-        with col_t3:
-            st.markdown(metric_card(
-                value=f"{st.session_state.simp_mu:.4f}",
-                title="μ_α",
-                subtitle="Métrica compuesta",
-                variant="mu"
-            ), unsafe_allow_html=True)
-
-        with col_t4:
-            st.markdown(metric_card(
-                value=estado,
-                title="Manufactura",
-                subtitle="Verificación topológica",
-                variant="manufacturing",
-                value_color=color_est
-            ), unsafe_allow_html=True)
-
-        st.markdown("---")
-
-        # Diagrama de persistencia interactivo (Plotly)
-        st.subheader("Diagrama de Persistencia Interactivo")
-
-        # Filtrar puntos no finitos
-        dgm1_local = st.session_state.simp_dgm1
-        if dgm1_local is not None and len(dgm1_local) > 0:
-            finite_mask = np.isfinite(dgm1_local).all(axis=1)
-            dgm1_finite = dgm1_local[finite_mask]
-        else:
-            dgm1_finite = np.empty((0, 2))
-
-        fig_tda = go.Figure()
-
+        fig_pers = go.Figure()
         if len(dgm1_finite) > 0:
             pers = dgm1_finite[:, 1] - dgm1_finite[:, 0]
-            fig_tda.add_trace(go.Scatter(
-                x=dgm1_finite[:, 0],
-                y=dgm1_finite[:, 1],
+            fig_pers.add_trace(go.Scatter(
+                x=dgm1_finite[:, 0], y=dgm1_finite[:, 1],
                 mode='markers',
-                marker=dict(
-                    size=10,
-                    color=pers,
-                    colorscale='RdYlGn',
-                    colorbar=dict(title='Persistencia'),
-                    showscale=True,
-                    line=dict(color='black', width=0.5)
-                ),
+                marker=dict(size=10, color=pers, colorscale='RdYlGn',
+                            colorbar=dict(title='Persistencia'), showscale=True,
+                            line=dict(color='black', width=0.5)),
                 text=[f'Persistencia: {p:.3f}<br>Nacimiento: {b:.3f}<br>Muerte: {d:.3f}'
                       for (b, d), p in zip(dgm1_finite, pers)],
                 hovertemplate='%{text}<extra></extra>',
-                name='Ciclos H₁'
+                name='Ciclos H1'
             ))
-
-        # Diagonal
-        if len(dgm1_finite) > 0:
-            max_val = np.max(dgm1_finite) * 1.1
-        else:
-            max_val = 2.0
-        fig_tda.add_trace(go.Scatter(
-            x=[0, max_val],
-            y=[0, max_val],
-            mode='lines',
-            line=dict(color='gray', dash='dash'),
-            name='Nacimiento = Muerte'
+        max_val = np.max(dgm1_finite) * 1.1 if len(dgm1_finite) > 0 else 2.0
+        fig_pers.add_trace(go.Scatter(
+            x=[0, max_val], y=[0, max_val],
+            mode='lines', line=dict(color='gray', dash='dash'),
+            name='Diagonal (ruido)'
         ))
-
-        fig_tda.update_layout(
-            xaxis_title="Tiempo de Nacimiento (Birth)",
-            yaxis_title="Tiempo de Muerte (Death)",
-            legend=dict(x=0.01, y=0.99, bgcolor='rgba(255,255,255,0.8)'),
-            margin=dict(l=40, r=40, t=40, b=40),
-            height=500,
-            hovermode='closest',
+        fig_pers.update_layout(
+            xaxis_title="Nacimiento (Birth)", yaxis_title="Muerte (Death)",
+            height=400, margin=dict(l=0, r=0, b=0, t=0),
+            legend=dict(x=0.01, y=0.99, bgcolor='rgba(255,255,255,0.8)')
         )
-        apply_plotly_theme(fig_tda)
-        st.plotly_chart(fig_tda, width='stretch')
+        apply_plotly_theme(fig_pers)
+        st.plotly_chart(fig_pers, width="stretch")
+    else:
+        st.info("No hay datos de persistencia H1 disponibles.")
 
-        st.markdown("---")
+    st.markdown("---")
 
-        # Información adicional
-        with st.expander("📖 Interpretación de los invariantes topológicos"):
-            st.markdown("""
-            **β₀ (Número de Betti de dimensión 0):** Número de componentes conexas.
-            - β₀ = 1 → El diseño es una sola pieza continua (ideal para manufactura).
-            - β₀ > 1 → Hay partes desconectadas. Puede indicar necesidad de soportes.
+    # ═══════════════════════════════════════════════════════════════
+    # 3. Distribucion de Material — vista dual
+    # ═══════════════════════════════════════════════════════════════
+    st.subheader("3. Distribucion de Material")
 
-            **β₁ (Número de Betti de dimensión 1):** Número de agujeros 1-dimensionales.
-            - β₁ = 0 → Estructura sin agujeros internos (manufacturabilidad garantizada).
-            - β₁ > 0 → Hay cavidades o túneles. Pueden ser intencionales o espurios.
-
-            **μ_α = c + α·β₁:** Métrica compuesta TDA-SIMP.
-            - Penaliza diseños con agujeros topológicos innecesarios.
-            - Menor μ_α → mejor balance entre eficiencia mecánica y simplicidad topológica.
-            """)
-
-        # ── Validación H.E.2 (criterios corregidos §4.4) ──
-        with st.expander("✅ Validación H.E.2 (criterios corregidos)", expanded=True):
-            st.markdown("""
-            **H.E.2a' (corregida):** SIMP con p=3 y fV=0.5 reduce la compliance
-            en al menos un 40% respecto al **diseño uniforme de igual volumen** (ρ=fV).
-
-            **H.E.2b' (corregida):** β₁(Ω_sólido) es **independiente** de la resolución
-            de malla y del radio del filtro rmin ∈ [1.5, 4.0]. Descriptor invariante.
-
-            > ⚠️ Las formulaciones originales (β₁ ≤ 2 y comparación vs bloque sólido)
-            > fueron descartadas en §4.4 por razones técnicas documentadas.
-            > β₁=2 es invariante bajo malla y rmin (H.E.2b′ corregida).
-            """)
-            reduccion = st.session_state.simp_reduccion
-
-            diag = diagnosticar_he2(
-                reduccion=reduccion,
-                beta1=st.session_state.simp_beta1,
-                mu=st.session_state.simp_mu,
-                alpha=st.session_state.simp_alpha_stored,
-                rmin=st.session_state.simp_rmin_stored,
-                penal=st.session_state.simp_penal_stored,
-                volfrac=st.session_state.simp_volfrac,
-                n_iter=st.session_state.simp_n_iter,
-                converged=st.session_state.simp_converged,
-                max_iter=max_iter,
-            )
-
-            # Badges resumen
-            st.markdown(diag["badges_html"], unsafe_allow_html=True)
-            st.markdown("---")
-
-            # Veredicto
-            if diag["veredicto"] == "CUMPLIDA":
-                st.success(f"✅ **H.E.2 {diag['veredicto']}:** Reducción ≥40% y β₁=2 invariante (H.E.2b′ corregida)")
-            elif diag["veredicto"] == "PARCIAL":
-                st.warning(f"⚠️ **H.E.2 {diag['veredicto']}:** Se cumple solo uno de los dos criterios")
-            else:
-                st.error(f"❌ **H.E.2 {diag['veredicto']}:** No se cumple ningún criterio")
-
-            # Razones
-            with st.expander("📖 ¿Por qué?", expanded=True):
-                for r in diag["razones"]:
-                    st.markdown(f"- {r}")
-
-            # Sugerencias
-            if diag["sugerencias"]:
-                with st.expander("💡 Sugerencias de ajuste", expanded=diag["veredicto"] != "CUMPLIDA"):
-                    for s in diag["sugerencias"]:
-                        st.markdown(f"- {s}")
-
-        # ── Convergencia SIMP (cumplimiento §10) ──
-        st.markdown("---")
-        st.subheader("Convergencia SIMP")
-        n_iter = st.session_state.simp_n_iter
-        converged = st.session_state.simp_converged
-        c_hist = st.session_state.simp_c_hist
-        c_hist_arr = np.array(c_hist) if c_hist is not None else np.array([])
-
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Iteraciones", f"{n_iter}")
-        c2.metric("Convergió", "✅" if converged else "❌")
-        if len(c_hist_arr) > 1:
-            delta_c = abs(c_hist_arr[-1] - c_hist_arr[-2]) / max(abs(c_hist_arr[-2]), 1e-12)
-            c3.metric("Último Δc/c", f"{delta_c:.6e}")
+    col_mat1, col_mat2 = st.columns(2)
+    with col_mat1:
+        st.markdown("**Densidad continua ρ*:**")
+        st.plotly_chart(plot_material_distribution(
+            rho_final.reshape(ney_, nex_), "Densidad continua ρ*"
+        ), width="stretch")
+    with col_mat2:
+        st.markdown("**Diseño binarizado (ρ̃ ≥ ½):**")
+        if rho_tilde_hist is not None and len(rho_tilde_hist) > 0:
+            rho_tilde_final = rho_tilde_hist[-1]
+            binarized = (rho_tilde_final >= 0.5).astype(float).reshape(ney_, nex_)
+            fig_bin = go.Figure(data=[go.Heatmap(
+                z=binarized, colorscale='gray_r', zmin=0, zmax=1,
+                colorbar=dict(title='Ω')
+            )])
+            fig_bin.update_layout(title=f"Ω_solido | β0={beta0} | β1={beta1}", height=400)
+            apply_plotly_theme(fig_bin)
+            st.plotly_chart(fig_bin, width="stretch")
         else:
-            c3.metric("Último Δc/c", "N/A")
-        c4.metric("Tol Δc/c", "1e-4 (Perfil §9.4.4)")
+            st.info("Sin datos de diseño filtrado ρ̃.")
 
-        # Curva de convergencia
-        if len(c_hist_arr) > 0:
-            fig_conv = go.Figure()
-            fig_conv.add_trace(go.Scatter(
-                x=list(range(1, len(c_hist_arr) + 1)),
-                y=c_hist_arr,
-                mode='lines+markers',
-                line=dict(color=ORANGE, width=2),
-                name='Compliance c_k'
-            ))
-            fig_conv.update_layout(
-                title="Convergencia SIMP — Historial de Compliance",
-                xaxis_title="Iteración k",
-                yaxis_title="Compliance c (N·mm)",
-                template="plotly_white",
-                height=350
-            )
-            st.plotly_chart(fig_conv, use_container_width=True)
+    st.markdown("---")
 
-    # ═══════════════════════════════════════════════════
-    # TAB 4: REPORTE Y EXPORTACIÓN
-    # ═══════════════════════════════════════════════════
-    with tab_report:
-        st.subheader("Exportar Resultados")
+    # ═══════════════════════════════════════════════════════════════
+    # 4. Tabla de metricas + Exportar
+    # ═══════════════════════════════════════════════════════════════
+    st.subheader("4. Metricas y Exportacion")
 
-        # ── Datos compartidos ─────────────────────────────────────────────
-        beta0 = st.session_state.simp_beta0
-        beta1 = st.session_state.simp_beta1
-        c_final = st.session_state.simp_c_final
-        mu = st.session_state.simp_mu
-        reduccion = st.session_state.simp_reduccion
-        volfrac = st.session_state.simp_volfrac
-        penal = st.session_state.simp_penal_stored
-        alpha_val = st.session_state.simp_alpha_stored
-        n_iter = st.session_state.simp_n_iter
-        converged = st.session_state.simp_converged
-        t_simp = st.session_state.simp_t_simp
-        t_tda = st.session_state.simp_t_tda
-        nex_ = st.session_state.simp_nex
-        ney_ = st.session_state.simp_ney
-        rho_final = st.session_state.simp_rho_final
-        c_hist = st.session_state.simp_c_hist
-        dgm0 = st.session_state.get('simp_dgm0', None)
-        dgm1 = st.session_state.simp_dgm1
-        manufacturable = beta1 == 0
+    df_metrics = pd.DataFrame({
+        "Metrica": [
+            "Compliance base (ρ=fV)", "Compliance SIMP (ρ*)", "Reduccion vs uniforme",
+            "β0 (Componentes conexas)", "β1 (Agujeros topologicos)",
+            "Grisura (4ρ(1-ρ))", "μ_α (Metrica compuesta)",
+            "Concordancia Euler-GUDHI",
+            "Iteraciones SIMP", "Convergio", "Tiempo SIMP (s)", "Tiempo TDA (s)",
+            "Malla", "fV", "p", "α", "r_min"
+        ],
+        "Valor": [
+            f"{c_base:.4f}", f"{c_final:.4f}", f"{reduccion:.2f}%",
+            str(beta0), str(beta1),
+            f"{grisura:.6f}", f"{mu:.6f}",
+            "Si" if concordancia else ("No" if concordancia is not None else "N/A"),
+            str(n_iter), "Si" if converged else "No",
+            f"{t_simp:.3f}", f"{t_tda:.3f}",
+            f"{nex_}x{ney_}", str(volfrac), str(penal_val),
+            str(alpha_val), str(rmin_val)
+        ]
+    })
+    st.dataframe(df_metrics, width="stretch", hide_index=True)
 
-        # ── Header del reporte ──
-        st.markdown(report_header(
-            "📦 Paquete de Resultados TDA-SIMP",
-            "Todos los datos necesarios para tu tesis y presentación"
-        ), unsafe_allow_html=True)
+    # Exportar ZIP
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w") as zipf:
+        # params.txt
+        params_txt = (
+            f"H.E.2 — Optimizacion SIMP + Metrica Compuesta\n"
+            f"Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+            f"Malla: {nex_}x{ney_}\n"
+            f"volfrac={volfrac}\npenal={penal_val}\n"
+            f"rmin={rmin_val}\nalpha={alpha_val}\nmax_iter={n_iter}\n"
+            f"converged={converged}\n"
+            f"\nResultados:\n"
+            f"  c_base={c_base:.8f}\n  c_final={c_final:.8f}\n"
+            f"  reduccion={reduccion:.4f}%\n"
+            f"  beta0={beta0}\n  beta1={beta1}\n"
+            f"  mu={mu:.8f}\n  grisura={grisura:.8f}\n"
+        )
+        zipf.writestr("params.txt", params_txt)
 
-        # ── Fila 1: PDF + PNG + LaTeX ─────────────────────────────────────
-        st.markdown("#### 📄 Documentos")
-        col_r1, col_r2, col_r3 = st.columns(3)
+        # CSV de metricas
+        csv_bytes = df_metrics.to_csv(index=False).encode('utf-8')
+        zipf.writestr("metricas.csv", csv_bytes)
 
-        # ── PDF Profesional (multipágina) ──────────────────────────────────
-        with col_r1:
-            pdf_buf = io.BytesIO()
-            with PdfPages(pdf_buf) as pdf:
-
-                # ── Página 1: Portada ──────────────────────────────────────
-                fig_cover = plt.figure(figsize=(8.27, 11.69))  # A4 vertical
-                fig_cover.patch.set_facecolor('#f8f9fa')
-                ax_cover = fig_cover.add_axes([0.1, 0.1, 0.8, 0.8])
-                ax_cover.axis('off')
-
-                # Título
-                ax_cover.text(0.5, 0.85, 'Reporte de Optimización TDA-SIMP',
-                              ha='center', va='center', fontsize=24, fontweight='bold',
-                              color='#2c3e50', transform=ax_cover.transAxes)
-                ax_cover.text(0.5, 0.78, 'Algoritmo 1 — Métrica Compuesta',
-                              ha='center', va='center', fontsize=14,
-                              color='#7f8c8d', transform=ax_cover.transAxes)
-
-                # Línea decorativa
-                ax_cover.plot([0.2, 0.8], [0.74, 0.74], color='#3498db',
-                              linewidth=2, transform=ax_cover.transAxes)
-
-                # Parámetros del problema
-                params_text = (
-                    f"Malla: {nex_}×{ney_} elementos Q4\n"
-                    f"Fracción de volumen: f_V = {volfrac}\n"
-                    f"Penalización SIMP: p = {penal}\n"
-                    f"Peso topológico: α = {alpha_val}\n"
-                    f"Iteraciones: {n_iter} {'✓ Convergió' if converged else '✗ No convergió'}"
-                )
-                ax_cover.text(0.5, 0.60, params_text, ha='center', va='center',
-                              fontsize=11, color='#34495e', transform=ax_cover.transAxes,
-                              linespacing=1.8, family='monospace')
-
-                # Resultados principales
-                ax_cover.plot([0.15, 0.85], [0.48, 0.48], color='#bdc3c7',
-                              linewidth=0.5, transform=ax_cover.transAxes)
-
-                res_text = (
-                    f"Compliance final:      c = {c_final:.5f}\n"
-                    f"Reducción vs base:     {reduccion:.2f}%\n"
-                    f"Componentes conexas:   β₀ = {beta0}\n"
-                    f"Agujeros topológicos:  β₁ = {beta1}\n"
-                    f"Métrica compuesta:     μ_α = {mu:.5f}\n"
-                    f"Manufacturabilidad:    {'✓ APTA' if manufacturable else '⚠ REVISAR'}"
-                )
-                ax_cover.text(0.5, 0.38, res_text, ha='center', va='center',
-                              fontsize=11, color='#2c3e50', transform=ax_cover.transAxes,
-                              linespacing=1.8, family='monospace')
-
-                # Tiempos de cómputo
-                ax_cover.text(0.5, 0.18,
-                              f"Tiempo SIMP: {t_simp:.2f}s  |  Tiempo TDA: {t_tda:.3f}s  |  Total: {t_simp + t_tda:.2f}s",
-                              ha='center', va='center', fontsize=9,
-                              color='#95a5a6', transform=ax_cover.transAxes)
-
-                # Footer
-                ax_cover.text(0.5, 0.05,
-                              'Jorge Larry Copa Cruz · Maestría en Matemática · UAGRM 2026',
-                              ha='center', va='center', fontsize=8,
-                              color='#bdc3c7', transform=ax_cover.transAxes,
-                              style='italic')
-
-                pdf.savefig(fig_cover, dpi=200)
-                plt.close(fig_cover)
-
-                # ── Página 2: Figura 2×2 completa ──────────────────────────
-                # Usar estilo default para exportación (fondo blanco)
-                with plt.style.context('default'):
-                    fig_res_pdf, axes_pdf = plt.subplots(2, 2, figsize=(10, 8))
-                    fig_res_pdf.patch.set_facecolor('white')
-                    for ax_row in axes_pdf:
-                        for ax in ax_row:
-                            ax.set_facecolor('white')
-                    fig_res_pdf.suptitle(
-                        f'Resultados de Optimización | {nex_}×{ney_} | f_V={volfrac} | μ_α={mu:.4f}',
-                        fontsize=14, fontweight='bold')
-
-                    # (0,0) Density
-                    rho_2d = rho_final.reshape(ney_, nex_)
-                    im = axes_pdf[0, 0].imshow(rho_2d, cmap='gray_r', aspect='equal', vmin=0, vmax=1)
-                    axes_pdf[0, 0].set_title(f'Distribución ρ* | c={c_final:.4f}')
-                    axes_pdf[0, 0].axis('off')
-                    plt.colorbar(im, ax=axes_pdf[0, 0], label='ρ', fraction=0.046, pad=0.04)
-
-                    # (0,1) Persistence diagram
-                    if dgm1 is not None and len(dgm1) > 0:
-                        finite = np.isfinite(dgm1[:, 1])
-                        if np.any(finite):
-                            pers = dgm1[finite, 1] - dgm1[finite, 0]
-                            sc = axes_pdf[0, 1].scatter(dgm1[finite, 0], dgm1[finite, 1],
-                                                        c=pers, cmap='RdYlGn', s=40, zorder=5)
-                            plt.colorbar(sc, ax=axes_pdf[0, 1], label='Persistencia', fraction=0.046, pad=0.04)
-                            mv = np.max(dgm1[finite]) * 1.1
-                            axes_pdf[0, 1].plot([0, mv], [0, mv], 'k--', alpha=0.4)
-                            axes_pdf[0, 1].legend(fontsize=7)
-                    axes_pdf[0, 1].set_title(f'Diagrama H₁ | β₁={beta1}')
-                    axes_pdf[0, 1].set_xlabel('Birth')
-                    axes_pdf[0, 1].set_ylabel('Death')
-                    axes_pdf[0, 1].grid(True, alpha=0.3)
-
-                    # (1,0) Convergence
-                    if c_hist is not None and len(c_hist) > 0:
-                        axes_pdf[1, 0].semilogy(range(1, len(c_hist) + 1), c_hist, 'b-', lw=1.5)
-                        axes_pdf[1, 0].axhline(c_final, color='r', ls='--', alpha=0.7, label=f'c*={c_final:.4f}')
-                        axes_pdf[1, 0].legend(fontsize=8)
-                    axes_pdf[1, 0].set_title(f'Convergencia | {len(c_hist)} iters')
-                    axes_pdf[1, 0].set_xlabel('Iteración k')
-                    axes_pdf[1, 0].set_ylabel('Compliance c')
-                    axes_pdf[1, 0].grid(True, alpha=0.3)
-
-                    # (1,1) Diseño filtrado ρ̃
-                    if rho_tilde_hist is not None and len(rho_tilde_hist) > 0:
-                        rho_tilde_plot = rho_tilde_hist[-1].reshape((ney_, nex_))
-                        im = axes_pdf[1, 1].imshow(rho_tilde_plot, cmap='gray_r', origin='lower', vmin=0, vmax=1)
-                        plt.colorbar(im, ax=axes_pdf[1, 1], label='ρ̃', fraction=0.046, pad=0.04)
-                    axes_pdf[1, 1].set_title(f'Diseño ρ̃ | β₀={beta0} | β₁={beta1} | μ_α={mu:.4f}')
-                    axes_pdf[1, 1].set_xlabel('x (elem.)')
-                    axes_pdf[1, 1].set_ylabel('y (elem.)')
-                    axes_pdf[1, 1].grid(True, alpha=0.3)
-
-                    plt.tight_layout()
-                    pdf.savefig(fig_res_pdf, dpi=200)
-                    plt.close(fig_res_pdf)
-
-                    # ── Página 3: Tabla de métricas ────────────────────────────
-                    fig_tab = plt.figure(figsize=(8.27, 11.69))
-                    fig_tab.patch.set_facecolor('white')
-                    ax_tab = fig_tab.add_axes([0.1, 0.1, 0.8, 0.8])
-                    ax_tab.axis('off')
-
-                    ax_tab.text(0.5, 0.95, 'Métricas de la Optimización',
-                                ha='center', fontsize=18, fontweight='bold', color='#2c3e50',
-                                transform=ax_tab.transAxes)
-
-                    # Crear tabla
-                    col_labels = ['Métrica', 'Valor', 'Unidad']
-                    rows = [
-                        ['Compliance final', f'{c_final:.5f}', 'N·mm'],
-                        ['Reducción vs base', f'{reduccion:.2f}', '%'],
-                        ['Fracción de volumen', f'{volfrac}', '—'],
-                        ['Penalización p', f'{penal}', '—'],
-                        ['α (peso topológico)', f'{alpha_val}', '—'],
-                        ['β₀ (componentes)', str(beta0), '—'],
-                        ['β₁ (agujeros)', str(beta1), '—'],
-                        ['μ_α (métrica compuesta)', f'{mu:.5f}', '—'],
-                        ['Manufacturable', 'Sí' if manufacturable else 'No', '—'],
-                        ['Iteraciones', str(n_iter), '—'],
-                        ['Convergió', 'Sí' if converged else 'No', '—'],
-                        ['Tiempo SIMP', f'{t_simp:.2f}', 's'],
-                        ['Tiempo TDA', f'{t_tda:.3f}', 's'],
-                        ['Tiempo total', f'{t_simp + t_tda:.2f}', 's'],
-                        [f'Malla', f'{nex_}×{ney_}', 'elementos'],
-                    ]
-
-                    table = ax_tab.table(cellText=rows, colLabels=col_labels,
-                                         loc='center', cellLoc='center',
-                                         colWidths=[0.35, 0.25, 0.15])
-                    table.auto_set_font_size(False)
-                    table.set_fontsize(10)
-                    table.scale(1, 1.6)
-
-                    for (row, col), cell in table.get_celld().items():
-                        if row == 0:
-                            cell.set_facecolor('#3498db')
-                            cell.set_text_props(color='white', fontweight='bold')
-                        elif row % 2 == 0:
-                            cell.set_facecolor('#f0f3f5')
-                        cell.set_edgecolor('#dfe6e9')
-
-                    ax_tab.text(0.5, 0.02,
-                                'Generado por Plataforma TDA-SIMP · Jorge Larry Copa Cruz · UAGRM 2026',
-                                ha='center', fontsize=7, color='#bdc3c7',
-                                transform=ax_tab.transAxes, style='italic')
-
-                    pdf.savefig(fig_tab, dpi=200)
-                    plt.close(fig_tab)
-
-            pdf_bytes = pdf_buf.getvalue()
-
-            # Generate PNG
-            with plt.style.context('default'):
-                fig_png, axes_png = plt.subplots(2, 2, figsize=(12, 9))
-                fig_png.patch.set_facecolor('white')
-                for ax_row in axes_png:
-                    for ax in ax_row:
-                        ax.set_facecolor('white')
-                fig_png.suptitle(f'Resultados SIMP-TDA | {nex_}x{ney_} | f_V={volfrac} | μ_α={mu:.4f}',
-                                 fontsize=13, fontweight='bold')
-
-                # Density
-                rho_2d = rho_final.reshape(ney_, nex_)
-                axes_png[0, 0].imshow(rho_2d, cmap='gray_r', aspect='equal', vmin=0, vmax=1)
-                axes_png[0, 0].set_title(f'Distribución ρ*')
-                axes_png[0, 0].axis('off')
-
-                # Persistence
-                if dgm1 is not None and len(dgm1) > 0:
-                    finite = np.isfinite(dgm1[:, 1])
-                    if np.any(finite):
-                        axes_png[0, 1].scatter(dgm1[finite, 0], dgm1[finite, 1], c='orange', marker='^', alpha=0.7)
-                        mv = np.max(dgm1[finite]) * 1.1
-                        axes_png[0, 1].plot([0, mv], [0, mv], 'k--', alpha=0.4)
-                axes_png[0, 1].set_title('Diagrama H₁')
-                axes_png[0, 1].set_xlabel('Birth')
-                axes_png[0, 1].set_ylabel('Death')
-                axes_png[0, 1].grid(True, alpha=0.3)
-
-                # Convergence
-                if c_hist is not None and len(c_hist) > 0:
-                    axes_png[1, 0].semilogy(range(1, len(c_hist) + 1), c_hist, 'b-', lw=1.5)
-                    axes_png[1, 0].axhline(c_final, color='r', ls='--', alpha=0.7)
-                axes_png[1, 0].set_title('Convergencia')
-                axes_png[1, 0].set_xlabel('Iteración')
-                axes_png[1, 0].set_ylabel('c')
-                axes_png[1, 0].grid(True, alpha=0.3)
-
-                # Diseño filtrado ρ̃
-                if rho_tilde_hist is not None and len(rho_tilde_hist) > 0:
-                    rho_tilde_plot = rho_tilde_hist[-1].reshape((ney_, nex_))
-                    im = axes_png[1, 1].imshow(rho_tilde_plot, cmap='gray_r', origin='lower', vmin=0, vmax=1)
-                    plt.colorbar(im, ax=axes_png[1, 1], label='ρ̃', fraction=0.046, pad=0.04)
-                axes_png[1, 1].set_title(f'Diseño ρ̃')
-                axes_png[1, 1].set_xlabel('x')
-                axes_png[1, 1].set_ylabel('y')
-                axes_png[1, 1].grid(True, alpha=0.3)
-
-                plt.tight_layout()
-                png_buf = io.BytesIO()
-                fig_png.savefig(png_buf, format='png', dpi=300, bbox_inches='tight')
-                plt.close(fig_png)
-                png_bytes = png_buf.getvalue()
-
-            # ── Fila Única: Exportar TODO en un solo ZIP ───────────────────────
-            st.markdown("---")
-            st.markdown("#### 📥 Exportación Completa")
-
-            ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            folder_name = f"optimizacion_{nex_}x{ney_}_{ts}"
-
-            # CSV Métricas
-            df_metrics = pd.DataFrame({
-                "Metrica": [
-                    "Compliance_Final", "Beta_0", "Beta_1", "Mu_alpha",
-                    "Reduccion_vs_homogeneo_%", "Volumen", "Penalizacion_p",
-                    "Alpha", "Iteraciones", "Convergio", "Tiempo_SIMP_s",
-                    "Tiempo_TDA_s", "Malla_Nx", "Malla_Ny"
-                ],
-                "Valor": [
-                    float(c_final), int(beta0), int(beta1), float(mu),
-                    float(reduccion), float(volfrac), float(penal),
-                    float(alpha_val), int(n_iter), 1 if converged else 0,
-                    float(t_simp), float(t_tda), int(nex_), int(ney_)
-                ]
-            })
-
-            # CSV Historia
-            df_history = pd.DataFrame({
-                "Iteracion": range(1, len(c_hist) + 1),
-                "Compliance": c_hist
-            })
-
-            # CSV Densidades
-            rho_flat = rho_final.flatten()
-            y_idx, x_idx = np.meshgrid(range(ney_), range(nex_), indexing='ij')
-            df_dens = pd.DataFrame({
-                "Elemento_X": x_idx.flatten(),
-                "Elemento_Y": y_idx.flatten(),
-                "Densidad_rho": rho_flat
-            })
-
-            # Resumen TXT
-            resumen_lines = [
-                f"H.E.2 — Optimización SIMP + Métrica Compuesta",
-                f"Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-                f"Malla: {nex_}x{ney_}",
-                f"Parámetros: f_V={volfrac}, p={penal}, α={alpha_val}, r_min={rmin}",
-                f"",
-                f"Resultados:",
-                f"  Compliance final: {c_final:.8f}",
-                f"  Reducción vs base: {reduccion:.2f}%",
-                f"  β₀={beta0}, β₁={beta1}",
-                f"  μ_α={mu:.8f}",
-                f"  Convergió: {'Sí' if converged else 'No'}",
-                f"  Iteraciones: {n_iter}",
-            ]
-            resumen_txt = "\n".join(resumen_lines)
-
-            # Empaquetar TODO en ZIP (PDF, PNG, CSVs, TXT)
-            zip_buf = io.BytesIO()
-            with zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED) as zf:
-                # Documentos
-                zf.writestr(f"{folder_name}/reporte_TDA-SIMP_{nex_}x{ney_}.pdf", pdf_bytes)
-                zf.writestr(f"{folder_name}/figura_resultados_{nex_}x{ney_}.png", png_bytes)
-                # Datos CSV
-                zf.writestr(f"{folder_name}/metricas.csv", df_metrics.to_csv(index=False))
-                zf.writestr(f"{folder_name}/historial_convergencia.csv", df_history.to_csv(index=False))
-                zf.writestr(f"{folder_name}/densidades.csv", df_dens.to_csv(index=False))
-                zf.writestr(f"{folder_name}/resumen.txt", resumen_txt)
-            zip_bytes = zip_buf.getvalue()
-
-            download_button(
-                label="📦 Descargar TODO (ZIP completo)",
-                data=zip_bytes,
-                file_name=f"{folder_name}.zip",
-                mime="application/zip",
-                width='stretch',
-                help="Incluye: PDF (3 páginas), PNG (figura 2×2), CSV métricas, historial, densidades y resumen - todo organizado en una carpeta con timestamp"
-            )
-
-        # ── Fila 3: Tabla de métricas expandible ───────────────────────────
-        st.markdown("---")
-        df_display = pd.DataFrame({
-            "Métrica": [
-                "Compliance Final c(ρ*)", "β₀ (Componentes conexas)", "β₁ (Agujeros)",
-                "μ_α (Métrica Compuesta)", "Reducción vs Uniforme",
-                "Fracción de Volumen f_V", "Penalización p", "Peso α",
-                "Iteraciones", "Convergencia", "Tiempo SIMP", "Tiempo TDA", "Manufacturabilidad"
-            ],
-            "Valor": [
-                f"{c_final:.5f}", str(beta0), str(beta1),
-                f"{mu:.5f}", f"{reduccion:.2f}%",
-                f"{volfrac}", f"{penal}", f"{alpha_val}",
-                str(n_iter), "Sí" if converged else "No",
-                f"{t_simp:.3f} s", f"{t_tda:.3f} s",
-                "✅ APTA" if manufacturable else "⚠️ REVISAR"
-            ]
+        # CSV del historial de convergencia
+        df_hist = pd.DataFrame({
+            "Iteracion": range(1, len(c_hist) + 1),
+            "Compliance": c_hist
         })
+        zipf.writestr("historial_convergencia.csv", df_hist.to_csv(index=False))
 
-        with st.expander("📋 Ver tabla completa de métricas", expanded=True):
-            st.dataframe(df_display, width='stretch', hide_index=True)
+        # PNG del diseno final (matplotlib — no kaleido)
+        fig_mpl, ax_mpl = plt.subplots(figsize=(8, 6))
+        ax_mpl.imshow(rho_final.reshape(ney_, nex_), cmap='gray_r', aspect='equal', vmin=0, vmax=1)
+        ax_mpl.set_title(f"SIMP | {nex_}x{ney_} | fV={volfrac} | c*={c_final:.4f} | β1={beta1}")
+        ax_mpl.axis('off')
+        plt.colorbar(ax_mpl.images[0], ax=ax_mpl, label='rho', fraction=0.046, pad=0.04)
+        img_buf = io.BytesIO()
+        fig_mpl.savefig(img_buf, format="png", dpi=150, bbox_inches='tight')
+        plt.close(fig_mpl)
+        zipf.writestr("distribucion_material.png", img_buf.getvalue())
+
+    zip_bytes = zip_buffer.getvalue()
+    download_button(
+        "📥 Descargar TODO (ZIP)", zip_bytes,
+        f"he2_fV{volfrac:.2f}_a{alpha_val:.3f}.zip", mime="application/zip",
+        width="stretch"
+    )
+
+    # ═══════════════════════════════════════════════════════════════
+    # 5. BARRIDO MULTI-CONFIGURACIÓN H.E.2b
+    # ═══════════════════════════════════════════════════════════════
+    st.markdown("---")
+    st.subheader("5. Barrido Multi-Configuracion H.E.2b (Invariancia)")
+
+    st.markdown(
+        "Verificacion de que β1 es invariante bajo variacion de **r_min** (5 valores), "
+        "**p** (4 valores, Cuadro 7) y **resolucion de malla** (Cuadro 8). "
+        "El barrido corre 12 configuraciones (rectangular) o 11 (cuadrado)."
+    )
+
+    if st.button("Ejecutar Barrido (11 configuraciones)", type="secondary",
+                 key="sweep_btn"):
+
+        # Configuraciones del barrido (matching Perfil4.txt 4.3 + Cuadro 7/8)
+        configs = []
+        # rmin sweep: 5 configs (Perfil4.txt: r_min ∈ [1.5, 4.0])
+        for r in [1.5, 2.0, 2.4, 3.0, 4.0]:
+            configs.append({"label": f"rmin={r}", "nelx": nex_, "nely": ney_,
+                            "p": int(penal), "rmin": r})
+        # p sweep: 4 configs (Cuadro 7: p ∈ {1, 2, 3, 4})
+        for p_val in [1, 2, 3, 4]:
+            configs.append({"label": f"p={p_val}", "nelx": nex_, "nely": ney_,
+                            "p": p_val, "rmin": rmin})
+        # mesh sweep: según dominio seleccionado
+        if dominio.startswith("Rectangular"):
+            # Rectangular: Ne ∈ {800, 1800, 3200, 7200}
+            meshes_sweep = [(40, 20), (60, 30), (80, 40), (120, 60)]
+            ref_nelx = 60  # referencia para escalar rmin
+        else:
+            # Cuadrado: Ne ∈ {1600, 6400, 14400} (Perfil4.txt Cuadro 1)
+            meshes_sweep = [(40, 40), (80, 80), (120, 120)]
+            ref_nelx = 40  # referencia para escalar rmin
+        for nelx_s, nely_s in meshes_sweep:
+            rmin_scaled = rmin * (nelx_s / ref_nelx)
+            configs.append({"label": f"malla={nelx_s}x{nely_s}", "nelx": nelx_s,
+                            "nely": nely_s, "p": int(penal), "rmin": rmin_scaled})
+
+        sweep_results = []
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+
+        for i, cfg in enumerate(configs):
+            status_text.text(
+                f"[{i+1}/{len(configs)}] {cfg['label']} "
+                f"(malla {cfg['nelx']}x{cfg['nely']}, p={cfg['p']}, "
+                f"rmin={cfg['rmin']:.1f})..."
+            )
+            progress_bar.progress(i / len(configs))
+
+            # Setup cantilever beam for this mesh
+            nnx_s = cfg["nelx"] + 1
+            nny_s = cfg["nely"] + 1
+            n_dof_s = 2 * nnx_s * nny_s
+            dofs_s = np.arange(0, 2 * (cfg["nely"] + 1))
+            node_s = (cfg["nely"] // 2) * nnx_s + cfg["nelx"]
+            F_s = np.zeros(n_dof_s)
+            F_s[2 * node_s + 1] = -F_carga
+
+            # Run SIMP + TDA
+            m_s = MetricaTDA_SIMP(
+                nex=cfg["nelx"], ney=cfg["nely"], E=E_acero, nu=0.3,
+                Lx=Lx_val, Ly=Ly_val, t=espesor,
+                f_V=volfrac, p=cfg["p"], r_min=cfg["rmin"],
+                alpha=alpha, max_iter=max_iter
+            )
+            m_s.definir_problema(F_s, dofs_s)
+            m_s.optimizar(verbose=False)
+            m_s.fase_tda(verbose=False)
+
+            conc_s = getattr(m_s, '_betti_concordancia', None)
+            sweep_results.append({
+                "Config": cfg["label"],
+                "Malla": f"{cfg['nelx']}x{cfg['nely']}",
+                "Ne": cfg["nelx"] * cfg["nely"],
+                "rmin": cfg["rmin"],
+                "p": cfg["p"],
+                "c(rho*)": round(m_s.c_final, 4),
+                "beta0": m_s.beta0,
+                "beta1": m_s.beta1,
+                "Concordancia": "Si" if conc_s else (
+                    "No" if conc_s is not None else "N/A")
+            })
+
+        progress_bar.progress(1.0)
+        status_text.text(f"Barrido completado: {len(configs)} configuraciones.")
+
+        # Guardar en session_state
+        st.session_state.sweep_results = sweep_results
+        st.session_state.sweep_done = True
+
+    # Mostrar resultados del barrido si existen
+    if st.session_state.get('sweep_done', False):
+        sweep_results = st.session_state.sweep_results
+        df_sweep = pd.DataFrame(sweep_results)
+
+        betas1 = [r["beta1"] for r in sweep_results]
+        beta1_invariante = len(set(betas1)) == 1
+
+        # Veredicto invariancia
+        if beta1_invariante:
+            st.success(
+                f"### ✅ β1 INVARIANTE: β1 = {betas1[0]} en las "
+                f"{len(sweep_results)} configuraciones"
+            )
+        else:
+            unique_betas = sorted(set(betas1))
+            st.warning(
+                f"### ⚠️ β1 NO invariante: valores {unique_betas} "
+                f"en {len(sweep_results)} configuraciones"
+            )
+
+        # Separar tablas por tipo de barrido
+        st.markdown("**Barrido completo:**")
+        st.dataframe(df_sweep, width="stretch", hide_index=True)
+
+        # ═══════════════════════════════════════════════════════════════
+        # Cuadro 7: Barrido de penalización (metodologia_implementacion.txt L629)
+        # ═══════════════════════════════════════════════════════════════
+        df_p = df_sweep[df_sweep["Config"].str.startswith("p=")]
+        if len(df_p) > 0:
+            st.markdown("**Cuadro 7 — Barrido del factor de penalización:**")
+            st.caption(
+                "Grisura = 4ρ(1-ρ), nula si el diseño es binario. "
+                "Concordancia: Euler vs GUDHI."
+            )
+            df_cuadro7 = df_p[["p", "c(rho*)", "beta0", "beta1", "Concordancia"]].copy()
+            df_cuadro7.columns = ["p", "c(ρ*)", "β0", "β1", "Concordancia"]
+            st.dataframe(df_cuadro7, width="stretch", hide_index=True)
+
+            p_betas = df_p["beta1"].tolist()
+            if len(set(p_betas)) == 1:
+                st.success(
+                    f"✅ β1 = {p_betas[0]} constante en p ∈ {{1,2,3,4}} → "
+                    "topología independiente de penalización"
+                )
+            else:
+                st.warning(f"⚠️ β1 varia con p: {set(p_betas)}")
+
+        # ═══════════════════════════════════════════════════════════════
+        # Cuadro 8: Independencia de malla (metodologia_implementacion.txt L693)
+        # ═══════════════════════════════════════════════════════════════
+        df_mesh = df_sweep[df_sweep["Config"].str.startswith("malla")]
+        if len(df_mesh) > 0:
+            st.markdown("**Cuadro 8 — Independencia de malla:**")
+            st.caption(
+                "rmin escalado proporcionalmente a nx para mantener "
+                "longitud física constante."
+            )
+            df_cuadro8 = df_mesh[["Malla", "Ne", "rmin", "c(rho*)", "beta0", "beta1"]].copy()
+            df_cuadro8.columns = ["Malla", "Ne", "rmin", "c(ρ*)", "β0", "β1"]
+            st.dataframe(df_cuadro8, width="stretch", hide_index=True)
+
+            mesh_betas = df_mesh["beta1"].tolist()
+            if len(set(mesh_betas)) == 1:
+                st.success(
+                    f"✅ β1 = {mesh_betas[0]} constante en {len(df_mesh)} mallas → "
+                    "independencia de resolución confirmada"
+                )
+            else:
+                st.warning(f"⚠️ β1 varia entre mallas: {set(mesh_betas)}")
+
+        # ═══════════════════════════════════════════════════════════════
+        # Barrido de r_min
+        # ═══════════════════════════════════════════════════════════════
+        df_rmin = df_sweep[df_sweep["Config"].str.startswith("rmin")]
+        if len(df_rmin) > 0:
+            st.markdown("**Barrido de r_min (5 valores):**")
+            df_rmin_show = df_rmin[["rmin", "c(rho*)", "beta0", "beta1", "Concordancia"]].copy()
+            df_rmin_show.columns = ["rmin", "c(ρ*)", "β0", "β1", "Concordancia"]
+            st.dataframe(df_rmin_show, width="stretch", hide_index=True)
+
+            rmin_betas = df_rmin["beta1"].tolist()
+            if len(set(rmin_betas)) == 1:
+                st.success(
+                    f"✅ β1 = {rmin_betas[0]} constante en "
+                    f"rmin ∈ {{1.5, 2.0, 2.4, 3.0, 4.0}}"
+                )
+            else:
+                st.warning(f"⚠️ β1 varia con r_min: {set(rmin_betas)}")
+
+        # Veredicto H.E.2b consolidado
+        st.markdown("---")
+        he2a_ok = reduccion >= 40
+        he2b_ok_mesh = len(set(df_mesh["beta1"].tolist())) == 1 if len(df_mesh) > 0 else False
+        he2b_ok_rmin = len(set(df_rmin["beta1"].tolist())) == 1 if len(df_rmin) > 0 else False
+        he2b_ok_p = len(set(df_p["beta1"].tolist())) == 1 if len(df_p) > 0 else False
+
+        if he2a_ok and he2b_ok_mesh and he2b_ok_rmin and he2b_ok_p:
+            st.success(
+                "### ✅ H.E.2 CUMPLIDA — Reduccion ≥40% y β1 invariante "
+                "en mallas, r_min y p"
+            )
+        elif he2a_ok and he2b_ok_mesh:
+            st.warning(
+                "### ⚠️ H.E.2 PARCIAL — Reduccion OK, β1 invariante en mallas, "
+                "pero varia en r_min o p"
+            )
+        else:
+            st.error(
+                "### ❌ H.E.2 NO CUMPLIDA — Verificar condiciones"
+            )
 
 # ════════════════════════════════════════════════════════════════
 # METODOLOGÍA
 # ════════════════════════════════════════════════════════════════
-    methodology_expander(
+methodology_expander(
     "📖 Metodología — H.E.2",
     [
         (
@@ -1264,6 +795,6 @@ if st.session_state.get('simp_optimized', False):
     "H.E.2"
 )
 
-    st.markdown("---")
+st.markdown("---")
 
 
