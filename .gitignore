@@ -17,3 +17,9 @@ build/
 # IDE
 .vscode/
 .idea/
+openspec/
+
+
+# Docs
+*.pdf
+*.txt
