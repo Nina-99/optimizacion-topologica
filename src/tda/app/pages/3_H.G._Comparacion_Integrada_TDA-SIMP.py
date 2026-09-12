@@ -291,7 +291,7 @@ if st.session_state.get('hg_run', False):
     st.dataframe(df_comp, width='stretch', hide_index=True)
 
     # ══════════════════════════════════════════════════════════════
-    # SECCIÓN 4b: Convergencia SIMP (cumplimiento §10)
+    # SECCIÓN 4b: Convergencia SIMP (cumplimiento 10)
     # ══════════════════════════════════════════════════════════════
     st.subheader("4b. Convergencia SIMP")
 
@@ -299,7 +299,7 @@ if st.session_state.get('hg_run', False):
     c1.metric("Iteraciones", f"{r3['n_iter']}")
     c2.metric("Convergió", "✅" if r3['converged'] else "❌")
     c3.metric("Δc final", f"{r3['c_hist'][-1] - r3['c_hist'][-2]:.6f}" if len(r3['c_hist']) > 1 else "N/A")
-    c4.metric("Tol Δc/c", "1e-4 (Perfil §9.4.4)")
+    c4.metric("Tol Δc/c", "1e-4 (Perfil 9.4.4)")
 
     # Curva de convergencia
     fig_conv = go.Figure()
@@ -324,7 +324,7 @@ if st.session_state.get('hg_run', False):
         template="plotly_white",
         height=350
     )
-    st.plotly_chart(fig_conv, use_container_width=True)
+    st.plotly_chart(fig_conv, width='stretch')
 
     # ══════════════════════════════════════════════════════════════
     # SECCIÓN 5: Síntesis H.E.1 + H.E.2
@@ -361,7 +361,7 @@ if st.session_state.get('hg_run', False):
         no prescriptivo).
 
         > ⚠️ Las formulaciones originales (β₁ ≤ 2 y comparación vs bloque sólido)
-        > fueron descartadas en §4.4 por razones técnicas documentadas.
+        > fueron descartadas en 4.4 por razones técnicas documentadas.
         """)
         c_base = r3['c_hist'][0] if r3['c_hist'] is not None and len(r3['c_hist']) > 0 else r3['c_final']
         reduccion = (1 - r3['c_final'] / c_base) * 100 if c_base > 0 else 0
@@ -370,7 +370,7 @@ if st.session_state.get('hg_run', False):
         st.markdown(f"- Reducción compliance: **{reduccion:.1f}%** {'✅ ≥40%' if cumple_reduccion else '❌ <40%'}")
         st.markdown(f"- β₁ del diseño: **{r3['beta1']}** {'✅ =2 invariante' if cumple_b1 else '❌ ≠2'}")
         if cumple_reduccion and cumple_b1:
-            st.success("✅ H.E.2 CUMPLIDA (criterios corregidos §4.4)")
+            st.success("✅ H.E.2 CUMPLIDA (criterios corregidos 4.4)")
         else:
             st.warning("⚠️ H.E.2 requiere ajuste de parámetros")
 
@@ -462,7 +462,7 @@ if st.session_state.get('hg_run', False):
     st.table(df_cuadro9.set_index("Ítem"))
 
     st.markdown("""
-    **Observación (del documento §9):**
+    **Observación (del documento 9):**
     Tres afirmaciones del borrador no se sostienen, y las tres por razones distintas y diagnosticables: 
     un indicador que el teorema invocado no respalda (H.E.1a), un referente que hace la hipótesis 
     imposible (H.E.2a) y una cota fijada a priori sobre un invariante no controlado (H.E.2b). 
