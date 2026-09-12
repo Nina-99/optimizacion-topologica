@@ -16,6 +16,7 @@ Referencias:
 from typing import List, Tuple, Dict, Optional
 import numpy as np
 from ripser import ripser
+from scipy.spatial.distance import directed_hausdorff
 
 from tda.processing.sampling import (
     generate_cloud, add_gaussian_noise, compute_diameter,
@@ -25,8 +26,15 @@ from tda.analysis.metrics import compute_kmeans_accuracy, mcnemar_test
 from tda.core.topology import bottleneck_distance as persim_bottleneck
 
 
-# ═══════════════════════════════════════════════════════════════════
-# FUNCIONES CENTRALES — τ · diam(X)
+def hausdorff_distance(X: np.ndarray, Y: np.ndarray) -> float:
+    """Calcula la distancia de Hausdorff bidireccional entre dos nubes de puntos.
+    
+    dH(X, Y) = max(d_directed(X, Y), d_directed(Y, X))
+    """
+    d_xy = directed_hausdorff(X, Y)[0]
+    d_yx = directed_hausdorff(Y, X)[0]
+    return float(max(d_xy, d_yx))
+
 # ═══════════════════════════════════════════════════════════════════
 
 def betti_persistente(
