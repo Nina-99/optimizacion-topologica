@@ -23,3 +23,5 @@ openspec/
 # Docs
 *.pdf
 *.txt
+!requirements*.txt
+Makefile
