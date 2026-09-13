@@ -12,9 +12,14 @@ from pathlib import Path
 # Check for required libraries
 try:
     import ripser
-    import persim
 except ImportError as e:
-    raise ImportError("Missing required libraries: ripser or persim. Please install them to run the TDA pipeline.")
+    raise ImportError("Missing required library: ripser. Please install it to run the TDA pipeline.") from e
+
+# persim is optional — we use numpy-based distances in tda.core.topology
+try:
+    import persim
+except ImportError:
+    persim = None
 
 # Import metrics and preprocessing modules
 from tda.core.topology import betti_numbers
@@ -71,7 +76,8 @@ def compute_wasserstein_distance(dgm1: np.ndarray, dgm2: np.ndarray) -> float:
     Returns:
         float: Distancia de Wasserstein.
     """
-    return float(persim.wasserstein(dgm1, dgm2))
+    from tda.core.topology import wasserstein_distance
+    return wasserstein_distance(dgm1, dgm2)
 
 
 def _safe_stack(normalized: list) -> np.ndarray:
@@ -104,7 +110,8 @@ def compute_bottleneck_distance(dgm1: np.ndarray, dgm2: np.ndarray) -> float:
     Returns:
         float: Distancia de Bottleneck.
     """
-    return float(persim.bottleneck(dgm1, dgm2))
+    from tda.core.topology import bottleneck_distance
+    return bottleneck_distance(dgm1, dgm2)
 
 
 def compare_tda_vs_euclidean(clean_pts: np.ndarray, noisy_pts: np.ndarray, 

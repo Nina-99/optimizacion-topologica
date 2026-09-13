@@ -67,4 +67,5 @@ Este módulo provee las métricas fundamentales para la validación de la **Hip�
 ## Dependencias
 * `numpy`
 * `gudhi` (para cálculo de homología en grillas 2D)
-* `persim` (para el cálculo eficiente de distancias)
+
+> **Nota:** Las distancias Wasserstein y Bottleneck estan implementadas en numpy puro (sin depender de `persim`).

@@ -67,3 +67,5 @@ python src/tda/visualization/visualizer.py --analyze-stability --shape torus
 - `scikit-learn` (PCA y KMeans)
 - `tda.simulation`
 - `tda.core`
+
+> **Nota:** `persim` es opcional. Sin ella, las funciones de distancia usan la implementacion numpy de `tda.core.topology`.

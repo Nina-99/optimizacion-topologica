@@ -1,50 +1,143 @@
-"""Módulo de funciones topológicas para análisis TDA-SIMP.
+"""Modulo de funciones topologicas para analisis TDA-SIMP.
 
 Provee funciones para:
 - Distancias entre diagramas de persistencia (Wasserstein, Bottleneck)
-- Extracción de números de Betti (β₀, β₁)
-- Binarización de diseños SIMP y extracción de nubes de puntos
-- Escala adaptativa ε* para filtración Vietoris-Rips
-- Homología persistente H₁ con Ripser
+- Extraccion de numeros de Betti (beta_0, beta_1)
+- Binarizacion de disenos SIMP y extraccion de nubes de puntos
+- Escala adaptativa epsilon* para filtracion Vietoris-Rips
+- Homologia persistente H_1 con Ripser
 
-Bloque 3 del Algoritmo 1 (Métrica Compuesta TDA-SIMP).
+Bloque 3 del Algoritmo 1 (Metrica Compuesta TDA-SIMP).
+
+Implementaciones puras en numpy (sin dependencia de persim).
 """
 
 import numpy as np
 from typing import Tuple
 
-try:
-    from persim import wasserstein as persim_wasserstein
-    from persim import bottleneck as persim_bottleneck
-except ImportError:
-    persim_wasserstein = None
-    persim_bottleneck = None
-
 
 # =============================================================================
-# FUNCIONES EXISTENTES (Distancias entre diagramas)
+# DISTANCIAS ENTRE DIAGRAMAS (numpy puro, sin persim)
 # =============================================================================
+
+def _points_to_diagonal(points: np.ndarray) -> np.ndarray:
+    """Project points onto the diagonal y=x (birth=death line).
+
+    For a point (b, d), the closest point on the diagonal is ((b+d)/2, (b+d)/2).
+    """
+    mid = (points[:, 0] + points[:, 1]) / 2.0
+    return np.column_stack([mid, mid])
+
+
+def _pairwise_distances(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Compute pairwise Euclidean distance matrix between sets a (n,d) and b (m,d)."""
+    # ||a_i - b_j||^2 = ||a_i||^2 + ||b_j||^2 - 2 a_i . b_j
+    a_sq = np.sum(a ** 2, axis=1)[:, np.newaxis]
+    b_sq = np.sum(b ** 2, axis=1)[np.newaxis, :]
+    dist_sq = a_sq + b_sq - 2.0 * np.dot(a, b.T)
+    dist_sq = np.maximum(dist_sq, 0.0)
+    return np.sqrt(dist_sq)
+
 
 def wasserstein_distance(dgm1: np.ndarray, dgm2: np.ndarray) -> float:
-    """Calcula la distancia de Wasserstein entre dos diagramas de persistencia."""
-    if persim_wasserstein is None:
-        raise ImportError("persim library is required for wasserstein_distance")
+    """Calcula la distancia de Wasserstein (q=1) entre dos diagramas de persistencia.
+
+    Implementacion pura numpy: empareja puntos del diagrama mas corto con
+    proyecciones sobre la diagonal del mas largo, ordenando por persistencia.
+
+    Args:
+        dgm1: Primer diagrama de forma (n, 2) con [birth, death].
+        dgm2: Segundo diagrama de forma (m, 2) con [birth, death].
+
+    Returns:
+        Distancia de Wasserstein W_1(dgm1, dgm2).
+    """
     if dgm1.ndim != 2 or dgm1.shape[1] != 2:
         raise ValueError("dgm1 must be of shape (n, 2)")
     if dgm2.ndim != 2 or dgm2.shape[1] != 2:
         raise ValueError("dgm2 must be of shape (m, 2)")
-    return float(persim_wasserstein(dgm1, dgm2))
+
+    # Handle empty diagrams
+    if len(dgm1) == 0 and len(dgm2) == 0:
+        return 0.0
+    if len(dgm1) == 0:
+        diag2 = _points_to_diagonal(dgm2)
+        return float(np.sum(np.linalg.norm(dgm2 - diag2, axis=1)))
+    if len(dgm2) == 0:
+        diag1 = _points_to_diagonal(dgm1)
+        return float(np.sum(np.linalg.norm(dgm1 - diag1, axis=1)))
+
+    # Sort by persistence (death - birth), descending
+    pers1 = dgm1[:, 1] - dgm1[:, 0]
+    pers2 = dgm2[:, 1] - dgm2[:, 0]
+    order1 = np.argsort(-pers1)
+    order2 = np.argsort(-pers2)
+    dgm1_sorted = dgm1[order1]
+    dgm2_sorted = dgm2[order2]
+
+    # Pad shorter diagram with diagonal projections
+    n, m = len(dgm1_sorted), len(dgm2_sorted)
+    max_len = max(n, m)
+
+    if n < max_len:
+        diag2_proj = _points_to_diagonal(dgm2_sorted[n:])
+        dgm1_padded = np.vstack([dgm1_sorted, diag2_proj])
+    else:
+        dgm1_padded = dgm1_sorted
+
+    if m < max_len:
+        diag1_proj = _points_to_diagonal(dgm1_sorted[m:])
+        dgm2_padded = np.vstack([dgm2_sorted, diag1_proj])
+    else:
+        dgm2_padded = dgm2_sorted
+
+    # W_1 = sum of pointwise distances
+    diff = dgm1_padded[:max_len] - dgm2_padded[:max_len]
+    return float(np.sum(np.sqrt(np.sum(diff ** 2, axis=1))))
 
 
 def bottleneck_distance(dgm1: np.ndarray, dgm2: np.ndarray) -> float:
-    """Calcula la distancia de Bottleneck entre dos diagramas de persistencia."""
-    if persim_bottleneck is None:
-        raise ImportError("persim library is required for bottleneck_distance")
+    """Calcula la distancia de Bottleneck entre dos diagramas de persistencia.
+
+    Implementacion pura numpy: para cada punto de ambos diagramas, calcula
+    la minima distancia a cualquier punto del otro diagrama o a la diagonal.
+    Retorna el maximo de todas esas minimas distancias.
+
+    Args:
+        dgm1: Primer diagrama de forma (n, 2) con [birth, death].
+        dgm2: Segundo diagrama de forma (m, 2) con [birth, death].
+
+    Returns:
+        Distancia de Bottleneck W_inf(dgm1, dgm2).
+    """
     if dgm1.ndim != 2 or dgm1.shape[1] != 2:
         raise ValueError("dgm1 must be of shape (n, 2)")
     if dgm2.ndim != 2 or dgm2.shape[1] != 2:
         raise ValueError("dgm2 must be of shape (m, 2)")
-    return float(persim_bottleneck(dgm1, dgm2))
+
+    # Handle empty diagrams
+    if len(dgm1) == 0 and len(dgm2) == 0:
+        return 0.0
+    if len(dgm1) == 0:
+        diag2 = _points_to_diagonal(dgm2)
+        return float(np.max(np.linalg.norm(dgm2 - diag2, axis=1)))
+    if len(dgm2) == 0:
+        diag1 = _points_to_diagonal(dgm1)
+        return float(np.max(np.linalg.norm(dgm1 - diag1, axis=1)))
+
+    # Distance from each point in dgm1 to nearest in dgm2 or diagonal
+    d_1_to_2 = _pairwise_distances(dgm1, dgm2).min(axis=1)
+    diag2 = _points_to_diagonal(dgm1)
+    d_1_to_diag = np.linalg.norm(dgm1 - diag2, axis=1)
+    min_dist_1 = np.minimum(d_1_to_2, d_1_to_diag)
+
+    # Distance from each point in dgm2 to nearest in dgm1 or diagonal
+    d_2_to_1 = _pairwise_distances(dgm2, dgm1).min(axis=1)
+    diag2_pts = _points_to_diagonal(dgm2)
+    d_2_to_diag = np.linalg.norm(dgm2 - diag2_pts, axis=1)
+    min_dist_2 = np.minimum(d_2_to_1, d_2_to_diag)
+
+    return float(max(min_dist_1.max(), min_dist_2.max()))
 
 
 def betti_numbers(persistence_diagram: np.ndarray) -> Tuple[int, int]:
