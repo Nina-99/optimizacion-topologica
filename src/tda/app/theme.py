@@ -669,31 +669,66 @@ def responsive_style():
     """
     return custom_fonts() + """
 <style>
-/* Columnas responsivas */
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE — Columnas, metricas, tablas, mobile
+   ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-    .stColumn > div {
+    /* Columnas: apilar verticalmente */
+    [data-testid="stHorizontalBlock"] > div {
         min-width: 100% !important;
-        flex: 0 0 100% !important;
+        flex: 1 1 100% !important;
+        padding-right: 0 !important;
     }
-    .stColumn {
-        gap: 0 !important;
+    /* Metric cards: texto mas chico */
+    [data-testid="stMetric"] {
+        padding: 0.5rem 0.4rem !important;
     }
-    .stDownloadButton button {
+    [data-testid="stMetric"] label {
+        font-size: 0.75rem !important;
+    }
+    [data-testid="stMetric"] [data-testid="stMetricValue"] {
+        font-size: 1.1rem !important;
+    }
+    /* Tablas: scroll horizontal */
+    .stDataFrame {
+        overflow-x: auto !important;
+    }
+    /* Botones: full width */
+    .stButton > button,
+    .stDownloadButton > button {
         width: 100% !important;
     }
-    div[data-testid="stVerticalBlock"] > div > div > div > div > div[style*="border-radius"] {
-        padding: 1rem 0.8rem !important;
+    /* Headers: reducir padding */
+    [data-testid="stHeader"] {
+        padding: 0.5rem 0.5rem !important;
     }
+    /* Sidebar: ocultar en mobile por defecto (Streamlit lo hace, pero reforzar) */
+    [data-testid="stSidebar"][aria-expanded="false"] {
+        min-width: 0 !important;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TABLET (769-1024px): 2 columnas max
+   ═══════════════════════════════════════════════════════════════ */
+@media (min-width: 769px) and (max-width: 1024px) {
+    [data-testid="stHorizontalBlock"] > div {
+        min-width: 45% !important;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GENERAL
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
 }
 
 /* Botones de descarga */
 .stDownloadButton {
     margin-bottom: 0.5rem;
-}
-
-/* Smooth scrolling */
-html {
-    scroll-behavior: smooth;
 }
 
 /* Sidebar styling */

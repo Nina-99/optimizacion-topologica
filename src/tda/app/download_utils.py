@@ -62,28 +62,21 @@ def export_settings_ui():
     _init_session_state()
 
     with st.expander("📁 Exportación (configurar)", expanded=False):
-        col1, col2, col3 = st.columns([4, 1, 1])
+        nuevo_path = st.text_input(
+            "Directorio de exportación",
+            value=st.session_state[_SESSION_KEY],
+            key="_export_dir_input",
+            help="Los archivos exportados se guardarán en esta carpeta.",
+            placeholder="C:\\Users\\...\\TDA-SIMP-Export",
+        )
 
-        with col1:
-            nuevo_path = st.text_input(
-                "Directorio de exportación",
-                value=st.session_state[_SESSION_KEY],
-                key="_export_dir_input",
-                help="Los archivos exportados se guardarán en esta carpeta.",
-                placeholder="C:\\Users\\...\\TDA-SIMP-Export",
-            )
-
-        with col2:
-            st.write("")  # spacer
-            st.write("")  # spacer
-            if st.button("📂 Abrir", key="_export_btn_open", width='stretch'):
+        btn_col1, btn_col2 = st.columns(2)
+        with btn_col1:
+            if st.button("📂 Abrir carpeta", key="_export_btn_open", width='stretch'):
                 _abrir_carpeta(st.session_state[_SESSION_KEY])
-
-        with col3:
-            st.write("")  # spacer
-            st.write("")  # spacer
+        with btn_col2:
             if st.button(
-                "↺ Default", key="_export_btn_reset", width='stretch'
+                "↺ Restablecer default", key="_export_btn_reset", width='stretch'
             ):
                 nuevo_path = str(_default_export_dir())
 
@@ -110,22 +103,17 @@ def prompt_export_dir() -> str:
         "Podés cambiarlo después en el menú de exportación."
     )
 
-    col1, col2 = st.columns([4, 1])
-    with col1:
-        ruta = st.text_input(
-            "📁 Directorio de exportación",
-            value=st.session_state[_SESSION_KEY],
-            key="_export_prompt_input",
-        )
-    with col2:
-        st.write("")  # spacer vertical
-        st.write("")  # spacer vertical
-        if st.button("✅ Usar esta ruta", key="_export_prompt_btn", type="primary"):
-            ruta_val = ruta.strip() or str(_default_export_dir())
-            st.session_state[_SESSION_KEY] = ruta_val
-            st.session_state[_BOOL_KEY] = True
-            st.rerun()
-            return ruta_val
+    ruta = st.text_input(
+        "📁 Directorio de exportación",
+        value=st.session_state[_SESSION_KEY],
+        key="_export_prompt_input",
+    )
+    if st.button("✅ Usar esta ruta", key="_export_prompt_btn", type="primary", width='stretch'):
+        ruta_val = ruta.strip() or str(_default_export_dir())
+        st.session_state[_SESSION_KEY] = ruta_val
+        st.session_state[_BOOL_KEY] = True
+        st.rerun()
+        return ruta_val
 
     # Si ya pulsó "Usar esta ruta" en una ejecución anterior
     if st.session_state.get(_BOOL_KEY, False):

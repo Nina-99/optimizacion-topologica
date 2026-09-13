@@ -202,14 +202,15 @@ if modo == "1D — Perfil de Altura":
 
         def cb_1d(data):
             with ph_metrics_1d:
-                c1, c2, c3, c4 = st.columns(4)
-                c1.metric("Iteración", data['iteration'])
-                c2.metric("Ahorro Material", f"{data['saving_pct']:.1f}%")
+                r1_c1, r1_c2 = st.columns(2)
+                r1_c1.metric("Iteración", data['iteration'])
+                r1_c2.metric("Ahorro Material", f"{data['saving_pct']:.1f}%")
+                r2_c1, r2_c2 = st.columns(2)
                 max_sig = np.max(data['sigma_MPa'])
-                c3.metric("Tensión Máx", f"{max_sig:.1f} MPa",
+                r2_c1.metric("Tensión Máx", f"{max_sig:.1f} MPa",
                           delta="✅ OK" if max_sig <= sigma_adm else "⚠️ Excede",
                           delta_color="normal" if max_sig <= sigma_adm else "inverse")
-                c4.metric("Deflexión Máx", f"{np.max(np.abs(data['Y'])) * 1000:.2f} mm")
+                r2_c2.metric("Deflexión Máx", f"{np.max(np.abs(data['Y'])) * 1000:.2f} mm")
 
             fig, axs = plt.subplots(3, 1, figsize=(10, 8), gridspec_kw={'height_ratios': [2, 1, 1]})
             axs[0].plot(data['x'], data['h_v'] / 2, color='#2980b9', lw=2)
@@ -349,19 +350,21 @@ elif modo == "2D — SIMP Topológico":
         st.pyplot(fig_final)
         plt.close(fig_final)
 
-        # Metricas
-        c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
-        c1.metric("Compliance", f"{res['c_final']:.2f}")
-        c2.metric("mu_a", f"{res['mu']:.5f}")
-        c3.metric("beta0", res['beta0'])
-        c4.metric("beta1", res['beta1'])
-        c5.metric("Iteraciones", res['n_iter'])
-        c6.metric("Convergio", "OK" if res['converged'] else "NO")
+        # Metricas (2 filas para responsive: 4 + 3)
+        row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
+        row1_c1.metric("Compliance", f"{res['c_final']:.2f}")
+        row1_c2.metric("mu_a", f"{res['mu']:.5f}")
+        row1_c3.metric("beta0", res['beta0'])
+        row1_c4.metric("beta1", res['beta1'])
+
+        row2_c1, row2_c2, row2_c3 = st.columns(3)
+        row2_c1.metric("Iteraciones", res['n_iter'])
+        row2_c2.metric("Convergio", "OK" if res['converged'] else "NO")
 
         # Factor de seguridad (post-hoc aproximado)
         sigma_max_est = max(1.0, res['c_final'] / (L_mm * 1e-3))  # estimacion simple
         safety_factor = s_adm / (sigma_max_est * 1e6) if sigma_max_est > 0 else float('inf')
-        c7.metric("Factor Seguridad", f"{safety_factor:.1f}", delta="OK" if safety_factor >= 1.5 else "BAJO", delta_color="normal" if safety_factor >= 1.5 else "inverse")
+        row2_c3.metric("Factor Seguridad", f"{safety_factor:.1f}", delta="OK" if safety_factor >= 1.5 else "BAJO", delta_color="normal" if safety_factor >= 1.5 else "inverse")
 
         # Curva de convergencia
         fig_conv = go.Figure()
