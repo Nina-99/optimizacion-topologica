@@ -185,7 +185,7 @@ if st.session_state.get('tda_he1_run', False):
         if sweep:
             fig_stab = plot_stability_chart(sweep)
             apply_plotly_theme(fig_stab); st.plotly_chart(fig_stab, width='stretch')
-            st.warning("**Resultado del experimento:** bajo ruido gaussiano, el número de Betti $\beta_1$ del toro disminuye drásticamente, lo que invalida la hipótesis preliminar H.E.1a (\"el Betti‑k no cambia con ruido\").")
+            st.warning("**Resultado del experimento:** bajo ruido gaussiano, el número de Betti $\\beta_1$ del toro disminuye drásticamente, lo que invalida la hipótesis preliminar H.E.1a (\"el Betti‑k no cambia con ruido\").")
 
             # Cuadro 4: Tasa de acierto βk (metodologia L452)
             st.markdown("---")
