@@ -31,9 +31,13 @@ from tda.analysis.stability import betti_persistente
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 
-# Create data directory if needed
-current_file = Path(__file__).resolve()
-PROJECT_ROOT = current_file.parent.parent.parent.parent
+# Create data directory if needed (handles PyInstaller bundle)
+import sys as _sys
+if getattr(_sys, "frozen", False):
+    PROJECT_ROOT = Path(_sys.executable).parent
+else:
+    current_file = Path(__file__).resolve()
+    PROJECT_ROOT = current_file.parent.parent.parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 

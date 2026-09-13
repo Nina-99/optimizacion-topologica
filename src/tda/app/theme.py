@@ -41,20 +41,21 @@ def is_dark():
 def custom_fonts():
     """Inyecta Google Fonts (Inter + JetBrains Mono) y estilos base.
 
-    Llamar una sola vez al inicio de cada página o en responsive_style().
+    Gracefully falls back to system fonts when offline (e.g., in .exe builds).
+    Llamar una sola vez al inicio de cada pagina o en responsive_style().
     """
     return """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-/* Tipografía base */
+/* Tipografia base — fallback a fuentes del sistema si offline */
 body, .stApp {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
 }
 
-/* Números de métricas: JetBrains Mono */
+/* Numeros de metricas: JetBrains Mono */
 [data-testid="stMetricValue"] {
-    font-family: 'JetBrains Mono', monospace !important;
+    font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace !important;
     font-weight: 600 !important;
 }
 

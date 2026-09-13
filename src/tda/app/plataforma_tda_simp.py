@@ -48,9 +48,22 @@ export_settings_ui()
 
 # ── Hero section premium con logos dentro de la tarjeta ──
 import os as _os
+import sys as _sys
 import base64 as _b64
 
-_logo_dir = _os.path.join(_os.path.dirname(__file__), "..", "..", "img")
+# Handle PyInstaller bundle path
+def _get_base_dir():
+    if getattr(_sys, "frozen", False):
+        return _sys._MEIPASS
+    return _os.path.dirname(__file__)
+
+_logo_dir = _os.path.join(_get_base_dir(), "..", "..", "img")
+# Fallback: try from project root (for PyInstaller --add-data src\tda;tda)
+if not _os.path.isdir(_logo_dir):
+    _logo_dir = _os.path.join(_get_base_dir(), "img")
+# Fallback: try from current working directory
+if not _os.path.isdir(_logo_dir):
+    _logo_dir = _os.path.join(".", "img")
 
 def _img_to_base64(path):
     if _os.path.exists(path):
@@ -73,8 +86,7 @@ st.markdown(update_hero_orange(f"""
     50% {{ background-position: 100% 50%; }}
     100% {{ background-position: 0% 50%; }}
 }}
-</style>
-<div style="
+.hero-container {{
     background:linear-gradient(135deg, #2c1a00 0%, #3d2200 40%, #1a0f00 70%, #2c1a00 100%);
     background-size:200% 200%;
     animation:{_bg_animation};
@@ -84,24 +96,75 @@ st.markdown(update_hero_orange(f"""
     margin-bottom:2rem;
     box-shadow:0 12px 40px rgba(0,0,0,0.25);
     display:flex;
+    flex-wrap:wrap;
     align-items:center;
-    justify-content:space-between;
+    justify-content:center;
+    gap:1rem;
     border-left:5px solid {ORANGE};
-">
-    <div style="flex:0 0 auto;margin-right:1.5rem;">
+    overflow:hidden;
+}}
+.hero-logo img {{
+    height:170px;
+    max-width:100%;
+}}
+.hero-title {{
+    flex:1 1 300px;
+    text-align:center;
+    min-width:280px;
+}}
+.hero-title h1 {{
+    margin:0;
+    font-weight:800;
+    font-size:2.2rem;
+    letter-spacing:-0.02em;
+    color:{ORANGE};
+}}
+.hero-title p {{
+    margin:0.6rem 0 0 0;
+    opacity:0.9;
+    font-size:1rem;
+    max-width:600px;
+    margin-left:auto;
+    margin-right:auto;
+    line-height:1.5;
+}}
+.hero-title .subtitle {{
+    margin:0.3rem 0 0 0;
+    opacity:0.7;
+    font-size:0.85rem;
+}}
+@media (max-width: 768px) {{
+    .hero-container {{
+        padding:1.2rem 1rem;
+        flex-direction:column;
+        text-align:center;
+    }}
+    .hero-logo img {{
+        height:80px;
+    }}
+    .hero-title h1 {{
+        font-size:1.5rem;
+    }}
+    .hero-title p {{
+        font-size:0.9rem;
+    }}
+}}
+</style>
+<div class="hero-container">
+    <div class="hero-logo">
         {_uagrm_tag}
     </div>
-    <div style="flex:1;text-align:center;">
-        <h1 style="margin:0;font-weight:800;font-size:2.2rem;letter-spacing:-0.02em;color:{ORANGE};">Plataforma TDA-SIMP</h1>
-        <p style="margin:0.6rem 0 0 0;opacity:0.9;font-size:1rem;max-width:600px;margin-left:auto;margin-right:auto;line-height:1.5;">
-            Optimización Topológica, Homología Persistente y Métricas Compuestas
-            para el diseño de estructuras eficientes y manufacturables.
+    <div class="hero-title">
+        <h1>Plataforma TDA-SIMP</h1>
+        <p>
+            Optimizacion Topologica, Homologia Persistente y Metricas Compuestas
+            para el diseno de estructuras eficientes y manufacturables.
         </p>
-        <p style="margin:0.3rem 0 0 0;opacity:0.7;font-size:0.85rem;">
-            Jorge Larry Copa Cruz · Maestría en Matemática · UAGRM · 2026
+        <p class="subtitle">
+            Jorge Larry Copa Cruz · Maestria en Matematica · UAGRM · 2026
         </p>
     </div>
-    <div style="flex:0 0 auto;margin-left:1.5rem;">
+    <div class="hero-logo">
         {_upi_tag}
     </div>
 </div>
