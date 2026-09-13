@@ -57,13 +57,19 @@ def _get_base_dir():
         return _sys._MEIPASS
     return _os.path.dirname(__file__)
 
-_logo_dir = _os.path.join(_get_base_dir(), "..", "..", "img")
-# Fallback: try from project root (for PyInstaller --add-data src\tda;tda)
-if not _os.path.isdir(_logo_dir):
-    _logo_dir = _os.path.join(_get_base_dir(), "img")
-# Fallback: try from current working directory
-if not _os.path.isdir(_logo_dir):
-    _logo_dir = _os.path.join(".", "img")
+# Priority: _MEIPASS/img (frozen) > src/img (dev) > cwd/img (fallback)
+_logo_dir = None
+_candidates = [
+    _os.path.join(_get_base_dir(), "img"),               # frozen: _MEIPASS/img
+    _os.path.join(_get_base_dir(), "..", "..", "img"),   # dev: src/tda/app -> src/img
+    _os.path.join(".", "img"),                             # cwd fallback
+]
+for _c in _candidates:
+    if _os.path.isdir(_c):
+        _logo_dir = _c
+        break
+if _logo_dir is None:
+    _logo_dir = _candidates[0]  # will produce empty tags gracefully
 
 def _img_to_base64(path):
     if _os.path.exists(path):
