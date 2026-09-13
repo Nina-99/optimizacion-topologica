@@ -461,17 +461,6 @@ if st.session_state.get('hg_run', False):
     
     st.table(df_cuadro9.set_index("Ítem"))
 
-    st.markdown("""
-    **Observación (del documento 9):**
-    Tres afirmaciones del borrador no se sostienen, y las tres por razones distintas y diagnosticables: 
-    un indicador que el teorema invocado no respalda (H.E.1a), un referente que hace la hipótesis 
-    imposible (H.E.2a) y una cota fijada a priori sobre un invariante no controlado (H.E.2b). 
-    Ninguna refuta el valor del enfoque topológico; las tres delimitan con precisión qué puede 
-    y qué no puede afirmarse. Esa delimitación es, de hecho, la contribución más defendible del 
-    trabajo: convierte el gap enunciado bibliográficamente en un resultado medido en el propio 
-    banco de pruebas.
-    """)
-
     # ═══════════════════════════════════════════════════════════════
     # ══════════════════════════════════════════════════════════════
     # SECCIÓN 8: Conclusión General
