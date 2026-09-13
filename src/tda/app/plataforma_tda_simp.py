@@ -74,8 +74,8 @@ def _img_to_base64(path):
 _uagrm_b64 = _img_to_base64(_os.path.join(_logo_dir, "logoUAGRM.png"))
 _upi_b64 = _img_to_base64(_os.path.join(_logo_dir, "Logo-UPI.png"))
 
-_uagrm_tag = f'<img src="data:image/png;base64,{_uagrm_b64}" style="height:170px;" />' if _uagrm_b64 else ""
-_upi_tag = f'<img src="data:image/png;base64,{_upi_b64}" style="height:170px;" />' if _upi_b64 else ""
+_uagrm_tag = f'<img src="data:image/png;base64,{_uagrm_b64}" style="height:120px;max-width:100%;object-fit:contain;" />' if _uagrm_b64 else ""
+_upi_tag = f'<img src="data:image/png;base64,{_upi_b64}" style="height:120px;max-width:100%;object-fit:contain;" />' if _upi_b64 else ""
 
 _bg_animation = "heroGradient 8s ease infinite"
 
@@ -104,8 +104,9 @@ st.markdown(update_hero_orange(f"""
     overflow:hidden;
 }}
 .hero-logo img {{
-    height:170px;
+    height:120px;
     max-width:100%;
+    object-fit:contain;
 }}
 .hero-title {{
     flex:1 1 300px;
