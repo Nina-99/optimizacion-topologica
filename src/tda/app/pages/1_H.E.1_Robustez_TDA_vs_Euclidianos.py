@@ -79,12 +79,12 @@ with st.container():
     col_f1, col_f2 = st.columns(2)
     with col_f1:
         st.markdown("**H.E.1a' (Reformulada):**")
-        st.latex(r"\\frac{d_{B}\\bigl(\\text{Dgm}(X),\\ \\text{Dgm}(Y)\\bigr)}{\\operatorname{diam}(X)} \\le 2q")
+        st.latex(r"\frac{d_{B}\bigl(\text{Dgm}(X),\ \text{Dgm}(Y)\bigr)}{\operatorname{diam}(X)} \le 2q")
     with col_f2:
         st.markdown("**H.E.1b (Clasificación):**")
         st.markdown("Superioridad TDA vs Euclidianos (Test de McNemar $p < 0.05$).")
     st.markdown("**H.E.1c (Cota de Estabilidad):**")
-    st.latex(r"d_{B} \\le 2\\, d_{H}(X, Y)")
+    st.latex(r"d_{B} \le 2\, d_{H}(X, Y)")
 st.markdown("---")
 
 # AVISO DE DATOS OBSOLETOS
@@ -281,14 +281,15 @@ if st.session_state.get('tda_he1_run', False):
 
 # 4. Cota Hausdorff (c) + q* estimado
         st.markdown("---")
-        st.subheader("4. Validación H.E.1c — Cota de Estabilidad $d_B \\le 2d_H$ + q*")
+        st.subheader("4. Validación H.E.1c — Cota de Estabilidad") 
+        st.latex(r"d_{B} \le 2\, d_{H}(X, Y)")
         cota_c = res.get('cota_validation', {}).get('c', [])
         if cota_c:
             avg_ratio_c = np.mean([x['ratio'] for x in cota_c])
             if all(x['cumple'] for x in cota_c):
-                st.success(f"### ✅ VEREDICTO: H.E.1c CONFIRMADA\nRatio Promedio: {avg_ratio_c:.4f} $\\le$ Límite: 2.00")
+                st.success(f"### ✅ VEREDICTO: H.E.1c CONFIRMADA\nRatio Promedio: {avg_ratio_c:.4f} ≤ Límite: 2.00")
             else:
-                st.warning(f"### ⚠️ VEREDICTO: H.E.1c PARCIAL\nRatio Promedio: {avg_ratio_c:.4f} $>$ Límite: 2.00")
+                st.warning(f"### ⚠️ VEREDICTO: H.E.1c PARCIAL\nRatio Promedio: {avg_ratio_c:.4f} > Límite: 2.00")
             st.dataframe(pd.DataFrame(cota_c), width='stretch', hide_index=True)
 
             # q* estimado: nivel crítico donde βk colapsa
