@@ -22,35 +22,37 @@ app/
 
 Validacion de la Hipotesis Especifica H.E.1: la homologia persistente proporciona descriptores estables frente a ruido, superando a descriptores euclidianos.
 
-- Genera nubes de puntos sinteticas (esfera, toro) con ruido gaussiano regulable.
-- Ejecuta K-Medias y contrasta con clasificacion topologica (beta_0, beta_1).
-- **Cuadro 4:** Tasa de acierto de beta_k por nivel de ruido, por tipo de nube y nivel de confiabilidad.
-- **Cuadro 5:** Exactitud TDA vs Euclidiano con y sin deformacion afin.
-- **Estimacion de q*:** Primer nivel donde beta_1 se desvia del valor teorico.
-- Incluye diagramas de persistencia (Ripser), barras de estabilidad y exportacion CSV.
+- Genera nubes de puntos sintéticas (esfera, toro) con ruido gaussiano regulable.
+- Ejecuta K-Means y contrasta con clasificación topológica ($\beta_0$, $\beta_1$).
+- **Figura 5.1:** Curva de calibración del umbral $\tau$ contra el patrón de oro (7 nubes).
+- **Figura 5.2(a):** Tasa de acierto de $\beta_k$ por nivel de ruido; **(b):** cota réplica por réplica.
+- **Figura 5.3:** Distancia bottleneck normalizada vs cota $2q$, por nube y nivel.
+- **Tabla 5.5:** Caso 1 (indicador, criterio, esperado y medido) construida de la corrida.
+- **Test de McNemar** con tabla de contingencia explicada y **estimación de q***.
+- Incluye diagramas de persistencia (Ripser) y exportación ZIP (CSV + PDF + PNG).
 
 ### 2. H.E.2 — Optimizacion SIMP + Metrica Compuesta
 
-Validacion de la Hipotesis Especifica H.E.2: SIMP con metrica compuesta mu_alpha logra reduccion >=40% y beta_1 invariante.
+Validación de la Hipótesis Específica H.E.2: SIMP con métrica compuesta $\mu_\alpha$ logra reducción ≥40% y $\beta_1$ invariante.
 
-- Optimizacion topologica 2D con SIMP (algoritmo OC).
-- Metrica compuesta mu_alpha = c + alpha * beta_1 con calibracion de alpha*.
-- **Barrido multi-configuracion:** rmin, p, y malla (rectangular 2:1 o cuadrada).
-- **Cuadro 7:** Resultados por valor de p (p=1,2,3,4) con concordancia.
-- **Cuadro 8:** Resultados por resolucion de malla (Ne en {1600, 6400, 14400}).
-- Validacion H.E.2a' (reduccion >=40%) y H.E.2b' (beta_1 invariante, descriptivo).
-- Incluye convergencia, diagramas de persistencia y veredicto consolidado.
+- Optimización topológica 2D con SIMP (algoritmo OC).
+- Métrica compuesta $\mu_\alpha = c + \alpha \cdot \beta_1$ con calibración de $\alpha^*$.
+- **Barrido multi-configuración:** $r_{\min}$, $p$ y malla (rectangular 2:1 o cuadrada).
+- **Figuras 5.4–5.7** con epígrafes del documento y sus datos (compliance, grisura, $\beta_1$, fracción de volumen).
+- **Tabla 5.6** dinámica (compliance vs referentes) y **doble cómputo** de Betti: característica de Euler $\chi$ vs homología cúbica (GUDHI).
+- Validación H.E.2a' (reducción ≥40% vs uniforme) y H.E.2b' ($\beta_1$ invariante, descriptivo).
+- Incluye convergencia, diagramas de persistencia y exportación ZIP con PNG de cada gráfico.
 
 ### 3. H.G. — Comparacion Integrada TDA-SIMP
 
 Sintesis integral de TDA+SIMP: validacion de la Hipotesis General y Pareto-optimalidad.
 
-- Barrido de penalizacion p={2,3,4} con la misma malla.
-- Analisis de dominancia estricta entre configuraciones.
-- Sensibilidad al parametro alpha con grafico de barras.
-- Diagramas de persistencia lado a lado (H_1).
-- Cuadro 9: Resumen comparativo consolidado.
-- Veredicto: H.E.2a' y H.E.2b' con omega_solido, tau_M, rho_min.
+- Barrido de penalización $p=\{2,3,4\}$ con la misma malla.
+- Análisis de dominancia estricta entre configuraciones.
+- Sensibilidad al parámetro $\alpha$ con gráfico.
+- Diagramas de persistencia lado a lado ($H_1$).
+- Tabla 5.9: veredictos del documento (5 filas + evidencia) y Tabla 5.5 como referencia.
+- Veredicto H.G. con $\mu_\alpha$ y exportación ZIP completa.
 
 ### 4. Ejemplo Viga 1D vs 2D
 
@@ -65,10 +67,11 @@ Laboratorio interactivo de optimizacion estructural: comparacion de enfoques ana
 - **Exportacion STL:** Descarga del diseno binario como malla 3D.
 - **Tamano minimo de miembro:** Filtro de tamano minimo para manufacturabilidad.
 
-## Ejecucion
+## Ejecución
 
 ```bash
-streamlit run src/tda/app/plataforma_tda_simp.py
+# Con uv (recomendado):
+uv run streamlit run src/tda/app/plataforma_tda_simp.py
 ```
 
 ## Dependencias
@@ -77,8 +80,9 @@ streamlit run src/tda/app/plataforma_tda_simp.py
 - `numpy`
 - `pandas`
 - `matplotlib`
-- `plotly`
+- `plotly` + `kaleido` (exportación de gráficos a PNG; requiere Chrome vía `plotly_get_chrome`)
 - `scikit-learn`
-- `ripser`
+- `ripser` (instalado con `--no-deps`)
+- `gudhi` (homología cúbica; si falta, el doble cómputo queda sin verificar)
 - `tda.optimization` (MetricaTDA_SIMP, BeamOptimizer)
 - `tda.core` (betti_doble_computo, diagramas_gudhi)

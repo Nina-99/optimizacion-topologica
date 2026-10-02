@@ -22,7 +22,7 @@ El desarrollo de este framework está guiado por dos hipótesis específicas de 
   La homología persistente, computada sobre nubes de puntos $X \subset \mathbb{R}^d$ ($d \le 100$) mediante filtraciones de Vietoris-Rips utilizando `Ripser 0.6`, proporciona números de Betti $\beta_0$ (componentes conexas) y $\beta_1$ (ciclos 1-dimensionales) que permanecen estables bajo perturbaciones de ruido gaussiano de magnitud entre el $15\%$ y $20\%$ del diámetro del conjunto de datos. Esta estabilidad supera a la de descriptores geométricos clásicos en tareas de caracterización de formas bajo ruido.
 
 * **H.E.2 — Eficiencia y Convergencia en Optimización Estructural (SIMP):**
-  El método SIMP formulado con un factor de penalización $p = 3$ y una fracción de volumen objetivo $f_V = 0.5$ converge a una distribución óptima de densidades que reduce la *compliance* global en al menos un $40\%$ en comparación con el bloque sólido inicial de referencia. La topología sólida binaria resultante posee un número de Betti $\beta_1(\Omega_{\text{sólido}}) \le 2$, verificado computacionalmente mediante análisis de homología sobre su representación en malla de elementos finitos.
+  El método SIMP formulado con un factor de penalización $p = 3$ y una fracción de volumen objetivo $f_V = 0.5$ converge a una distribución óptima de densidades que reduce la *compliance* global en al menos un $40\%$ en comparación con el diseño uniforme de igual volumen (hipótesis corregida H.E.2a′; la comparación contra bloque sólido es imposible por Proposición 8.3). El número de Betti $\beta_1(\Omega_{\text{sólido}})$ del diseño convergido resulta invariante frente a la resolución de malla, el factor de penalización $p \in \{2,3,4\}$ y el radio del filtro $r_{\min} \in [1.5, 4.0]$ (hipótesis corregida H.E.2b′, descriptiva).
 
 ---
 
@@ -74,13 +74,12 @@ El repositorio está organizado como un paquete de Python instalable. A continua
 EstructuraTopologica/
 ├── LICENSE                      # Licencia BSD-3-Clause
 ├── setup.py                     # Archivo de configuración para la instalación del paquete
-├── requirements.txt             # Dependencias exactas del proyecto (105 paquetes validados)
-├── install_package.sh           # Script de instalación automatizada para Linux/macOS
-├── install_package.bat          # Script de instalación automatizada para Windows
-├── prompt.md                    # Instrucciones de diseño del proyecto
+├── requirements.txt             # Dependencias directas (numpy, pandas, matplotlib, scipy,
+│                                # scikit-learn, streamlit, plotly, gudhi, kaleido + ripser aparte)
+├── install_package.sh           # Instalación automatizada con uv para Linux/macOS
+├── install_package.bat          # Instalación automatizada para Windows
 ├── README.md                    # Este archivo de documentación central
-├── docs/
-│   └── optimizacion_topologica.md  # Documentación extendida del marco teórico
+├── docs/                        # Documentación técnica y manual de usuario (.docx)
 └── src/
     └── tda/
         ├── __init__.py              # Inicialización del namespace tda
@@ -127,13 +126,13 @@ EstructuraTopologica/
 
 ## 5. Instrucciones de Instalación
 
-Se recomienda el uso de un **entorno virtual (`venv`)** para aislar las dependencias. El proyecto incluye scripts automatizados para Linux/macOS y Windows, o podés seguir los pasos manuales.
+Se recomienda el uso de **[uv](https://docs.astral.sh/uv/)** como gestor de paquetes y entornos (rápido, compatible con `pip` y `requirements.txt`). El proyecto incluye scripts automatizados para Linux/macOS y Windows, o podés seguir los pasos manuales.
 
 ### Requisitos del Sistema
 
 * **Sistema Operativo:** Linux / macOS / Windows
-* **Python:** 3.10 o superior (validado en Python 3.14)
-* **Gestor de paquetes:** `pip` (incluido con Python)
+* **Python:** 3.10 o superior (entorno validado en Python 3.12)
+* **Gestor de paquetes:** `uv` ([instalación](https://docs.astral.sh/uv/getting-started/installation/))
 
 ### Método rápido — Script automatizado
 
@@ -145,7 +144,7 @@ git clone <repo-url> && cd EstructuraTopologica
 bash install_package.sh
 ```
 
-El script verifica que Python esté instalado, crea el entorno virtual en `venv/`, instala las 105 dependencias y te pregunta si querés ejecutar la app.
+El script verifica `uv`, crea el entorno virtual en `.venv/`, instala las dependencias, instala `ripser` con `--no-deps` (evita su dependencia problemática `persim`, sin wheels para Windows) y te pregunta si querés ejecutar la app.
 
 **Windows:**
 
@@ -154,40 +153,29 @@ El script verifica que Python esté instalado, crea el entorno virtual en `venv/
 install_package.bat
 ```
 
-### Método manual — paso a paso
+### Método manual — paso a paso (con uv)
 
 ```bash
 # 1. Crear el entorno virtual
-python3 -m venv venv
+uv venv .venv
 
-# 2. Activarlo
-source venv/bin/activate       # Linux/macOS
-# 0 venv\Scripts\activate.bat  # Windows (cmd)
-# 0 .\venv\Scripts\Activate.ps1  # Windows (PowerShell)
+# 2. Instalar dependencias
+uv pip install -r requirements.txt
 
-# 3. Instalar dependencias
-pip install -r requirements.txt
+# 3. Instalar ripser sin dependencias problemáticas
+uv pip install ripser --no-deps
 
 # 4. Instalar paquete local (para imports from tda.*)
-pip install -e .
+uv pip install -e .
 
 # 5. Verificar instalación
-python --version
-pip list  # Deberían verse ~60 paquetes instalados
+uv run python --version
+uv run pip check    # Verifica que no haya conflictos
 ```
 
-### Método alternativo — Conda
+> **Nota:** `requirements.txt` declara las dependencias directas (9 + `ripser` aparte) con versiones flexibles (`>=`). Es la fuente única de verdad de las dependencias.
 
-Si preferís Conda, podés crear un entorno similar:
-
-```bash
-conda create -n tda-simp python=3.11 -y
-conda activate tda-simp
-pip install -r requirements.txt
-pip install -e .
-```
-
-> **Nota:** El archivo `requirements.txt` contiene las ~60 dependencias totales (7 explicitas + transitivas), **validadas sin conflictos** contra Python 3.14 en el desarrollo. Es la fuente única de verdad de las dependencias.
+> **Nota (exportación de gráficos):** la descarga de figuras Plotly como PNG usa `kaleido`, que requiere Google Chrome. Si el export falla, ejecutá `.venv/bin/plotly_get_chrome` (descarga Chrome automáticamente).
 
 ### Verificación de la instalación
 
@@ -208,12 +196,12 @@ El framework soporta dos modos de ejecución: por línea de comandos (headless) 
 Para ejecutar el pipeline principal y reproducir de forma automática los experimentos y simulaciones definidos en el marco de investigación:
 
 ```bash
-# Con el venv activado:
-python -m tda.simulation.pipeline
+# Con uv (sin activar nada):
+uv run python -m tda.simulation.pipeline
 
-# 0 sin activar, usando la ruta directa:
-venv/bin/python -m tda.simulation.pipeline      # Linux/macOS
-venv\Scripts\python -m tda.simulation.pipeline   # Windows
+# 0 con el venv activado:
+source .venv/bin/activate      # Linux/macOS
+python -m tda.simulation.pipeline
 ```
 
 Esto procesará la optimización de una viga en voladizo (cantilever beam), generará los archivos de datos correspondientes en el directorio de salida y computará los números de Betti y diagramas de persistencia de la topología final obtenida.
@@ -223,21 +211,20 @@ Esto procesará la optimización de una viga en voladizo (cantilever beam), gene
 Para iniciar la plataforma interactiva:
 
 ```bash
-# Con el venv activado:
-streamlit run src/tda/app/plataforma_tda_simp.py
+# Con uv (sin activar nada):
+uv run streamlit run src/tda/app/plataforma_tda_simp.py
 
-# 0 sin activar, usando la ruta directa:
-venv/bin/streamlit run src/tda/app/plataforma_tda_simp.py     # Linux/macOS
-venv\Scripts\streamlit run src\tda\app\plataforma_tda_simp.py  # Windows
+# 0 con el venv activado:
+streamlit run src/tda/app/plataforma_tda_simp.py
 ```
 
 Una vez ejecutado, abra el navegador web en la direccion indicada por la consola (usualmente `http://localhost:8501`). La interfaz interactiva contiene 4 modulos:
 
-1. **H.E.1 — Robustez TDA vs Euclidianos:** Genera nubes de puntos sinteticas (esfera, toro) con ruido gaussiano, ejecuta K-Medias y valida la estabilidad de invariantes topologicos (beta_0, beta_1) frente a descriptores euclidianos. Incluye Cuadro 4 (tasa de acierto por nivel de ruido), Cuadro 5 (exactitud TDA vs Euclidiano con/sin deformacion afina) y estimacion de q*.
+1. **H.E.1 — Robustez TDA vs Euclidianos:** Genera nubes de puntos sintéticas (esfera, toro) con ruido gaussiano, ejecuta K-Means y valida la estabilidad de invariantes topológicos ($\beta_0$, $\beta_1$) frente a descriptores euclidianos. Incluye Figura 5.1 (calibración de $\tau$), Figura 5.2(a) (tasa de acierto de $\beta_k$), Figura 5.2(b) (cota réplica por réplica), Figura 5.3 (cota $2q$ por nivel de ruido), test de McNemar, Tabla 5.5 del Caso 1 y estimación de q*.
 
-2. **H.E.2 — Optimizacion SIMP + Metrica Compuesta:** Optimizacion topologica 2D con SIMP, metrica compuesta mu_alpha y barrido multi-configuracion (rmin, p, malla). Valida H.E.2a' (reduccion >=40% vs uniforme) y H.E.2b' (beta_1 invariante bajo variacion de malla y r_min). Incluye Cuadro 7 (barrido p) y Cuadro 8 (barrido malla).
+2. **H.E.2 — Optimización SIMP + Métrica Compuesta:** Optimización topológica 2D con SIMP, métrica compuesta $\mu_\alpha$ y barrido multi-configuración ($r_{\min}$, $p$, malla). Valida H.E.2a' (reducción ≥40% vs uniforme) y H.E.2b' ($\beta_1$ invariante). Incluye Figuras 5.4–5.7 con sus datos, Tabla 5.6 dinámica y doble cómputo de Betti (característica de Euler $\chi$ vs GUDHI).
 
-3. **H.G. — Comparacion Integrada TDA-SIMP:** Sintesis integral: barrido de penalizacion p={2,3,4}, analisis de dominancia, sensibilidad al parametro alpha, diagramas de persistencia lado a lado y veredicto consolidado.
+3. **H.G. — Comparación Integrada TDA-SIMP:** Síntesis integral: barrido de penalización $p=\{2,3,4\}$, análisis de dominancia, sensibilidad al parámetro $\alpha$, diagramas de persistencia lado a lado, Tabla 5.9 de veredictos y exportación completa (CSV + PDF + PNG de cada gráfico en ZIP).
 
 4. **Ejemplo Viga 1D vs 2D:** Laboratorio interactivo con 3 modos de carga (Voladizo-Puntual, Articulado-Central, Voladizo-Distribuida), optimizacion analitica 1D, SIMP 2D con animacion, barrido de penalizacion, comparacion lado a lado y exportacion STL del diseno binario.
 
