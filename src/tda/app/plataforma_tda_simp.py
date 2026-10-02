@@ -2,7 +2,7 @@
 
 Landing page con navegación a los 4 módulos:
   1. H.E.1 — Robustez TDA vs Euclidianos
-  2. H.E.2 — Optimización SIMP + Métrica Compuesta μ_α
+  2. H.E.2 — Optimización SIMP + Métrica Compuesta μ(α)
   3. H.G. — Comparación Integrada TDA-SIMP
   4. Ejemplo — Viga 1D
 """
@@ -212,7 +212,7 @@ with cols[1]:
     st.markdown(landing_card(
         icon="🧮",
         title="H.E.2 — Optimización",
-        description="Implementación de SIMP con métrica compuesta μ_α para optimización de compliance y topología.",
+        description="Implementación de SIMP con métrica compuesta μ(α) para optimización de compliance y topología.",
         variant="orange"
     ), unsafe_allow_html=True)
     st.page_link("pages/2_H.E.2_Optimizacion_SIMP_Metrica_Compuesta.py", label="🧮 Abrir H.E.2", width='stretch')
@@ -237,6 +237,7 @@ with cols[3]:
 
 
 # ── Footer ──
+st.markdown("---")
 st.markdown("---")
 st.markdown(f"""
 <div style="{footer_style()}">

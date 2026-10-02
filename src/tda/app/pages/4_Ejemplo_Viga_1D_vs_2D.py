@@ -62,7 +62,7 @@ st.sidebar.markdown("---")
 if modo != "1D — Perfil de Altura":
     penal = st.sidebar.slider("Penalización p", 1.0, 5.0, 3.0, 0.5)
     volfrac = st.sidebar.slider("Fracción volumen f_V", 0.2, 0.8, 0.5, 0.05)
-    rmin = st.sidebar.slider("Radio filtro r_min", 1.0, 5.0, 2.4, 0.1)
+    rmin = st.sidebar.slider("Radio filtro $r_{min}$", 1.0, 5.0, 2.4, 0.1)
     mesh_res = st.sidebar.selectbox("Resolución malla", ["40×20 (rápido)", "60×30 (tesis)", "80×40 (detalle)"], index=1)
     mesh_map = {"40×20 (rápido)": (40, 20), "60×30 (tesis)": (60, 30), "80×40 (detalle)": (80, 40)}
     nelx, nely = mesh_map[mesh_res]
@@ -255,10 +255,10 @@ elif modo == "2D — SIMP Topológico":
         st.markdown(f"""
         **Modelo:** Malla {nelx}×{nely} Q4.
         **Carga:** {caso_carga}.
-        **Parámetros:** f_V={volfrac}, p={penal}, r_min={rmin}, t_mín={min_member}.
+        **Parámetros:** $f_V$={volfrac}, $p$={penal}, $r_{min}$={rmin}, $t_{mín}$={min_member}.
 
         **Animación:** Se muestra cada ~5 iteraciones el diseño actualizado.
-        **Post-hoc:** Al finalizar, se calcula β₀, β₁, μ_α y factor de seguridad.
+        **Post-hoc:** Al finalizar, se calcula $\\beta_0$, $\\beta_1$, $\\mu_\\alpha$ y factor de seguridad.
         """)
 
     # Esquema 2D dinámico según caso de carga
@@ -348,6 +348,7 @@ elif modo == "2D — SIMP Topológico":
 
         plt.tight_layout()
         st.pyplot(fig_final)
+        st.session_state.setdefault('viga_figs', {})['comparacion_1d_vs_2d'] = fig_final
         plt.close(fig_final)
 
         # Metricas (2 filas para responsive: 4 + 3)
@@ -383,6 +384,7 @@ elif modo == "2D — SIMP Topológico":
             height=350
         )
         st.plotly_chart(fig_conv, width='stretch')
+        st.session_state.setdefault('viga_figs', {})['convergencia_simp'] = fig_conv
 
         # Diagramas de persistencia
         if res['dgm0'] is not None or res['dgm1'] is not None:
@@ -404,6 +406,7 @@ elif modo == "2D — SIMP Topológico":
                 )
             fig_dgm.update_layout(title="Diagramas de Persistencia (GUDHI)", height=350, template="plotly_white")
             st.plotly_chart(fig_dgm, width='stretch')
+            st.session_state.setdefault('viga_figs', {})['diagrama_persistencia'] = fig_dgm
 
 
 # ══════════════════════════════════════════════════════════════
@@ -460,6 +463,7 @@ elif modo == "Barrido p (2,3,4)":
 
         plt.tight_layout()
         st.pyplot(fig_barrido)
+        st.session_state.setdefault('viga_figs', {})['barrido_penalizacion'] = fig_barrido
         plt.close(fig_barrido)
 
         # Tabla comparativa
@@ -555,6 +559,7 @@ elif modo == "Comparación 1D vs 2D":
 
         plt.tight_layout()
         st.pyplot(fig_cmp)
+        st.session_state.setdefault('viga_figs', {})['comparacion_final'] = fig_cmp
         plt.close(fig_cmp)
 
         # Tabla resumen
@@ -642,6 +647,30 @@ elif modo == "Comparación 1D vs 2D":
             )
         else:
             st.warning("No hay celdas activas para exportar. El diseno binario esta vacio.")
+
+
+# ══════════════════════════════════════════════════════════════
+# EXPORTAR FIGURAS (ZIP)
+# ══════════════════════════════════════════════════════════════
+st.markdown("---")
+st.subheader("Exportar Figuras (ZIP)")
+_figs_viga = st.session_state.get('viga_figs', {})
+if _figs_viga:
+    import io as _io
+    import zipfile as _zipfile
+    from tda.app.download_utils import write_figs_zip
+    _zf_buf = _io.BytesIO()
+    with _zipfile.ZipFile(_zf_buf, 'w', _zipfile.ZIP_DEFLATED) as _zf:
+        write_figs_zip(_zf, "figuras_viga", _figs_viga)
+    st.download_button(
+        label="Descargar figuras (ZIP)",
+        data=_zf_buf.getvalue(),
+        file_name="viga_figuras.zip",
+        mime="application/zip",
+        key="btn_viga_zip"
+    )
+else:
+    st.info("Ejecutar una simulación para generar y descargar las figuras.")
 
 
 # ══════════════════════════════════════════════════════════════

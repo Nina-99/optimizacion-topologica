@@ -369,20 +369,20 @@ def diagnosticar_he2(reduccion: float, beta1: int, mu: float,
 
     Criterios corregidos:
       H.E.2a': Reducción ≥ 40% frente al diseño uniforme de igual volumen
-      H.E.2b': β₁ es invariante (descriptivo, no prescriptivo)
-          — Se verifica que β₁ no cambia al variar rmin, p o resolución de malla.
-          — NO se exige β₁ ≤ 2 (eso era la formulación descartada en §4.4 Hallazgo 3).
+      H.E.2b': $\\beta_1$ es invariante (descriptivo, no prescriptivo)
+          — Se verifica que $\\beta_1$ no cambia al variar $r_{min}$, $p$ o resolución de malla.
+          — NO se exige $\\beta_1 \\le 2$ (eso era la formulación descartada en la documentación).
 
-    Args:
+    Parámetros:
         reduccion: Reducción de compliance vs diseño uniforme (%)
-        beta1: Número de Betti β₁ del diseño convergido
-        mu: Métrica compuesta μ_α
+        beta1: Número de Betti $\\beta_1$ del diseño convergido
+        mu: Métrica compuesta $\\mu_\\alpha$
         alpha, rmin, penal, volfrac: Parámetros de la optimización
         n_iter: Iteraciones ejecutadas
         converged: Si la optimización convergió
         max_iter: Máximo de iteraciones
-        beta1_invariante: True si β₁ es invariante en barrido de configs.
-            None = no se verificó (solo se muestra β₁ como informativo).
+        beta1_invariante: True si $\\beta_1$ es invariante en barrido de configs.
+            None = no se verificó (solo se muestra $\\beta_1$ como informativo).
 
     Returns dict con keys:
         badges_html: str  — HTML inline con badges resumen
@@ -392,8 +392,8 @@ def diagnosticar_he2(reduccion: float, beta1: int, mu: float,
     """
     cumple_red = reduccion >= 40
 
-    # H.E.2b': β₁ invariante (descriptivo)
-    # Si no se verificó el barrido, solo informar el valor de β₁
+    # H.E.2b': $\\beta_1$ invariante (descriptivo)
+    # Si no se verificó el barrido, solo informar el valor de $\\beta_1$
     if beta1_invariante is not None:
         cumple_b1 = beta1_invariante
     else:
@@ -410,17 +410,17 @@ def diagnosticar_he2(reduccion: float, beta1: int, mu: float,
 
     if cumple_b1 is not None:
         badges.append(_badge("✅" if cumple_b1 else "❌",
-                             f"β₁ invariante",
+                             f"β<sub>1</sub> invariante",
                              "#27ae60" if cumple_b1 else "#e74c3c"))
     else:
-        badges.append(_badge("ℹ️", f"β₁={beta1} (sin barrido)", "#2980b9"))
+        badges.append(_badge("ℹ️", f"β<sub>1</sub>={beta1} (sin barrido)", "#2980b9"))
 
-    badges.append(_badge("📊", f"μ_α={mu:.4f}", "#2980b9"))
+    badges.append(_badge("📊", f"μ<sub>α</sub>={mu:.4f}", "#2980b9"))
 
     # ── Razones ──
     if cumple_red:
         razones.append(
-            f"La optimización SIMP con p={penal}, f_V={volfrac} redujo la compliance "
+            f"La optimización SIMP con $p$={penal}, $f_V$={volfrac} redujo la compliance "
             f"un {reduccion:.1f}% respecto al diseño uniforme de igual volumen, "
             f"superando el umbral del 40% (H.E.2a')."
         )
@@ -433,7 +433,7 @@ def diagnosticar_he2(reduccion: float, beta1: int, mu: float,
             )
         elif volfrac > 0.6:
             razones.append(
-                f"Con f_V={volfrac} (>0.5), el diseño inicial ya tiene poco espacio para "
+                f"Con $f_V$={volfrac} (>0.5), el diseño inicial ya tiene poco espacio para "
                 f"mejorar la rigidez. La reducción marginal es baja."
             )
         else:
@@ -444,26 +444,26 @@ def diagnosticar_he2(reduccion: float, beta1: int, mu: float,
 
     if cumple_b1 is True:
         razones.append(
-            f"β₁={beta1} es invariante frente a variaciones de rmin, p y resolución de malla. "
-            f"Esto confirma que β₁ es un descriptor estable del diseño (H.E.2b')."
+            f"$\\beta_1$={beta1} es invariante frente a variaciones de $r_{min}$, $p$ y resolución de malla. "
+            f"Esto confirma que $\\beta_1$ es un descriptor estable del diseño (H.E.2b')."
         )
     elif cumple_b1 is False:
         razones.append(
-            f"β₁={beta1} varía al cambiar los parámetros. "
+            f"$\\beta_1$={beta1} varía al cambiar los parámetros. "
             f"El descriptor no es estable para esta configuración."
         )
     else:
         razones.append(
-            f"β₁={beta1} (valor para la configuración base). "
-            f"Para confirmar H.E.2b' se requiere barrido de rmin ∈ [1.5, 4.0], "
-            f"p ∈ {{2, 3, 4}} y al menos 3 resoluciones de malla."
+            f"$\\beta_1$={beta1} (valor para la configuración base). "
+            f"Para confirmar H.E.2b' se requiere barrido de $r_{min} \\in [1.5, 4.0]$, "
+            f"$p \\in {{2, 3, 4}}$ y al menos 3 resoluciones de malla."
         )
 
     # ── Sensibilidad de parámetros ──
     if not cumple_red or cumple_b1 is False:
         razones.append(
             "**Sensibilidad de parámetros:**\n"
-            "- `α` ↑ → penaliza más agujeros (β₁ baja) pero puede subir compliance\n"
+            "- `$\\alpha$` ↑ → penaliza más agujeros ($\\beta_1$ baja) pero puede subir compliance\n"
             "- `α` ↑↑ → over-penaliza, topología muy sólida, compliance sube\n"
             "- `rmin` ↑ → suaviza la topología, reduce ciclos espurios\n"
             "- `p` ↑ → penaliza más materia intermedia, topología más binaria\n"
@@ -505,10 +505,10 @@ def diagnosticar_he2(reduccion: float, beta1: int, mu: float,
     if cumple_red and cumple_b1 is True:
         veredicto = "CUMPLIDA"
     elif cumple_red and cumple_b1 is None:
-        # Reducción cumple, β₁ no verificado — informar
+        # Reducción cumple, $\\beta_1$ no verificado — informar
         veredicto = "CUMPLIDA"
         sugerencias.insert(0,
-            "⚠️ H.E.2b' (β₁ invariante) no verificada en esta ejecución. "
+            "⚠️ H.E.2b' ($\\beta_1$ invariante) no verificada en esta ejecución. "
             "Ejecutar el barrido completo de configuraciones para confirmar."
         )
     elif cumple_red or cumple_b1 is True:
@@ -529,14 +529,14 @@ def diagnosticar_hg(c_eucl: float, c_tda: float, beta1_eucl: int,
                      alpha: float) -> dict:
     """Diagnóstico de H.G: comparación euclidiano vs TDA.
 
-    La hipótesis general compara la métrica μ_α = c + α·β₁.
-    μ_eucl = c_eucl (porque α=0 en euclidiano).
-    μ_tda = c_tda + α·β₁_tda.
+    La hipótesis general compara la métrica $\\mu_\\alpha$ = $c + \\alpha\\cdot\\beta_1$.
+    $\\mu_{eucl}$ = $c_{eucl}$ (porque $\\alpha=0$ en euclidiano).
+    $\\mu_{tda}$ = $c_{tda} + \\alpha\\cdot\\beta_{1,tda}$.
 
     Returns dict con keys:
         badges_html, razones, sugerencias, veredicto
     """
-    # Comparar μ_α (métrica compuesta), NO compliance directamente
+    # Comparar $\\mu_\\alpha$ (métrica compuesta), NO compliance directamente
     mejora_mu = mu_tda < mu_eucl
     mejora_b1 = beta1_tda <= beta1_eucl
     delta_mu = mu_tda - mu_eucl
@@ -550,82 +550,82 @@ def diagnosticar_hg(c_eucl: float, c_tda: float, beta1_eucl: int,
     icon_mu = "↓" if mejora_mu else "↑" if delta_mu > 0 else "="
     badges.append(_badge(
         "✅" if mejora_mu else "⚠️" if delta_mu == 0 else "❌",
-        f"μ_α {icon_mu} {abs(delta_mu):.4f}",
+        f"μ<sub>α</sub> {icon_mu} {abs(delta_mu):.4f}",
         "#27ae60" if mejora_mu else "#f39c12" if delta_mu == 0 else "#e74c3c"
     ))
-    badges.append(_badge("📊", f"μ_eucl={mu_eucl:.4f}", "#7f8c8d"))
-    badges.append(_badge("📊", f"μ_tda={mu_tda:.4f}", "#2980b9"))
+    badges.append(_badge("📊", f"μ<sub>eucl</sub>={mu_eucl:.4f}", "#7f8c8d"))
+    badges.append(_badge("📊", f"μ<sub>tda</sub>={mu_tda:.4f}", "#2980b9"))
 
     # ── Razones ──
     if mejora_mu:
         pct = (1 - mu_tda / mu_eucl) * 100 if mu_eucl > 0 else 0
         razones.append(
-            f"SIMP+TDA produce μ_α {abs(delta_mu):.4f} menor que SIMP euclidiano "
-            f"({pct:.1f}% de mejora en la métrica compuesta). La regularización topológica μ_α guía "
+            f"SIMP+TDA produce $\\mu_\\alpha$ {abs(delta_mu):.4f} menor que SIMP euclidiano "
+            f"({pct:.1f}% de mejora en la métrica compuesta). La regularización topológica $\\mu_\\alpha$ guía "
             f"el OC hacia diseños más eficientes y topológicamente limpios."
         )
     elif delta_mu == 0:
         razones.append(
-            "Ambos enfoques producen μ_α idéntica. Esto ocurre cuando "
-            "α=0 o cuando la topología converge al mismo diseño sin importar la "
+            "Ambos enfoques producen $\\mu_\\alpha$ idéntica. Esto ocurre cuando "
+            "$\\alpha=0$ o cuando la topología converge al mismo diseño sin importar la "
             "regularización topológica."
         )
     else:
         razones.append(
-            f"SIMP euclidiano produce μ_α {abs(delta_mu):.4f} menor. "
-            f"Esto sugiere que α={alpha} está over-penalizando la función objetivo, "
+            f"SIMP euclidiano produce $\\mu_\\alpha$ {abs(delta_mu):.4f} menor. "
+            f"Esto sugiere que $\\alpha$={alpha} está over-penalizando la función objetivo, "
             f"forzando una topología más simple a costa de rigidez."
         )
 
-    # Compliance es igual porque TDA opera post-hoc (sección 6.3 del documento)
+    # Compliance es igual porque TDA opera post-hoc (documentación)
     if abs(c_tda - c_eucl) < 1e-6:
         razones.append(
             "ℹ️ Compliance es idéntica en ambos enfoques. Esto es **esperado**: "
-            "TDA opera post hoc (sección 6.3 del documento) y no modifica la "
-            "optimización SIMP. La diferencia está en la métrica compuesta μ_α."
+            "TDA opera post hoc (documentación) y no modifica la "
+            "optimización SIMP. La diferencia está en la métrica compuesta $\\mu_\\alpha$."
         )
 
     if mejora_b1:
         if delta_b1 < 0:
             razones.append(
-                f"β₁ baja de {beta1_eucl} a {beta1_tda}: TDA suprime "
+                f"$\\beta_1$ baja de {beta1_eucl} a {beta1_tda}: TDA suprime "
                 f"{abs(delta_b1)} agujero(s) espurio(s), mejorando la manufacturabilidad."
             )
         else:
             razones.append(
-                f"β₁ se mantiene en {beta1_tda}: ambos enfoques producen "
+                f"$\\beta_1$ se mantiene en {beta1_tda}: ambos enfoques producen "
                 f"topología con la misma cantidad de agujeros."
             )
     else:
         razones.append(
-            f"β₁ sube de {beta1_eucl} a {beta1_tda}: la regularización TDA "
+            f"$\\beta_1$ sube de {beta1_eucl} a {beta1_tda}: la regularización TDA "
             f"está introduciendo ciclos adicionales en lugar de suprimirlos. "
-            f"Esto indica que α={alpha} es demasiado bajo para esta malla."
+            f"Esto indica que $\\alpha$={alpha} es demasiado bajo para esta malla."
         )
 
     # ── Sensibilidad ──
     razones.append(
         "**Relación α ↔ resultados:**\n"
-        "- `α` = 0 → euclidiano puro (sininfluencia topológica)\n"
-        "- `α` pequeño (0.01-0.05) → efecto sutil, puede no cambiar β₁\n"
-        "- `α` medio (0.05-0.2) → suprime ciclos espurios, aumenta ligeramente c\n"
-        "- `α` alto (>0.2) → over-penaliza, topología muy sólida, c sube mucho"
+        "- `$\\alpha$` = 0 → euclidiano puro (sin influencia topológica)\n"
+        "- `$\\alpha$` pequeño (0.01-0.05) → efecto sutil, puede no cambiar $\\beta_1$\n"
+        "- `$\\alpha$` medio (0.05-0.2) → suprime ciclos espurios, aumenta ligeramente $c$\n"
+        "- `$\\alpha$` alto (>0.2) → over-penaliza, topología muy sólida, $c$ sube mucho"
     )
 
     # ── Sugerencias ──
     if not mejora_mu and not mejora_b1:
         sugerencias.append(
-            f"α={alpha} no produce mejoras en μ_α. Probar α=0 (euclidiano puro) como baseline, "
-            f"o subir α a ~{min(alpha * 5, 0.5):.3f} para efecto más marcado."
+            f"$\\alpha$={alpha} no produce mejoras en $\\mu_\\alpha$. Probar $\\alpha=0$ (euclidiano puro) como baseline, "
+            f"o subir $\\alpha$ a ~{min(alpha * 5, 0.5):.3f} para efecto más marcado."
         )
     elif not mejora_mu:
         sugerencias.append(
-            f"μ_α empeora con TDA. Reducir α de {alpha:.3f} a ~{alpha * 0.5:.3f} "
+            f"$\\mu_\\alpha$ empeora con TDA. Reducir $\\alpha$ de {alpha:.3f} a ~{alpha * 0.5:.3f} "
             f"para mitigar la penalización excesiva."
         )
     elif not mejora_b1:
         sugerencias.append(
-            f"μ_α mejora pero β₁ no. Subir α de {alpha:.3f} a ~{min(alpha * 3, 0.3):.3f} "
+            f"$\\mu_\\alpha$ mejora pero $\\beta_1$ no. Subir $\\alpha$ de {alpha:.3f} a ~{min(alpha * 3, 0.3):.3f} "
             f"para forzar supresión de agujeros."
         )
     else:
@@ -837,12 +837,12 @@ def breadcrumbs(parts, separator="→"):
 
 
 def methodology_expander(title, content_items, page_name):
-    """Genera un expandable con la metodología completa de una hipótesis.
+    """Genera un expandable con el plan de acción completo de una hipótesis.
 
     Parameters
     ----------
     title : str
-        Título del expandable (ej. "📖 Metodología")
+        Título del expandable (ej. "📖 Plan de Acción")
     content_items : list of (label, text) tuples
         Contenido a mostrar: fórmulas, referencias, algoritmo
     page_name : str
@@ -865,7 +865,7 @@ def methodology_expander(title, content_items, page_name):
         return any(m in text for m in latex_markers)
 
     with st.expander(title, expanded=False):
-        st.markdown(f"### {page_name} — Metodología")
+        st.markdown(f"### {page_name} — Plan de Acción")
 
         for label, text in content_items:
             if label == "fórmulas":

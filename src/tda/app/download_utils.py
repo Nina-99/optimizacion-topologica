@@ -90,7 +90,7 @@ def export_settings_ui():
 def prompt_export_dir() -> str:
     """Pregunta la ubicación si no está configurada.
 
-    Returns:
+    Retorna:
         Ruta absoluta del directorio de exportación.
     """
     _init_session_state()
@@ -145,7 +145,7 @@ def download_button(
 ) -> None:
     """Botón de descarga que funciona en navegador y en .exe compilado.
 
-    Args:
+    Parámetros:
         label: Texto del botón.
         data: Contenido del archivo (bytes para binario, str para texto).
         file_name: Nombre del archivo (ej. "reporte.pdf").
@@ -229,3 +229,47 @@ def _human_size(size_bytes: int) -> str:
         return f"{size_bytes / 1024:.1f} KB"
     else:
         return f"{size_bytes / 1024**2:.1f} MB"
+
+
+# ─────────────────────────────────────────────────────────
+#  Figuras a PNG (Plotly vía kaleido, Matplotlib directo)
+# ─────────────────────────────────────────────────────────
+
+
+def fig_png_bytes(fig) -> bytes:
+    """Rasteriza una figura Plotly o Matplotlib a bytes PNG.
+
+    Requiere kaleido + Chrome para Plotly (ver requirements.txt).
+    Lanza RuntimeError con mensaje claro si el backend falta.
+    """
+    import io
+
+    if hasattr(fig, "to_image"):
+        try:
+            return fig.to_image(format="png", width=900, height=550)
+        except Exception as e:
+            raise RuntimeError(
+                "No se pudo rasterizar la figura Plotly. "
+                "Verificar kaleido y Chrome (plotly_get_chrome)."
+            ) from e
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=150, bbox_inches="tight")
+    return buf.getvalue()
+
+
+def write_figs_zip(zf, folder: str, figs: dict) -> list:
+    """Escribe cada figura del dict como PNG dentro del ZIP.
+
+    Retorna la lista de nombres escritos. Si una figura falla,
+    escribe un .txt de error en su lugar para no omitirla en silencio.
+    """
+    escritos = []
+    for nombre, fig in figs.items():
+        destino = f"{folder}/{nombre}.png" if folder else f"{nombre}.png"
+        try:
+            zf.writestr(destino, fig_png_bytes(fig))
+        except Exception as e:
+            zf.writestr(destino.replace(".png", "_ERROR.txt"),
+                        f"No se pudo exportar {nombre}: {e}")
+        escritos.append(destino)
+    return escritos

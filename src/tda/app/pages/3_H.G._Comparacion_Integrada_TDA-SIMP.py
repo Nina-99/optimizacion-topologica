@@ -9,10 +9,10 @@ y análisis infinitesimal local."
 
 Estructura de validación (Documento, Sección 6):
 1. Correr SIMP con p=2, p=3, p=4 en la misma malla
-2. Calcular μ_α para cada configuración
-3. Validar H.G.: μ_α identifica p=3 como Pareto-óptimo
-4. Sensibilidad de μ a α (Cuadro 4)
-5. Sintetizar H.E.1 (robustez TDA) + H.E.2 (SIMP+μ_α)
+2. Calcular μ(α) para cada configuración
+3. Validar H.G.: μ(α) identifica p=3 como Pareto-óptimo
+4. Sensibilidad de μ(α) a α
+5. Sintetizar H.E.1 (robustez TDA) + H.E.2 (SIMP+μ(α))
 """
 
 import streamlit as st
@@ -38,11 +38,11 @@ st.markdown(responsive_style(), unsafe_allow_html=True)
 # ── Page Header ──
 st.markdown(page_header(
     "H.G. — Comparación Integrada TDA-SIMP",
-    "Validación H.G.: μ_α identifica diseños Pareto-óptimos"
+    "Validación H.G.: μ(α) identifica diseños Pareto-óptimos"
 ), unsafe_allow_html=True)
 st.header("H.G. — Comparación Integrada TDA-SIMP")
 st.markdown("""
-*Validación de la Hipótesis General: La métrica compuesta μ_α = c + α·β₁
+*Validación de la Hipótesis General: La métrica compuesta $\\mu_\\alpha$ = $c + \\alpha\\cdot\\beta_1$
 resuelve el orden parcial entre configuraciones SIMP, identificando las
 soluciones más robustas, eficientes y globalmente consistentes.*
 """)
@@ -56,19 +56,19 @@ nelx = st.sidebar.selectbox("Elementos en x", [40, 60, 80, 120], index=1, key="h
 nely = st.sidebar.selectbox("Elementos en y", [20, 30, 40, 60], index=1, key="hg_nely")
 
 volfrac = st.sidebar.slider("Fracción de volumen (fV)", 0.20, 0.80, 0.50, 0.05, key="hg_volfrac",
-    help="Porcentaje de material permitido. Documento: fV=0.50 (50%).")
+    help="Porcentaje de material permitido. Documento: $f_V$=0.50 (50%).")
 rmin = st.sidebar.slider("Radio filtro (rmin)", 1.0, 5.0, 2.4, 0.2, key="hg_rmin",
-    help="Radio del filtro de sensibilidad. Documento: r_min=2.4.")
+    help="Radio del filtro de sensibilidad. Documento: $r_{min}$=2.4.")
 max_iter = st.sidebar.number_input("Máx. iteraciones SIMP", 50, 500, 200, 50, key="hg_maxiter")
 
 st.sidebar.markdown("---")
 st.sidebar.header("📐 Parámetros Físicos")
-E_acero = st.sidebar.number_input("Módulo Young E₀ (MPa)", value=200000.0, step=1000.0, help="Acero = 200 GPa = 200,000 MPa")
+E_acero = st.sidebar.number_input("Módulo Young $E_0$ (MPa)", value=200000.0, step=1000.0, help="Acero = 200 GPa = 200,000 MPa")
 F_carga = st.sidebar.number_input("Carga F (N)", value=1000.0, step=100.0, help="Carga aplicada = 1 kN = 1000 N")
 espesor = st.sidebar.number_input("Espesor (mm)", value=1.0, step=0.1, help="Espesor de la viga en 2D plano")
 
 st.sidebar.markdown("---")
-st.sidebar.caption("α se usa para calcular μ_α, no para la optimización SIMP (sección 6.3)")
+st.sidebar.caption("$\\alpha$ se usa para calcular $\\mu_\\alpha$, no para la optimización SIMP (documentación)")
 
 st.markdown("---")
 
@@ -134,14 +134,14 @@ if st.session_state.get('hg_run', False):
 
     st.info(
         f"📋 Parámetros: Malla {params['nelx']}×{params['nely']}, "
-        f"fV={params['volfrac']}, r_min={params['rmin']}, "
-        f"α={params['alpha_fijo']}"
+        f"$f_V$={params['volfrac']}, $r_{{min}}$={params['rmin']}, "
+        f"$\\alpha$={params['alpha_fijo']}"
     )
 
     # ══════════════════════════════════════════════════════════════
     # SECCIÓN 1: Comparación visual p=2 vs p=3 vs p=4
     # ══════════════════════════════════════════════════════════════
-    st.subheader("1. Distribución de Material por Configuración")
+    st.subheader("1. Diseño convergido y eficiencia estructural (5.5.1)")
 
     fig_comp = make_subplots(
         rows=1, cols=3,
@@ -162,20 +162,21 @@ if st.session_state.get('hg_run', False):
     fig_comp.update_layout(height=350, margin=dict(l=0, r=0, b=0, t=40))
     apply_plotly_theme(fig_comp)
     st.plotly_chart(fig_comp, width='stretch')
+    st.session_state.setdefault('hg_figs', {})['material_por_configuracion'] = fig_comp
 
     # ══════════════════════════════════════════════════════════════
-    # SECCIÓN 2: Validación H.G.: μ_α identifica p=3 como Pareto-óptimo
+    # SECCIÓN 2: Validación H.G.: μ(α) identifica p=3 como Pareto-óptimo
     # ══════════════════════════════════════════════════════════════
-    st.subheader("2. Validación H.G.: μ_α identifica p=3 como Pareto-óptimo")
+    st.subheader("2. Validación H.G.: $\\mu_\\alpha$ identifica $p=3$ como Pareto-óptimo")
 
     r2, r3, r4 = resultados[2], resultados[3], resultados[4]
     alpha = params['alpha_fijo']
 
     st.markdown("""
-    **Criterio de Pareto según H.G. y Cuadro 9 del documento:**
-    La métrica compuesta μ_α = c + α·β₁ (con α > 0) resuelve el orden parcial entre 
-    configuraciones SIMP. p=3 es Pareto-óptimo si minimiza c manteniendo β₁ = 2 (invariante 
-    topológico), evitando los agujeros espurios de p=2 (β₁ = 3).
+    **Criterio de Pareto según H.G. y Tabla 5.9 del documento:**
+    La métrica compuesta $\\mu_\\alpha$ = $c + \\alpha\\cdot\\beta_1$ (con $\\alpha$ > 0) resuelve el orden parcial entre 
+    configuraciones SIMP. $p=3$ es Pareto-óptimo si minimiza $c$ manteniendo $\\beta_1 = 2$ (invariante 
+    topológico), evitando los agujeros espurios de $p=2$ ($\\beta_1 = 3$).
     """)
 
     # Condición 1: p=3 vs p=2
@@ -202,7 +203,7 @@ if st.session_state.get('hg_run', False):
     if cumple_3v2 and cumple_3v4:
         st.success(
             "✅ **H.G. VALIDADA: p=3 Pareto-óptimo:** p=3 domina en sentido Pareto tanto a p=2 como a p=4. "
-            "μ_α identifica correctamente la configuración óptima."
+            "$\\mu_\\alpha$ identifica correctamente la configuración óptima."
         )
     elif cumple_3v2 or cumple_3v4:
         st.warning("⚠️ H.G. parcialmente validada.")
@@ -218,22 +219,22 @@ if st.session_state.get('hg_run', False):
             dominancia_b1 = "≤" if r_a['beta1'] <= r_b['beta1'] else ">"
             st.markdown(
                 f"- **{label}:** c {dominancia_c} ({r_a['c_final']:.2f} vs {r_b['c_final']:.2f}), "
-                f"β₁ {dominancia_b1} ({r_a['beta1']} vs {r_b['beta1']})"
+                f"$\\beta_1$ {dominancia_b1} ({r_a['beta1']} vs {r_b['beta1']})"
             )
 
     # ══════════════════════════════════════════════════════════════
-    # SECCIÓN 3: Sensibilidad de μ a α
+    # SECCIÓN 3: Sensibilidad de μ(α) a α
     # ══════════════════════════════════════════════════════════════
-    st.subheader("3. Sensibilidad de μ_α al peso α")
+    st.subheader("3. Sensibilidad de $\\mu_\\alpha$ al peso $\\alpha$")
 
-    st.markdown(f"*p=3 fijo (malla {params['nelx']}×{params['nely']}, fV={params['volfrac']}).*")
+    st.markdown(f"*p=3 fijo (malla {params['nelx']}×{params['nely']}, $f_V$={params['volfrac']}).*")
 
     mu_base = r3['c_final'] + alpha * r3['beta1']
     df_sens = pd.DataFrame({
         "α": list(sensibilidad.keys()),
         "c (N·mm)": [sensibilidad[a]['c'] for a in sensibilidad],
         "β₁": [sensibilidad[a]['beta1'] for a in sensibilidad],
-        "μ_α": [sensibilidad[a]['mu'] for a in sensibilidad],
+        "μ(α)": [sensibilidad[a]['mu'] for a in sensibilidad],
     })
     st.dataframe(df_sens, width='stretch', hide_index=True)
 
@@ -242,28 +243,29 @@ if st.session_state.get('hg_run', False):
         x=list(sensibilidad.keys()),
         y=[sensibilidad[a]['mu'] for a in sensibilidad],
         mode='lines+markers',
-        name='μ_α',
+        name='μ(α)',
         line=dict(color=('#FF6B35'), width=3),
         marker=dict(size=8)
     ))
     fig_sens.add_hline(y=r3['c_final'], line_dash="dot", line_color="gray",
                        annotation_text=f"c={r3['c_final']:.2f}")
     fig_sens.update_layout(
-        xaxis_title="α (peso TDA)", yaxis_title="μ_α = c + α·β₁",
+        xaxis_title="α (peso TDA)", yaxis_title="μ(α) = c + α·β₁",
         height=350, margin=dict(l=0, r=0, b=0, t=0)
     )
     apply_plotly_theme(fig_sens)
     st.plotly_chart(fig_sens, width='stretch')
+    st.session_state.setdefault('hg_figs', {})['sensibilidad_mu_alpha'] = fig_sens
 
     # ══════════════════════════════════════════════════════════════
     # SECCIÓN 4: Análisis Paramétrico (Aplicación 1)
     # ══════════════════════════════════════════════════════════════
-    st.subheader("4. Análisis Paramétrico (Aplicación 1)")
+    st.subheader("4. Efecto del factor de penalización (5.5.2)")
 
     df_comp = pd.DataFrame({
         "Métrica": [
             "Compliance c (N·mm)", "Reducción vs base (ρ=fV)",
-            "β₀ (componentes)", "β₁ (agujeros)", "μ_α (métrica compuesta)",
+            "β₀ (componentes)", "β₁ (agujeros)", "μ(α) (métrica compuesta)",
             "Manufacturabilidad"
         ],
         "p=2": [
@@ -291,15 +293,15 @@ if st.session_state.get('hg_run', False):
     st.dataframe(df_comp, width='stretch', hide_index=True)
 
     # ══════════════════════════════════════════════════════════════
-    # SECCIÓN 4b: Convergencia SIMP (cumplimiento 10)
+    # SECCIÓN 4b: Convergencia del diseño (5.5.1)
     # ══════════════════════════════════════════════════════════════
-    st.subheader("4b. Convergencia SIMP")
+    st.subheader("4b. Convergencia del diseño (5.5.1)")
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Iteraciones", f"{r3['n_iter']}")
     c2.metric("Convergió", "✅" if r3['converged'] else "❌")
     c3.metric("Δc final", f"{r3['c_hist'][-1] - r3['c_hist'][-2]:.6f}" if len(r3['c_hist']) > 1 else "N/A")
-    c4.metric("Tol Δc/c", "1e-4 (Perfil 9.4.4)")
+    c4.metric("Tol Δc/c", "1e-4 (documentación)")
 
     # Curva de convergencia
     fig_conv = go.Figure()
@@ -308,7 +310,7 @@ if st.session_state.get('hg_run', False):
         y=r3['c_hist'],
         mode='lines+markers',
         line=dict(color=ORANGE, width=2),
-        name='Compliance c_k'
+        name='Compliance c(k)'
     ))
     fig_conv.add_trace(go.Scatter(
         x=list(range(1, len(r3['c_hist']) + 1)),
@@ -325,42 +327,43 @@ if st.session_state.get('hg_run', False):
         height=350
     )
     st.plotly_chart(fig_conv, width='stretch')
+    st.session_state.setdefault('hg_figs', {})['convergencia_simp_p3'] = fig_conv
 
     # ══════════════════════════════════════════════════════════════
-    # SECCIÓN 5: Síntesis H.E.1 + H.E.2
+    # SECCIÓN 5: Comparativa de los dos casos (5.2)
     # ══════════════════════════════════════════════════════════════
-    st.subheader("5. Síntesis de Hipótesis Específicas")
+    st.subheader("5. Comparativa de los dos casos, lado a lado (5.2)")
 
     with st.expander("H.E.1 — Robustez Topológica", expanded=False):
         st.markdown("""
-        **Hipótesis H.E.1a′ (corregida):** La cota bottleneck dB/diam ≤ 2q se
+        **Hipótesis H.E.1a′ (corregida):** La cota bottleneck $d_B/\\mathrm{diam} \\le 2q$ se
         verifica en el 100% de las réplicas.
 
         **Hipótesis H.E.1b (parcial):** TDA supera a descriptores euclidianos
         bajo deformación afín, pero la diferencia no es estadísticamente significativa.
 
-        **Hipótesis H.E.1c (confirmada):** βk persistente lee correctamente la topología
+        **Hipótesis H.E.1c (confirmada):** $\\beta_k$ persistente lee correctamente la topología
         con τ=0.15 calibrado (catálogo 7/7).
         """)
         if 'tda_puro' in res:
             for noise, stats in res['tda_puro'].items():
                 st.markdown(
-                    f"- Ruido {noise:.0%}: β₀={stats['betti0_mean']:.1f}±{stats['betti0_std']:.1f}, "
-                    f"β₁={stats['betti1_mean']:.1f}±{stats['betti1_std']:.1f}"
+                    f"- Ruido {noise:.0%}: $\\beta_0$={stats['betti0_mean']:.1f}±{stats['betti0_std']:.1f}, "
+                    f"$\\beta_1$={stats['betti1_mean']:.1f}±{stats['betti1_std']:.1f}"
                 )
         else:
             st.info("Ejecutar tab H.E.1 para datos de estabilidad. Nota: H.E.1b es parcial — diferencia no significativa (p≈0.05).")
 
     with st.expander("H.E.2 — Optimización SIMP + Métrica Compuesta", expanded=False):
         st.markdown("""
-        **Hipótesis H.E.2a′ (corregida):** SIMP con p=3 y fV=0.5 reduce compliance ≥40%,
-        respecto al diseño uniforme de igual volumen (ρ=fV).
+        **Hipótesis H.E.2a′ (corregida):** SIMP con $p=3$ y $f_V=0.5$ reduce compliance $\\ge 40\\%$,
+        respecto al diseño uniforme de igual volumen ($\\rho=f_V$).
 
-        **Hipótesis H.E.2b′ (corregida):** β₁(Ω_sólido) es **independiente** de la resolución
+        **Hipótesis H.E.2b′ (corregida):** $\\beta_1$($\\Omega_{sólido}$) es **independiente** de la resolución
         de malla y del radio del filtro rmin ∈ [1.5, 4.0]. Descriptor invariante (descriptivo,
         no prescriptivo).
 
-        > ⚠️ Las formulaciones originales (β₁ ≤ 2 y comparación vs bloque sólido)
+        > ⚠️ Las formulaciones originales ($\\beta_1 \\le 2$ y comparación vs bloque sólido)
         > fueron descartadas en 4.4 por razones técnicas documentadas.
         """)
         c_base = r3['c_hist'][0] if r3['c_hist'] is not None and len(r3['c_hist']) > 0 else r3['c_final']
@@ -368,7 +371,7 @@ if st.session_state.get('hg_run', False):
         cumple_reduccion = reduccion >= 40
         cumple_b1 = r3['beta1'] == 2  # β₁ invariante, no cota prescriptiva
         st.markdown(f"- Reducción compliance: **{reduccion:.1f}%** {'✅ ≥40%' if cumple_reduccion else '❌ <40%'}")
-        st.markdown(f"- β₁ del diseño: **{r3['beta1']}** {'✅ =2 invariante' if cumple_b1 else '❌ ≠2'}")
+        st.markdown(f"- $\\beta_1$ del diseño: **{r3['beta1']}** {'✅ =2 invariante' if cumple_b1 else '❌ ≠2'}")
         if cumple_reduccion and cumple_b1:
             st.success("✅ H.E.2 CUMPLIDA (criterios corregidos 4.4)")
         else:
@@ -377,7 +380,7 @@ if st.session_state.get('hg_run', False):
     # ══════════════════════════════════════════════════════════════
     # SECCIÓN 6: Diagramas de Persistencia
     # ══════════════════════════════════════════════════════════════
-    st.subheader("6. Diagramas de Persistencia")
+    st.subheader("6. Diagramas de persistencia por configuración (5.5.2)")
 
     fig_dgm = make_subplots(
         rows=1, cols=3,
@@ -410,62 +413,62 @@ if st.session_state.get('hg_run', False):
     fig_dgm.update_yaxes(title_text="Muerte")
     apply_plotly_theme(fig_dgm)
     st.plotly_chart(fig_dgm, width='stretch')
+    st.session_state.setdefault('hg_figs', {})['diagramas_persistencia'] = fig_dgm
 
-    # SECCIÓN 7: Síntesis Transversal — Cuadro 9 del Documento
+    # SECCIÓN 7: Síntesis Transversal — Tabla 5.9 de la documentación
     # ═══════════════════════════════════════════════════════════════
-    st.subheader("7. Cuadro 9: Veredicto sobre cada afirmación del perfil")
+    st.subheader("7. Tabla 5.9: Veredicto sobre cada afirmación del perfil")
 
     st.markdown("""
     La tabla siguiente consolida el veredicto final sobre cada hipótesis del perfil,
-    tal como se reporta en la documentación (metodologia_implementacion.txt, Cuadro 9).
+    tal como se reporta en la documentación (Tabla 5.9).
     """)
 
-    df_cuadro9 = pd.DataFrame({
+    df_tabla5_9 = pd.DataFrame({
         "Ítem": [
             "H.E.1a",
-            "H.E.1a′",
             "H.E.1b",
             "H.E.1c",
             "H.E.2a",
-            "H.E.2a′",
             "H.E.2b"
         ],
         "Afirmación": [
-            "βk estable ante ruido 15–20 %",
-            "dB / diam ≤ 2q (reformulación)",
-            "TDA > descriptores euclidianos",
-            "Cota dB ≤ 2dH",
-            "Reducción ≥ 40 % vs. bloque sólido",
+            "dB/diam ≤ 2q",
+            "TDA > euclidiano (afín)",
+            "Existe q* separador",
             "Reducción ≥ 40 % vs. uniforme",
-            "β₁ (Ω) ≤ 2"
+            "β₁ invariante (malla, p, u)"
         ],
         "Valor": [
-            "0.0036",
             "1.000",
             "0.950 vs 0.925",
-            "1.000",
-            "−79.39 %",
-            "+77.58 %",
-            "2"
+            "q* ≈ 0.05−0.10",
+            "+76.12 %",
+            "Invariante en malla, p, u"
         ],
         "Veredicto": [
-            "❌ No se sostiene",
-            "✅ Se sostiene",
-            "⚠️ Parcial, no significativo",
-            "✅ Se sostiene",
-            "❌ No se sostiene",
-            "✅ Se sostiene",
-            "❌ No se sostiene"
+            "✓ Se sostiene",
+            "× No significativo",
+            "✓ Se sostiene",
+            "✓ Se sostiene",
+            "✓ Se sostiene"
+        ],
+        "Evidencia": [
+            "Figs. 5.2(b), 5.3",
+            "Tabla 5.5",
+            "Fig. 5.2(a)",
+            "Fig. 5.4(b)",
+            "Figs. 5.5, 5.6, 5.7"
         ]
     })
     
-    st.table(df_cuadro9.set_index("Ítem"))
+    st.table(df_tabla5_9.set_index("Ítem"))
 
     # ═══════════════════════════════════════════════════════════════
     # ══════════════════════════════════════════════════════════════
     # SECCIÓN 8: Conclusión General
     # ══════════════════════════════════════════════════════════════
-    st.subheader("8. Conclusión General")
+    st.subheader("8. Síntesis de veredictos (5.8)")
 
     corollary_ok = cumple_3v2 and cumple_3v4
     st.markdown(f"""
@@ -473,14 +476,14 @@ if st.session_state.get('hg_run', False):
     | Indicador | p=2 | p=3 | p=4 |
     |-----------|-----|-----|-----|
     | c (N·mm) | {r2['c_final']:.2f} | {r3['c_final']:.2f} | {r4['c_final']:.2f} |
-    | β₁ | {r2['beta1']} | {r3['beta1']} | {r4['beta1']} |
-    | μ_α | {r2['mu']:.4f} | {r3['mu']:.4f} | {r4['mu']:.4f} |
+    | $\\beta_1$ | {r2['beta1']} | {r3['beta1']} | {r4['beta1']} |
+    | $\\mu_\\alpha$ | {r2['mu']:.4f} | {r3['mu']:.4f} | {r4['mu']:.4f} |
 
     **Veredicto para el tribunal:**
     {'✅ **HIPÓTESIS GENERAL VALIDADA:** '
-     'La métrica μ_α resuelve el orden parcial de las configuraciones y demuestra que TDA+SIMP es superior '
-     'a los enfoques puramente euclidianos. El Caso 2 identifica p=3 como Pareto-óptimo (evitando los agujeros '
-     'espurios de p=2). La metodología proporciona '
+     'La métrica $\\mu_\\alpha$ resuelve el orden parcial de las configuraciones y demuestra que TDA+SIMP es superior '
+     'a los enfoques puramente euclidianos. El Caso 2 identifica $p=3$ como Pareto-óptimo (evitando los agujeros '
+     'espurios de $p=2$). La documentación proporciona '
      'soluciones consistentes y robustas a diferentes problemas complejos.' if corollary_ok
      else '⚠️ Se requieren ajustes de parámetros para validar completamente H.G.'}
     """)
@@ -491,7 +494,7 @@ if st.session_state.get('hg_run', False):
     st.subheader("Exportar Resultados")
 
     df_export = pd.DataFrame({
-        "Métrica": ["Compliance", "β₀", "β₁", "μ_α", "α", "p"],
+        "Métrica": ["Compliance", "β₀", "β₁", "μ(α)", "α", "p"],
         "p=2": [r2['c_final'], r2['beta0'], r2['beta1'], r2['mu'], alpha, 2],
         "p=3": [r3['c_final'], r3['beta0'], r3['beta1'], r3['mu'], alpha, 3],
         "p=4": [r4['c_final'], r4['beta0'], r4['beta1'], r4['mu'], alpha, 4]
@@ -513,7 +516,7 @@ if st.session_state.get('hg_run', False):
         ax = fig_pdf.add_subplot(2, 3, i + 1)
         rho_2d = resultados[p_val]['rho_final'].reshape(params['nely'], params['nelx'])
         ax.imshow(rho_2d, cmap='Greys', aspect='auto')
-        ax.set_title(f"p={p_val} (β₁={resultados[p_val]['beta1']})")
+        ax.set_title(f"$p$={p_val} ($\\beta_1$={resultados[p_val]['beta1']})")
         ax.axis('off')
 
     # Sensibilidad a α
@@ -523,8 +526,8 @@ if st.session_state.get('hg_run', False):
     ax_sens.plot(alphas, mus, 'o-', color='darkorange', linewidth=2)
     ax_sens.set_xscale('log')
     ax_sens.set_xlabel('α')
-    ax_sens.set_ylabel('μ_α')
-    ax_sens.set_title('Sensibilidad μ_α vs α (p=3)')
+    ax_sens.set_ylabel('$\\mu_\\alpha$')
+    ax_sens.set_title('Sensibilidad $\\mu_\\alpha$ vs $\\alpha$ ($p=3$)')
     ax_sens.grid(True, alpha=0.3)
 
     # Tabla de métricas
@@ -535,7 +538,7 @@ if st.session_state.get('hg_run', False):
         ["Compliance", f"{r2['c_final']:.2f}", f"{r3['c_final']:.2f}", f"{r4['c_final']:.2f}"],
         ["β₀", str(r2['beta0']), str(r3['beta0']), str(r4['beta0'])],
         ["β₁", str(r2['beta1']), str(r3['beta1']), str(r4['beta1'])],
-        ["μ_α", f"{r2['mu']:.4f}", f"{r3['mu']:.4f}", f"{r4['mu']:.4f}"],
+        ["μ(α)", f"{r2['mu']:.4f}", f"{r3['mu']:.4f}", f"{r4['mu']:.4f}"],
     ]
     tabla = ax_tabla.table(cellText=tabla_data, loc='center', cellLoc='center')
     tabla.auto_set_font_size(False)
@@ -554,7 +557,7 @@ if st.session_state.get('hg_run', False):
                       color='green' if corollary_ok else 'orange')
     ax_veredicto.set_title('Veredicto')
 
-    fig_pdf.suptitle(f"H.G. — Comparación Integrada TDA-SIMP | Malla {params['nelx']}×{params['nely']}, fV={params['volfrac']}, α={params['alpha_fijo']}")
+    fig_pdf.suptitle(f"H.G. — Comparación Integrada TDA-SIMP | Malla {params['nelx']}×{params['nely']}, $f_V$={params['volfrac']}, α={params['alpha_fijo']}")
     plt.tight_layout()
     fig_pdf.savefig(pdf_buf, format='pdf')
     plt.close(fig_pdf)
@@ -574,14 +577,17 @@ if st.session_state.get('hg_run', False):
         zf.writestr(f"{folder_name}/comparacion_metricas.csv", csv_comp)
         zf.writestr(f"{folder_name}/reporte_hg.pdf", pdf_bytes)
         zf.writestr(f"{folder_name}/parametros.txt",
-                    f"Malla: {params['nelx']}×{params['nely']}\\n"
-                    f"fV: {params['volfrac']}\\n"
-                    f"r_min: {params['rmin']}\\n"
-                    f"α: {params['alpha_fijo']}\\n"
-                    f"E: {E_acero:.0f} MPa\\n"
-                    f"F: {F_carga:.0f} N\\n"
-                    f"Espesor: {espesor:.1f} mm\\n"
+                    f"Malla: {params['nelx']}×{params['nely']}\n"
+                    f"fV: {params['volfrac']}\n"
+                    f"rmin: {params['rmin']}\n"
+                    f"α: {params['alpha_fijo']}\n"
+                    f"E: {E_acero:.0f} MPa\n"
+                    f"F: {F_carga:.0f} N\n"
+                    f"Espesor: {espesor:.1f} mm\n"
                     f"Timestamp: {ts}")
+        from tda.app.download_utils import write_figs_zip
+        write_figs_zip(zf, f"{folder_name}/figuras",
+                       st.session_state.get('hg_figs', {}))
     zip_bytes = zf_buf.getvalue()
 
     download_button(
@@ -594,10 +600,10 @@ if st.session_state.get('hg_run', False):
     )
 
 # ═══════════════════════════════════════════════════════════════
-# METODOLOGÍA
+# PLAN DE ACCIÓN
 # ══════════════════════════════════════════════════════════════
     methodology_expander(
-    "📖 Metodología — H.G.",
+    "📖 Plan de Acción — H.G.",
     [
         (
             "Métrica Compuesta (Pareto)",
