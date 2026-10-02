@@ -255,7 +255,7 @@ elif modo == "2D — SIMP Topológico":
         st.markdown(f"""
         **Modelo:** Malla {nelx}×{nely} Q4.
         **Carga:** {caso_carga}.
-        **Parámetros:** $f_V$={volfrac}, $p$={penal}, $r_{min}$={rmin}, $t_{mín}$={min_member}.
+        **Parámetros:** $f_V$={volfrac}, $p$={penal}, $r_{{min}}$={rmin}, $t_{{mín}}$={min_member}.
 
         **Animación:** Se muestra cada ~5 iteraciones el diseño actualizado.
         **Post-hoc:** Al finalizar, se calcula $\\beta_0$, $\\beta_1$, $\\mu_\\alpha$ y factor de seguridad.

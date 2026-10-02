@@ -444,7 +444,7 @@ def diagnosticar_he2(reduccion: float, beta1: int, mu: float,
 
     if cumple_b1 is True:
         razones.append(
-            f"$\\beta_1$={beta1} es invariante frente a variaciones de $r_{min}$, $p$ y resolución de malla. "
+            f"$\\beta_1$={beta1} es invariante frente a variaciones de $r_{{min}}$, $p$ y resolución de malla. "
             f"Esto confirma que $\\beta_1$ es un descriptor estable del diseño (H.E.2b')."
         )
     elif cumple_b1 is False:
@@ -455,7 +455,7 @@ def diagnosticar_he2(reduccion: float, beta1: int, mu: float,
     else:
         razones.append(
             f"$\\beta_1$={beta1} (valor para la configuración base). "
-            f"Para confirmar H.E.2b' se requiere barrido de $r_{min} \\in [1.5, 4.0]$, "
+            f"Para confirmar H.E.2b' se requiere barrido de $r_{{min}} \\in [1.5, 4.0]$, "
             f"$p \\in {{2, 3, 4}}$ y al menos 3 resoluciones de malla."
         )
 
