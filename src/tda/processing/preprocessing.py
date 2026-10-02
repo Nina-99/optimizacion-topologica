@@ -11,11 +11,11 @@ import numpy as np
 def filter_persistence_diagram(dgm: List[List[float]], threshold: float) -> List[List[float]]:
     """Elimina intervalos de persistencia más cortos que el umbral.
 
-    Args:
+    Parámetros:
         dgm (List[List[float]]): Diagrama de persistencia de forma (n_pairs, 2).
         threshold (float): Longitud mínima de persistencia para retener un punto.
 
-    Returns:
+    Retorna:
         List[List[float]]: Diagrama después de eliminar intervalos de vida corta.
 
     Examples:
@@ -37,11 +37,11 @@ def filter_persistence_diagram(dgm: List[List[float]], threshold: float) -> List
 def normalize_diagram(dgm: List[List[float]], diameter: float) -> List[List[float]]:
     """Normaliza un diagrama de persistencia escalando coordenadas de nacimiento/muerte.
 
-    Args:
+    Parámetros:
         dgm (List[List[float]]): Diagrama de persistencia de forma (n_pairs, 2).
         diameter (float): Diámetro de la nube de puntos (distancia máxima entre pares).
 
-    Returns:
+    Retorna:
         List[List[float]]: Diagrama escalado.
 
     Examples:
@@ -65,11 +65,11 @@ def normalize_diagram(dgm: List[List[float]], diameter: float) -> List[List[floa
 def get_persistence_histogram(dgm: List[List[float]], bins: int = 10) -> np.ndarray:
     """Calcula un histograma de las vidas de persistencia.
 
-    Args:
+    Parámetros:
         dgm (List[List[float]]): Diagrama de persistencia (n_pairs, 2).
         bins (int): Número de intervalos (bins) para el histograma. Por defecto 10.
 
-    Returns:
+    Retorna:
         numpy.ndarray: Arreglo 1D que representa la distribución de las vidas.
 
     Examples:

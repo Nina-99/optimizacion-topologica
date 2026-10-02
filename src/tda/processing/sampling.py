@@ -167,11 +167,11 @@ def generate_cloud(shape: str, n_points: int) -> np.ndarray:
 
     Soporta nombres en español e inglés (aliases).
 
-    Args:
+    Parámetros:
         shape: Forma a generar. Ver SHAPE_ALIASES para los válidos.
         n_points: Número de puntos a muestrear (mínimo recomendado: 400).
 
-    Returns:
+    Retorna:
         Arreglo de forma (n_points, d) con d ∈ {2, 3} según la forma.
 
     Raises:
@@ -189,10 +189,10 @@ def generate_cloud(shape: str, n_points: int) -> np.ndarray:
 def betti_teorico(shape: str) -> Tuple[int, int]:
     """Retorna (β₀, β₁) teóricos de una forma del catálogo.
 
-    Args:
+    Parámetros:
         shape: Nombre de la forma (español o inglés).
 
-    Returns:
+    Retorna:
         Tupla (β₀, β₁) conocida a priori.
     """
     key = _resolve_shape(shape)
@@ -204,10 +204,10 @@ def betti_teorico(shape: str) -> Tuple[int, int]:
 def compute_diameter(points: np.ndarray) -> float:
     """Calcula la distancia máxima entre pares en una nube de puntos.
 
-    Args:
+    Parámetros:
         points: Coordenadas de la nube de puntos de forma (N, D).
 
-    Returns:
+    Retorna:
         Distancia máxima entre pares (diámetro). 0.0 si hay 0 o 1 puntos.
     """
     if points.shape[0] < 2:
@@ -221,11 +221,11 @@ def add_gaussian_noise(points: np.ndarray, q: float) -> np.ndarray:
 
     Ref: §9.4.1 — perturbación gaussiana a niveles q ∈ {0, .05, .10, .15, .20}.
 
-    Args:
+    Parámetros:
         points: Nube de puntos original de forma (N, D).
         q: Nivel relativo de ruido (fracción del diámetro).
 
-    Returns:
+    Retorna:
         Nube de puntos perturbada de forma (N, D).
     """
     diam = compute_diameter(points)
@@ -242,10 +242,10 @@ def apply_random_affine(points: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     La matriz A se genera como I + ε·N(0,1) con ε = 0.3 (perturbación
     moderada que preserva la estructura topológica).
 
-    Args:
+    Parámetros:
         points: Nube de puntos de forma (N, D).
 
-    Returns:
+    Retorna:
         Y: Nube transformada de forma (N, D).
         A: Matriz de transformación (D, D) invertible.
     """
@@ -263,7 +263,7 @@ def apply_random_affine(points: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 def catalogo_completo() -> dict:
     """Retorna el catálogo completo con nombres, Betti teóricos y dimensiones.
 
-    Returns:
+    Retorna:
         Dict con entrada por forma: {nombre: {betti: (b0, b1), dim: d}}
     """
     catalogo = {}

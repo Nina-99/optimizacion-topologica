@@ -55,13 +55,13 @@ class TestBettiNumbers:
 
     def test_betti_invalid_shape_raises(self):
         """Shape incorrecto debe lanzar ValueError."""
-        with pytest.raises(ValueError, match="shape"):
+        with pytest.raises(ValueError, match="forma"):
             betti_numbers(np.array([[0.0, 1.0]]))  # shape (1,2) en vez de (n,3)
 
     def test_betti_invalid_dimension_raises(self):
         """Dimensión fuera de {0,1} debe lanzar ValueError."""
         dgm = np.array([[0.0, 1.0, 2]])  # dim 2 no es válida
-        with pytest.raises(ValueError, match="Dimension"):
+        with pytest.raises(ValueError, match="La columna de dimensión"):
             betti_numbers(dgm)
 
     def test_betti_inf_death_counts_as_feature(self):

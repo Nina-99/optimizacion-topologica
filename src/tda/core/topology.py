@@ -21,7 +21,7 @@ from typing import Tuple
 # =============================================================================
 
 def _points_to_diagonal(points: np.ndarray) -> np.ndarray:
-    """Project points onto the diagonal y=x (birth=death line).
+    """Project points onto the diagonal y=x (nacimiento=muerte line).
 
     For a point (b, d), the closest point on the diagonal is ((b+d)/2, (b+d)/2).
     """
@@ -45,17 +45,17 @@ def wasserstein_distance(dgm1: np.ndarray, dgm2: np.ndarray) -> float:
     Implementacion pura numpy: empareja puntos del diagrama mas corto con
     proyecciones sobre la diagonal del mas largo, ordenando por persistencia.
 
-    Args:
-        dgm1: Primer diagrama de forma (n, 2) con [birth, death].
-        dgm2: Segundo diagrama de forma (m, 2) con [birth, death].
+    Parámetros:
+        dgm1: Primer diagrama de forma (n, 2) con [nacimiento, muerte].
+        dgm2: Segundo diagrama de forma (m, 2) con [nacimiento, muerte].
 
-    Returns:
+    Retorna:
         Distancia de Wasserstein W_1(dgm1, dgm2).
     """
     if dgm1.ndim != 2 or dgm1.shape[1] != 2:
-        raise ValueError("dgm1 must be of shape (n, 2)")
+        raise ValueError("dgm1 debe tener forma (n, 2)")
     if dgm2.ndim != 2 or dgm2.shape[1] != 2:
-        raise ValueError("dgm2 must be of shape (m, 2)")
+        raise ValueError("dgm2 debe tener forma (m, 2)")
 
     # Handle empty diagrams
     if len(dgm1) == 0 and len(dgm2) == 0:
@@ -67,7 +67,7 @@ def wasserstein_distance(dgm1: np.ndarray, dgm2: np.ndarray) -> float:
         diag1 = _points_to_diagonal(dgm1)
         return float(np.sum(np.linalg.norm(dgm1 - diag1, axis=1)))
 
-    # Sort by persistence (death - birth), descending
+    # Sort by persistence (muerte - nacimiento), descending
     pers1 = dgm1[:, 1] - dgm1[:, 0]
     pers2 = dgm2[:, 1] - dgm2[:, 0]
     order1 = np.argsort(-pers1)
@@ -103,17 +103,17 @@ def bottleneck_distance(dgm1: np.ndarray, dgm2: np.ndarray) -> float:
     la minima distancia a cualquier punto del otro diagrama o a la diagonal.
     Retorna el maximo de todas esas minimas distancias.
 
-    Args:
-        dgm1: Primer diagrama de forma (n, 2) con [birth, death].
-        dgm2: Segundo diagrama de forma (m, 2) con [birth, death].
+    Parámetros:
+        dgm1: Primer diagrama de forma (n, 2) con [nacimiento, muerte].
+        dgm2: Segundo diagrama de forma (m, 2) con [nacimiento, muerte].
 
-    Returns:
+    Retorna:
         Distancia de Bottleneck W_inf(dgm1, dgm2).
     """
     if dgm1.ndim != 2 or dgm1.shape[1] != 2:
-        raise ValueError("dgm1 must be of shape (n, 2)")
+        raise ValueError("dgm1 debe tener forma (n, 2)")
     if dgm2.ndim != 2 or dgm2.shape[1] != 2:
-        raise ValueError("dgm2 must be of shape (m, 2)")
+        raise ValueError("dgm2 debe tener forma (m, 2)")
 
     # Handle empty diagrams
     if len(dgm1) == 0 and len(dgm2) == 0:
@@ -143,20 +143,20 @@ def bottleneck_distance(dgm1: np.ndarray, dgm2: np.ndarray) -> float:
 def betti_numbers(persistence_diagram: np.ndarray) -> Tuple[int, int]:
     """Extrae los números de Betti (β₀, β₁) de un diagrama de persistencia.
 
-    Args:
+    Parámetros:
         persistence_diagram: Diagrama con forma (n, 3) donde cada fila es
             [nacimiento, muerte, dimensión].
 
-    Returns:
+    Retorna:
         Tuple[int, int]: (beta_0, beta_1)
     """
     if persistence_diagram.ndim != 2 or persistence_diagram.shape[1] != 3:
         raise ValueError(
-            "persistence_diagram must be of shape (n, 3) "
-            "with [birth, death, dimension]"
+            "persistence_diagram debe tener forma (n, 3) "
+            "con [nacimiento, muerte, dimension]"
         )
     if not np.all(np.isin(persistence_diagram[:, 2], [0, 1])):
-        raise ValueError("Dimension column must contain only 0 (H_0) or 1 (H_1)")
+        raise ValueError("La columna de dimensión debe contener solo 0 (H_0) or 1 (H_1)")
 
     h0 = persistence_diagram[persistence_diagram[:, 2] == 0]
     h1 = persistence_diagram[persistence_diagram[:, 2] == 1]

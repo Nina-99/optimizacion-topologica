@@ -65,13 +65,13 @@ class TestVisualize3D:
 
     def test_raises_value_error_for_2d_input(self, points_2d):
         """Puntos 2D deben lanzar ValueError."""
-        with pytest.raises(ValueError, match="at least 3 dimensions"):
+        with pytest.raises(ValueError, match="La nube de puntos debe tener al menos 3 dimensiones"):
             visualize_point_cloud_3d(points_2d)
 
     def test_raises_value_error_for_1d_input(self):
         """Puntos 1D deben lanzar ValueError."""
         pts = np.random.rand(10, 1)
-        with pytest.raises(ValueError, match="at least 3 dimensions"):
+        with pytest.raises(ValueError, match="La nube de puntos debe tener al menos 3 dimensiones"):
             visualize_point_cloud_3d(pts)
 
     def test_returns_figure_for_3d_input(self, points_3d):

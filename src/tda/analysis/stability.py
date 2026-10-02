@@ -433,7 +433,7 @@ def compute_noise_sweep(
     Para cada nivel de ruido calcula (β₀, β₁) usando la Def. 8.1
     y la exactitud de K-Means.
 
-    Returns:
+    Retorna:
         Dict con noise_vals, acc, betti_s, betti_t, diagrams_s, diagrams_t,
         estabilidad_s, estabilidad_t.
     """

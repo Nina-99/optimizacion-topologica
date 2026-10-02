@@ -79,7 +79,7 @@ class SimpTda2DOptimizer:
     def __init__(self, nelx=60, nely=30, volfrac=0.5, penal=3.0, rmin=2.4):
         """Inicializa el SimpTda2DOptimizer con parámetros de malla y optimización.
 
-        Args:
+        Parámetros:
             nelx (int): Número de elementos en la dirección horizontal. Por defecto 60.
             nely (int): Número de elementos en la dirección vertical. Por defecto 30.
             volfrac (float): Fracción de volumen objetivo. Por defecto 0.5.
@@ -166,10 +166,10 @@ class SimpTda2DOptimizer:
     def _solve_fem(self, rho):
         """Resuelve el Análisis de Elementos Finitos (FEA) para la densidad dada.
 
-        Args:
+        Parámetros:
             rho (numpy.ndarray): Arreglo 2D de densidades de elementos.
 
-        Returns:
+        Retorna:
             numpy.ndarray: Vector de desplazamientos U.
         """
         sK = ((rho.flatten(order='F')**self.penal * (self.E0 - self.Emin) + self.Emin)[:, np.newaxis] * self.KE.flatten()).flatten()
@@ -183,12 +183,12 @@ class SimpTda2DOptimizer:
     def run_optimization(self, callback=None):
         """Ejecuta la optimización topológica usando el método SIMP y calcula persistencia topológica.
 
-        Args:
+        Parámetros:
             callback (callable, opcional): Función callback invocada en cada iteración con
                 firma callback(loop, xPhys, compliance, compliance_reduction_pct, max_iter).
                 Por defecto None.
 
-        Returns:
+        Retorna:
             tuple: Una tupla que contiene:
                 - numpy.ndarray: La distribución de densidad física optimizada (xPhys).
                 - list: Diagramas de persistencia de ripser.

@@ -1,9 +1,9 @@
 """
-Beam Shape Optimization (1D Cantilever)
+Optimización de Forma de Viga (Voladizo 1D)
 
-Pure mathematical solver for a steel cantilever beam with a point load.
-Calculates optimal height profile h(x) to minimize volume while 
-satisfying stress and stiffness constraints.
+Solver matemático puro para una viga voladizo de acero con carga puntual.
+Calcula el perfil de altura óptimo h(x) para minimizar el volumen mientras 
+satisface las restricciones de tensión y rigidez.
 """
 
 import numpy as np
@@ -15,71 +15,71 @@ class BeamOptimizer:
         self.h0 = h0
         self.p = p
         self.N = N
-        self.E_s = E_s          # Young's Modulus (Pa)
-        self.sigma_adm = sigma_adm  # Admissible stress (Pa)
+        self.E_s = E_s          # Módulo de Young (Pa)
+        self.sigma_adm = sigma_adm  # Tensión admisible (Pa)
         self.max_iter = max_iter
         
-        # Initial inertia
+        # Inercia inicial
         self.I0 = (b * h0**3) / 12.0
-        self.I_min = 0.05 * self.I0  # Minimum safety inertia
+        self.I_min = 0.05 * self.I0  # Inercia mínima de seguridad
 
     def optimizar_viga_completo(self, L, F, callback=None):
         """
-        Optimizes a cantilever beam of length L loaded with point force F at free end.
+        Optimiza una viga voladizo de longitud L cargada con fuerza puntual F en el extremo libre.
         
-        Args:
-            L: Length (m)
-            F: Point load at free end (N)
-            callback: Function for real-time visualization
+        Parámetros:
+            L: Longitud (m)
+            F: Carga puntual en el extremo libre (N)
+            callback: Función para visualización en tiempo real
             
-        Returns:
-            dict: Final optimization results
+        Retorna:
+            dict: Resultados finales de la optimización
         """
-        # Grid
+        # Cuadrícula
         x = np.linspace(0, L, self.N)
         dx = L / (self.N - 1)
         
-        # Bending Moment (Cantilever with point load at x=L)
+        # Momento Flector (Voladizo con carga puntual en x=L)
         # M(x) = -F * (L - x)
         M = -F * (L - x)
         
-        # Original deflection (constant inertia I0)
+        # Deflexión original (inercia constante I0)
         # y''(x) = M(x) / (E * I0)
-        # y(x) = F/(6*E*I0) * (x^3 - 3L x^2)  (exact analytical)
+        # y(x) = F/(6*E*I0) * (x^3 - 3L x^2)  (analítica exacta)
         curvature_orig = M / (self.E_s * self.I0)
         slope_orig = cumulative_trapezoid(curvature_orig, x, initial=0)
         Y_original = cumulative_trapezoid(slope_orig, x, initial=0)
         
-        # Initialize inertia for optimization
+        # Inicializar inercia para la optimización
         I = np.ones(self.N) * self.I0
         
         error = 1.0
         iteracion = 0
         tol = 1e-4
         
-        y_adm = (L / 250.0)  # Standard cantilever deflection limit L/250
+        y_adm = (L / 250.0)  # Límite de deflexión estándar para voladizo L/250
         max_M = np.max(np.abs(M))
         if max_M == 0: max_M = 1.0
             
         while error > tol and iteracion < self.max_iter:
             I_vieja = I.copy()
             
-            # 1. Deflection with current inertia
+            # 1. Deflexión con inercia actual
             curvature = M / (self.E_s * I)
             slope = cumulative_trapezoid(curvature, x, initial=0)
             Y = cumulative_trapezoid(slope, x, initial=0)
             
-            # 2. SIMP Update based on moment
-            # We want more inertia where moment is high
+            # 2. Actualización SIMP basada en momento
+            # Queremos más inercia donde el momento es alto
             I_target = np.clip(self.I_min + (self.I0 - self.I_min) * (np.abs(M) / max_M)**self.p, self.I_min, self.I0)
             I = 0.85 * I + 0.15 * I_target
             
             error = np.linalg.norm(I - I_vieja) / np.linalg.norm(I_vieja)
             
-            # Current height profile
+            # Perfil de altura actual
             h_v = (12 * I / self.b) ** (1/3)
             
-            # Stresses
+            # Tensiones
             sigma = (6.0 * np.abs(M)) / (self.b * h_v**2) # Pa
             sigma_MPa = sigma / 1e6
             
@@ -87,7 +87,7 @@ class BeamOptimizer:
             V_orig = self.b * self.h0 * L
             V_opt = self.b * dx * np.sum(h_v)
             saving_pct = (1.0 - V_opt / V_orig) * 100.0
-            weight_saved = (V_orig - V_opt) * 7850.0  # Steel density ~7850 kg/m^3
+            weight_saved = (V_orig - V_opt) * 7850.0  # Densidad del acero ~7850 kg/m^3
             
             if callback and iteracion % 2 == 0:
                 visualization_data = {
@@ -111,7 +111,7 @@ class BeamOptimizer:
             
             iteracion += 1
         
-        # Final calculations
+        # Cálculos finales
         h_v_final = (12 * I / self.b) ** (1/3)
         sigma_final = (6.0 * np.abs(M)) / (self.b * h_v_final**2)
         sigma_MPa_final = sigma_final / 1e6

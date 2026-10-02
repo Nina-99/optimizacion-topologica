@@ -48,10 +48,10 @@ def _format_diagrams_for_betti(dgms):
 
     Previne errores lógicos si alguna dimensión de homología (H0 o H1) está vacía.
 
-    Args:
+    Parámetros:
         dgms (list of numpy.ndarray): Lista de diagramas de persistencia para cada dimensión.
 
-    Returns:
+    Retorna:
         numpy.ndarray: Arreglo de diagrama combinado con columnas de nacimiento, muerte y dimensión.
 
     Examples:
@@ -77,21 +77,21 @@ def _format_diagrams_for_betti(dgms):
 # ==========================================
 # PRUEBAS DE LA HIPÓTESIS H.E.1
 # ==========================================
-def plot_stability_analysis(shape='torus', noise_levels=[0.0, 0.05, 0.10, 0.15, 0.20, 0.25], n_rep=100, n_points=250):
+def plot_stability_analysis(shape='toro', noise_levels=[0.0, 0.05, 0.10, 0.15, 0.20, 0.25], n_rep=100, n_points=250):
     """Ejecuta análisis estadístico de robustez de los números de Betti sobre múltiples repeticiones.
 
-    Args:
-        shape (str, opcional): Tipo de forma ('torus', 'sphere', etc.). Por defecto 'torus'.
+    Parámetros:
+        shape (str, opcional): Tipo de forma ('toro', 'esfera', etc.). Por defecto 'toro'.
         noise_levels (list of float, opcional): Niveles de ruido como fracción del diámetro.
             Por defecto [0.0, 0.05, 0.10, 0.15, 0.20, 0.25].
         n_rep (int, opcional): Número de repeticiones por nivel de ruido. Por defecto 100.
         n_points (int, opcional): Número de puntos por nube de puntos. Por defecto 250.
 
-    Returns:
+    Retorna:
         matplotlib.figure.Figure: Figura de matplotlib generada.
 
     Examples:
-        >>> fig = plot_stability_analysis(shape='sphere', n_rep=2, n_points=50)
+        >>> fig = plot_stability_analysis(shape='esfera', n_rep=2, n_points=50)
     """
     mean_betas = []
     std_betas = []
@@ -139,11 +139,11 @@ def plot_stability_analysis(shape='torus', noise_levels=[0.0, 0.05, 0.10, 0.15, 
 def plot_tda_vs_kmeans_pca(n_points=250, noise_level=0.15):
     """Compara K-Means + PCA (métricas euclidianas) vs TDA (invariantes topológicos).
 
-    Args:
+    Parámetros:
         n_points (int, opcional): Número de puntos por forma. Por defecto 250.
         noise_level (float, opcional): Razón de desviación estándar del ruido. Por defecto 0.15.
 
-    Returns:
+    Retorna:
         matplotlib.figure.Figure or None: Figura de comparación generada, o None si
             scikit-learn no está disponible.
 
@@ -157,8 +157,8 @@ def plot_tda_vs_kmeans_pca(n_points=250, noise_level=0.15):
     print(f"Iniciando comparación TDA vs Euclidiano (Ruido {noise_level*100}%)...")
 
     # 1. Generación de datos superpuestos
-    pts_sphere = generate_cloud("sphere", n_points)
-    pts_torus = generate_cloud("torus", n_points)
+    pts_sphere = generate_cloud("esfera", n_points)
+    pts_torus = generate_cloud("toro", n_points)
     pts_torus[:, 0] += 1.5  # Superposición intencional en el eje X
 
     dataset = np.vstack([pts_sphere, pts_torus])
@@ -221,14 +221,14 @@ def plot_tda_vs_kmeans_pca(n_points=250, noise_level=0.15):
 def visualize_point_cloud_2d(points, title=None, ax=None, backend='matplotlib'):
     """Grafica una nube de puntos 2D usando Matplotlib o Plotly.
 
-    Args:
+    Parámetros:
         points (numpy.ndarray): Arreglo de puntos 2D de forma (N, 2).
         title (str, opcional): Título del gráfico. Por defecto None.
         ax (matplotlib.axes.Axes, opcional): Ejes preexistentes para graficar. Por defecto None.
         backend (str, opcional): Biblioteca de graficación ('matplotlib' o 'plotly').
             Por defecto 'matplotlib'.
 
-    Returns:
+    Retorna:
         tuple of (matplotlib.figure.Figure, matplotlib.axes.Axes) or plotly.graph_objects.Figure:
             La figura y ejes (Matplotlib) o la figura (Plotly).
 
@@ -257,13 +257,13 @@ def visualize_point_cloud_2d(points, title=None, ax=None, backend='matplotlib'):
 def visualize_point_cloud_3d(points, title=None, backend='matplotlib'):
     """Grafica una nube de puntos 3D usando Matplotlib o Plotly.
 
-    Args:
+    Parámetros:
         points (numpy.ndarray): Arreglo de puntos 3D de forma (N, 3) o superior.
         title (str, opcional): Título del gráfico. Por defecto None.
         backend (str, opcional): Biblioteca de graficación ('matplotlib' o 'plotly').
             Por defecto 'matplotlib'.
 
-    Returns:
+    Retorna:
         matplotlib.figure.Figure or plotly.graph_objects.Figure: Objeto de figura.
 
     Raises:
@@ -275,7 +275,7 @@ def visualize_point_cloud_3d(points, title=None, backend='matplotlib'):
         >>> fig = visualize_point_cloud_3d(pts, title="Test 3D")
     """
     if points.shape[1] < 3:
-        raise ValueError("Point cloud must have at least 3 dimensions.")
+        raise ValueError("La nube de puntos debe tener al menos 3 dimensiones.")
     if backend == 'matplotlib':
         fig = plt.figure(figsize=(10, 8))
         ax = fig.add_subplot(111, projection='3d')
@@ -289,11 +289,11 @@ def visualize_point_cloud_3d(points, title=None, backend='matplotlib'):
 def reduce_dimensions(points, n_components=2):
     """Reduce la dimensionalidad de una nube de puntos usando PCA.
 
-    Args:
+    Parámetros:
         points (numpy.ndarray): Arreglo de puntos multidimensionales de forma (N, D).
         n_components (int, opcional): Dimensiones objetivo. Por defecto 2.
 
-    Returns:
+    Retorna:
         numpy.ndarray: Coordenadas de la nube de puntos proyectada de forma (N, n_components).
 
     Examples:
@@ -310,13 +310,13 @@ def reduce_dimensions(points, n_components=2):
 def visualize_persistence_diagram(points, title=None, backend='matplotlib'):
     """Calcula y grafica el diagrama de persistencia para la dimensión 1 (H1).
 
-    Args:
+    Parámetros:
         points (numpy.ndarray): Coordenadas de la nube de puntos de forma (N, D).
         title (str, opcional): Título del diagrama. Por defecto None.
         backend (str, opcional): Biblioteca de graficación ('matplotlib' o 'plotly').
             Por defecto 'matplotlib'.
 
-    Returns:
+    Retorna:
         tuple of (matplotlib.figure.Figure, matplotlib.axes.Axes) or None: La figura
             y ejes (Matplotlib) o None (Plotly/unsupported).
 
@@ -332,7 +332,7 @@ def visualize_persistence_diagram(points, title=None, backend='matplotlib'):
         ...     pass
     """
     if not PERSIM_AVAILABLE:
-        raise ValueError("persim library is not available.")
+        raise ValueError("la biblioteca persim no está disponible.")
 
     dgms = compute_persistence_diagram(points)
     h1_dgm = dgms[1] if len(dgms) > 1 else np.array([])
@@ -351,14 +351,14 @@ def visualize_persistence_diagram(points, title=None, backend='matplotlib'):
 def main():
     """Función principal de ejecución del script Visualizer.
 
-    Returns:
+    Retorna:
         None
     """
     import argparse
     parser = argparse.ArgumentParser(description="TDA Visualizer CLI")
     parser.add_argument('--analyze-stability', action='store_true', help='Ejecuta análisis de estabilidad H.E.1 (100 realizaciones)')
     parser.add_argument('--compare-kmeans', action='store_true', help='Ejecuta comparación visual de TDA vs PCA y K-Medias')
-    parser.add_argument('--shape', type=str, default='torus')
+    parser.add_argument('--shape', type=str, default='toro')
     args = parser.parse_args()
 
     if args.analyze_stability:

@@ -17,11 +17,11 @@ def compute_kmeans_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     intercambiadas respecto a ground truth. Esta función prueba ambas
     asignaciones y devuelve la mejor.
 
-    Args:
+    Parámetros:
         y_true: Etiquetas reales (0, 1).
         y_pred: Etiquetas predichas por K-Means (0, 1).
 
-    Returns:
+    Retorna:
         Exactitud en el rango [0, 1].
     """
     acc1 = accuracy_score(y_true, y_pred)
@@ -48,13 +48,13 @@ def mcnemar_test(
 
     Ref: §9.4.4 del documento — comparación de clasificadores.
 
-    Args:
+    Parámetros:
         y_true: Etiquetas reales (0, 1).
         y_pred_tda: Predicciones del clasificador TDA (K-Means + Betti).
         y_pred_euclidean: Predicciones del clasificador euclidiano (solo K-Means).
         alpha: Nivel de significancia (default 0.05).
 
-    Returns:
+    Retorna:
         Dict con:
             contingency_table: np.ndarray (2,2) — tabla de contingencia
             n00: int — ambos correctos
@@ -130,13 +130,13 @@ def verify_betti_numbers(
     Esfera esperada: β₀ = 1, β₁ = 0
     Toro esperado:   β₀ = 1, β₁ = 2
 
-    Args:
+    Parámetros:
         b0_s: β₀ de la esfera.
         b1_s: β₁ de la esfera.
         b0_t: β₀ del toro.
         b1_t: β₁ del toro.
 
-    Returns:
+    Retorna:
         Dict con flags de corrección y mensaje descriptivo.
     """
     betti_correct = (b0_s == 1 and b1_s == 0 and b0_t == 1 and b1_t == 2)

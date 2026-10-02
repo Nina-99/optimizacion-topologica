@@ -41,12 +41,12 @@ def detect_anomaly_tda(
     - β₀ ≠ 1: la forma se desconectó (más de una componente conexa)
     - β₁ ≠ esperado: aparecieron o desaparecieron agujeros
 
-    Args:
+    Parámetros:
         pts: Nube de puntos (n, 3).
         expected_betti: (β₀ esperado, β₁ esperado).
         shape_name: Nombre de la forma para el reporte.
 
-    Returns:
+    Retorna:
         Dict con is_anomaly, b0, b1, expected, details.
     """
     b0_exp, b1_exp = expected_betti
@@ -99,23 +99,23 @@ def compare_anomaly_detection(
 
     Ref: H.E.1 — "superando en detección de anomalías".
 
-    Args:
+    Parámetros:
         n_points: Puntos por forma.
         noise_level: Nivel de ruido gaussiano.
         n_anomalies: Número de anomalías a generar.
         seed: Semilla aleatoria.
 
-    Returns:
+    Retorna:
         Dict con resultados TDA y K-Means.
     """
     rng = np.random.RandomState(seed)
 
     # Formas normales
     sphere_normal = add_gaussian_noise(
-        generate_cloud("sphere", n_points), noise_level
+        generate_cloud("esfera", n_points), noise_level
     )
     torus_normal = add_gaussian_noise(
-        generate_cloud("torus", n_points), noise_level
+        generate_cloud("toro", n_points), noise_level
     )
 
     # Formas anómalas: esfera con agujero (puntos eliminados del centro)
@@ -127,7 +127,7 @@ def compare_anomaly_detection(
 
     # Forma anómala: toro con ruido extreme (β₁ inestable)
     anomaly_torus = add_gaussian_noise(
-        generate_cloud("torus", n_points), noise_level * 3
+        generate_cloud("toro", n_points), noise_level * 3
     )
 
     # ── Detección TDA ──

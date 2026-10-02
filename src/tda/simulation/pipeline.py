@@ -13,7 +13,7 @@ from pathlib import Path
 try:
     import ripser
 except ImportError as e:
-    raise ImportError("Missing required library: ripser. Please install it to run the TDA pipeline.") from e
+    raise ImportError("Falta la biblioteca requerida: ripser. Por favor instálela para ejecutar el pipeline TDA.") from e
 
 # persim is optional — we use numpy-based distances in tda.core.topology
 try:
@@ -47,11 +47,11 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 def compute_persistence_diagram(points: np.ndarray, maxdim: int = 1) -> list:
     """Calcula el diagrama de persistencia usando ripser, filtrando intervalos inválidos.
 
-    Args:
+    Parámetros:
         points (numpy.ndarray): Coordenadas de la nube de puntos.
         maxdim (int): Dimensión máxima de homología a calcular. Por defecto 1.
 
-    Returns:
+    Retorna:
         list: Lista filtrada de diagramas de persistencia para cada dimensión.
     """
     result = ripser.ripser(points, maxdim=maxdim)
@@ -73,11 +73,11 @@ def compute_persistence_diagram(points: np.ndarray, maxdim: int = 1) -> list:
 def compute_wasserstein_distance(dgm1: np.ndarray, dgm2: np.ndarray) -> float:
     """Calcula la distancia de Wasserstein entre dos diagramas.
 
-    Args:
+    Parámetros:
         dgm1 (numpy.ndarray): Primer diagrama de persistencia.
         dgm2 (numpy.ndarray): Segundo diagrama de persistencia.
 
-    Returns:
+    Retorna:
         float: Distancia de Wasserstein.
     """
     from tda.core.topology import wasserstein_distance
@@ -92,10 +92,10 @@ def _safe_stack(normalized: list) -> np.ndarray:
     [] becomes shape (0,) incompatible with (n, 2). This helper filters out
     empty dimensions before stacking.
 
-    Args:
+    Parámetros:
         normalized (list): Lista de dimensiones, cada una con puntos (n, 2) o vacía.
 
-    Returns:
+    Retorna:
         np.ndarray: Array concatenado de forma (N, 2) o np.empty((0, 2)) si todas vacías.
     """
     non_empty = [np.array(dim) for dim in normalized if dim]
@@ -107,11 +107,11 @@ def _safe_stack(normalized: list) -> np.ndarray:
 def compute_bottleneck_distance(dgm1: np.ndarray, dgm2: np.ndarray) -> float:
     """Calcula la distancia de Bottleneck entre dos diagramas.
 
-    Args:
+    Parámetros:
         dgm1 (numpy.ndarray): Primer diagrama de persistencia.
         dgm2 (numpy.ndarray): Segundo diagrama de persistencia.
 
-    Returns:
+    Retorna:
         float: Distancia de Bottleneck.
     """
     from tda.core.topology import bottleneck_distance
@@ -127,7 +127,7 @@ def compare_tda_vs_euclidean(clean_pts: np.ndarray, noisy_pts: np.ndarray,
     "La homología persistente ... superando a los descriptores euclidianos en tareas 
     de clasificación y detección de anomalías."
     
-    Returns:
+    Retorna:
         dict: Diccionario con métricas de TDA y descriptores euclidianos.
     """
     # --- TDA Metrics ---
@@ -179,14 +179,14 @@ def run_tda_experiment(shape: str, noise_levels: list[float] = [0.10, 0.15, 0.20
     * Filtrar diagramas de persistencia por umbral
     * Normalizar por diámetro
 
-    Args:
-        shape (str): Forma a generar ('sphere', 'torus', 'cube').
+    Parámetros:
+        shape (str): Forma a generar ('esfera', 'toro', 'cubo').
         noise_levels (list[float]): Lista de desviaciones estándar de ruido. Por defecto [0.10, 0.15, 0.20].
         n_rep (int): Número de repeticiones del experimento. Por defecto 100.
         n_points (int): Número de puntos por nube. Por defecto 200.
         seed (int): Semilla para reproducibilidad. Por defecto 42.
 
-    Returns:
+    Retorna:
         dict: Estadísticas del experimento para cada nivel de ruido.
     """
     np.random.seed(seed)
@@ -268,11 +268,11 @@ def run_tda_experiment(shape: str, noise_levels: list[float] = [0.10, 0.15, 0.20
 def _save_results_to_csv(results: dict, shape: str):
     """Guarda los resultados del experimento en un archivo CSV.
 
-    Args:
+    Parámetros:
         results (dict): Diccionario que mapea niveles de ruido a estadísticas.
         shape (str): Nombre de la forma.
 
-    Returns:
+    Retorna:
         None
     """
     import csv
@@ -302,21 +302,21 @@ def _save_results_to_csv(results: dict, shape: str):
 def main():
     """Función principal de ejecución del script de experimentos del pipeline TDA.
 
-    Returns:
+    Retorna:
         None
     """
     import argparse
-    parser = argparse.ArgumentParser(description="Run TDA pipeline experiments on synthetic point clouds.")
-    parser.add_argument('--shape', type=str, required=True, choices=['sphere', 'torus', 'cube'],
-                        help='Shape to generate point cloud from.')
+    parser = argparse.ArgumentParser(description="Ejecutar experimentos del pipeline TDA en nubes de puntos sintéticas.")
+    parser.add_argument('--shape', type=str, required=True, choices=['esfera', 'toro', 'cubo'],
+                        help='Forma para generar la nube de puntos.')
     parser.add_argument('--noise_levels', type=float, nargs='+', default=[0.10, 0.15, 0.20],
-                        help='List of noise levels (as fraction of diameter).')
+                        help='Lista de niveles de ruido (como fracción del diámetro).')
     parser.add_argument('--n_rep', type=int, default=100,
-                        help='Number of repetitions per noise level.')
+                        help='Número de repeticiones por nivel de ruido.')
     parser.add_argument('--n_points', type=int, default=200,
-                        help='Number of points per cloud.')
+                        help='Número de puntos por nube.')
     parser.add_argument('--seed', type=int, default=42,
-                        help='Random seed for reproducibility.')
+                        help='Semilla aleatoria para reproducibilidad.')
     args = parser.parse_args()
 
     print(f"Running TDA experiment on {args.shape} with {args.n_points} points, {args.n_rep} reps, noise levels {args.noise_levels}")
@@ -328,7 +328,7 @@ def main():
         seed=args.seed
     )
     for noise, stats in results.items():
-        print(f"Noise {noise:.2f}: beta0={stats['betti0_mean']:.2f}±{stats['betti0_std']:.2f}, "
+        print(f"Ruido {noise:.2f}: beta0={stats['betti0_mean']:.2f}±{stats['betti0_std']:.2f}, "
               f"beta1={stats['betti1_mean']:.2f}±{stats['betti1_std']:.2f}, "
               f"W={stats['wasserstein_mean']:.4f}±{stats['wasserstein_std']:.4f}, "
               f"B={stats['bottleneck_mean']:.4f}±{stats['bottleneck_std']:.4f}, "

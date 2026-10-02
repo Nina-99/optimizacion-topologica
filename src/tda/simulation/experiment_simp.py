@@ -32,7 +32,7 @@ def run_headless_experiment():
       - fV = 0.5, p = 3, rmin = 2.4
       - Borde izquierdo empotrado, carga puntual vertical extremo libre
 
-    Returns:
+    Retorna:
         dict: Resultados con veredicto de cada hipótesis
     """
     print("=" * 70)

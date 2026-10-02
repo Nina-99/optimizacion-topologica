@@ -132,7 +132,7 @@ def run_tda_pure_analysis(n_points=200, noise_levels=[0.10, 0.15, 0.20], n_rep=1
     print(f"Puntos: {n_points}, ruido: {noise_levels}, repeticiones: {n_rep}")
     
     results = run_tda_experiment(
-        shape='sphere',
+        shape='esfera',
         noise_levels=noise_levels,
         n_rep=n_rep,
         n_points=n_points,

@@ -320,13 +320,13 @@ class MetricaTDA_SIMP:
         En lugar de contar discretamente pares (nacimiento, muerte) con persistencia > τ,
         usa una suma suavizada de funciones sigmoide para permitir gradientes.
         
-        Args:
+        Parámetros:
             grid_bool: np.ndarray binario (True = sólido) de forma (ny, nx)
             tau: float, umbral de persistencia relativo (default 0.1)
             k: float, parámetro de suavidad de la sigmoide (default 10.0)
                    Valores mayores = aproximación más cercana al escalón
         
-        Returns:
+        Retorna:
             float: β₁ diferenciable (aproximado)
         """
         # Obtener diagrama de persistencia H₁

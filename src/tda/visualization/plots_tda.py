@@ -47,10 +47,10 @@ def plot_stability_chart(results: Dict) -> go.Figure:
     y la exactitud de K-Means en el eje derecho, con líneas verticales
     marcando el rango 15-20% de la hipótesis H.E.1.
 
-    Args:
+    Parámetros:
         results: Dict con "noise_vals", "acc", "betti_s", "betti_t".
 
-    Returns:
+    Retorna:
         go.Figure lista para mostrar con st.plotly_chart().
     """
     noise_vals = results["noise_vals"]
@@ -164,10 +164,10 @@ def interpret_stability(results: Dict) -> Dict:
     Evalúa si los números de Betti se mantuvieron estables y si
     la exactitud de K-Means se degradó, generando un veredicto sobre H.E.1.
 
-    Args:
+    Parámetros:
         results: Dict del barrido de ruido.
 
-    Returns:
+    Retorna:
         Dict con "stable": bool, "verdict": str, "details": str.
     """
     sweep_betti_s = results["betti_s"]
@@ -206,10 +206,10 @@ def plot_sweep_persistence_animation(results):
     Cada frame muestra los diagramas 0D y 1D para esfera y toro en un nivel de ruido.
     La diagonal y=x (puntos con death=birth) se muestra como referencia.
 
-    Args:
+    Parámetros:
         results: Dict del barrido de ruido (debe incluir "diagrams_s" y "diagrams_t").
 
-    Returns:
+    Retorna:
         go.Figure con frames animados y slider.
     """
     import numpy as np
@@ -381,8 +381,8 @@ def plot_sweep_persistence_animation(results):
             text="<b>Evolución de Diagramas de Persistencia con el Ruido</b>",
             font=dict(size=13),
         ),
-        xaxis=dict(title="Birth", range=[min_val, max_val], constrain="domain"),
-        yaxis=dict(title="Death", range=[min_val, max_val], scaleanchor="x", scaleratio=1),
+        xaxis=dict(title="Nacimiento", range=[min_val, max_val], constrain="domain"),
+        yaxis=dict(title="Muerte", range=[min_val, max_val], scaleanchor="x", scaleratio=1),
         height=500,
         hovermode="closest",
         sliders=sliders,

@@ -28,26 +28,26 @@ class TestRunTdaExperiment:
 
     def test_returns_dict(self):
         """El retorno debe ser un dict."""
-        result = run_tda_experiment("sphere", noise_levels=self.NOISE,
+        result = run_tda_experiment("esfera", noise_levels=self.NOISE,
                                     n_rep=self.N_REP, n_points=self.N_POINTS)
         assert isinstance(result, dict)
 
     def test_dict_keys_match_noise_levels(self):
         """Las keys del dict deben coincidir con noise_levels."""
         levels = [0.05, 0.10, 0.15]
-        result = run_tda_experiment("sphere", noise_levels=levels,
+        result = run_tda_experiment("esfera", noise_levels=levels,
                                     n_rep=self.N_REP, n_points=self.N_POINTS)
         assert set(result.keys()) == {0.05, 0.10, 0.15}
 
     def test_single_noise_level(self):
         """Un solo nivel de ruido debe producir un solo key."""
-        result = run_tda_experiment("sphere", noise_levels=[0.10],
+        result = run_tda_experiment("esfera", noise_levels=[0.10],
                                     n_rep=self.N_REP, n_points=self.N_POINTS)
         assert list(result.keys()) == [0.10]
 
     def test_expected_stat_keys(self):
         """Cada noise level debe tener las 8 estadísticas esperadas."""
-        result = run_tda_experiment("sphere", noise_levels=self.NOISE,
+        result = run_tda_experiment("esfera", noise_levels=self.NOISE,
                                     n_rep=self.N_REP, n_points=self.N_POINTS)
         expected = {
             "betti0_mean", "betti0_std",
@@ -61,7 +61,7 @@ class TestRunTdaExperiment:
 
     def test_all_values_are_floats(self):
         """Todos los valores estadísticos deben ser float."""
-        result = run_tda_experiment("sphere", noise_levels=self.NOISE,
+        result = run_tda_experiment("esfera", noise_levels=self.NOISE,
                                     n_rep=self.N_REP, n_points=self.N_POINTS)
         for key, val in result[0.10].items():
             assert isinstance(val, float), (
@@ -70,14 +70,14 @@ class TestRunTdaExperiment:
 
     def test_all_values_finite(self):
         """Todos los valores deben ser finitos (no NaN, no Inf)."""
-        result = run_tda_experiment("sphere", noise_levels=self.NOISE,
+        result = run_tda_experiment("esfera", noise_levels=self.NOISE,
                                     n_rep=self.N_REP, n_points=self.N_POINTS)
         for key, val in result[0.10].items():
             assert np.isfinite(val), f"{key} no es finito: {val}"
 
     def test_std_zero_with_one_rep(self):
         """Con n_rep=1, todas las std deben ser 0.0."""
-        result = run_tda_experiment("sphere", noise_levels=self.NOISE,
+        result = run_tda_experiment("esfera", noise_levels=self.NOISE,
                                     n_rep=1, n_points=self.N_POINTS)
         for noise_key in result:
             assert result[noise_key]["betti0_std"] == 0.0
@@ -87,7 +87,7 @@ class TestRunTdaExperiment:
 
     def test_betti_counts_nonnegative(self):
         """Los valores de Betti deben ser ≥ 0."""
-        result = run_tda_experiment("sphere", noise_levels=self.NOISE,
+        result = run_tda_experiment("esfera", noise_levels=self.NOISE,
                                     n_rep=self.N_REP, n_points=self.N_POINTS)
         for noise_key in result:
             stats = result[noise_key]
@@ -96,7 +96,7 @@ class TestRunTdaExperiment:
 
     def test_wasserstein_and_bottleneck_nonnegative(self):
         """Las distancias Wasserstein y Bottleneck deben ser ≥ 0."""
-        result = run_tda_experiment("sphere", noise_levels=self.NOISE,
+        result = run_tda_experiment("esfera", noise_levels=self.NOISE,
                                     n_rep=self.N_REP, n_points=self.N_POINTS)
         for noise_key in result:
             stats = result[noise_key]
@@ -107,7 +107,7 @@ class TestRunTdaExperiment:
 
     def test_multiple_shapes(self):
         """Debe funcionar con sphere y cube (torus tiene bug pre-existente)."""
-        for shape in ["sphere", "cube"]:
+        for shape in ["esfera", "cubo"]:
             result = run_tda_experiment(shape, noise_levels=[0.10],
                                         n_rep=self.N_REP,
                                         n_points=self.N_POINTS)
@@ -116,7 +116,7 @@ class TestRunTdaExperiment:
 
     def test_custom_seed(self):
         """Seed personalizada debe producir resultados sin error."""
-        result = run_tda_experiment("sphere", noise_levels=self.NOISE,
+        result = run_tda_experiment("esfera", noise_levels=self.NOISE,
                                     n_rep=self.N_REP, n_points=self.N_POINTS,
                                     seed=123)
         assert isinstance(result[0.10], dict)
@@ -128,7 +128,7 @@ class TestRunTdaExperiment:
         mientras H0 retiene puntos, lo que disparaba el bug de np.vstack
         con dimensión mixta (lista con elementos 2D y []).
         """
-        result = run_tda_experiment("torus", noise_levels=[0.10],
+        result = run_tda_experiment("toro", noise_levels=[0.10],
                                     n_rep=1, n_points=20)
         assert isinstance(result, dict)
         assert 0.10 in result
