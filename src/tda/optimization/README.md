@@ -6,7 +6,7 @@ Este modulo implementa el algoritmo SIMP (Solid Isotropic Material with Penaliza
 
 ### `MetricaTDA_SIMP` (Clase Principal — Algoritmo 1 completo)
 
-Implementacion completa del Algoritmo 1: preprocesado, SIMP con OC, filtrado de densidad y fase TDA post-hoc. Es la clase utilizada por la Plataforma TDA-SIMP en las paginas H.E.2, H.G. y Ejemplo Viga.
+Implementacion completa del Algoritmo 2: preprocesado, SIMP con OC, filtrado de densidad y fase TDA post-hoc. Es la clase utilizada por la Plataforma TDA-SIMP en las paginas H.E.2 y Ejemplo Viga.
 
 - **Constructor:** `MetricaTDA_SIMP(nex, ney, E, nu, Lx, Ly, t, f_V, p, r_min, alpha, tol_c, tol_rho, max_iter)`
 - **`definir_problema(F, dofs_fijos)`:** Define vector de fuerzas y grados de libertad fijos.
@@ -41,8 +41,8 @@ Una vez finalizada la optimizacion, las densidades filtradas (rho_e > 0.5) se ma
 
 Este modulo es la piedra angular para la validacion de la **Hipotesis Especifica H.E.2**:
 
-- **H.E.2a':** Reduccion >=40% vs diseno uniforme de igual volumen (rho = fV).
-- **H.E.2b':** beta_1(omega_solido) es invariante bajo malla y r_min (descriptivo, no prescriptivo).
+- **H.E.2a:** Reduccion >=40% vs diseno uniforme de igual volumen (rho = fV).
+- **H.E.2b:** beta_1(omega_solido) es invariante bajo malla y r_min (descriptivo, no prescriptivo).
 - Hallazgo 1: El teorema de estabilidad (Cohen-Steiner) NO protege a beta_k — acota bottleneck, no beta_k a escala fija.
 
 ## Dependencias

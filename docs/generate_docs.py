@@ -1,10 +1,13 @@
 """
 Generador de documentacion Word (.docx) para la Plataforma TDA-SIMP.
-Formato academico estilo tesis: Times New Roman 12pt, interlineado 1.5,
-margenes 3cm, numeracion de capitulos.
-Genera dos archivos:
-  1. Manual_de_Usuario.docx
-  2. Documentacion_Tecnica.docx
+
+OBSOLETO (contenido): este archivo conserva los helpers de formato
+(setup_styles, add_cover, add_figure, add_table_academic, add_note) que
+reutiliza generate_docs_v2.py. Las funciones generate_user_manual() y
+generate_tech_doc() (contenido) quedaron SUPERSEDIDAS por generate_docs_v2.py,
+que es el generador VIGENTE de Manual_de_Usuario.docx y
+Documentacion_Tecnica.docx. No ejecutar este archivo para regenerar los
+documentos.
 """
 
 import os
@@ -387,9 +390,9 @@ def generate_user_manual():
     add_table_academic(doc,
         ["N.", "Modulo", "Hipotesis", "Descripcion"],
         [
-            ["1", "H.E.1 Robustez TDA", "H.E.1a', H.E.1b, H.E.1c",
+            ["1", "H.E.1 Robustez TDA", "H.E.1a, H.E.1b, H.E.1c",
              "Validacion de invariantes topologicos bajo ruido gaussiano"],
-            ["2", "H.E.2 Optimizacion SIMP", "H.E.2a', H.E.2b'",
+            ["2", "H.E.2 Optimizacion SIMP", "H.E.2a, H.E.2b",
              "Optimizacion con metrica compuesta mu_alpha"],
             ["3", "H.G. Comparacion Integrada", "Hipotesis General",
              "Sintesis integral y orden Pareto"],
@@ -413,7 +416,7 @@ def generate_user_manual():
         "Este modulo valida la hipotesis H.E.1: los descriptores topologicos "
         "(numeros de Betti) son mas robustos que los descriptores euclidianos "
         "bajo ruido gaussiano. La validacion se realiza en tres partes: "
-        "cota bottleneck (H.E.1a'), clasificacion (H.E.1b) y cota de "
+        "cota bottleneck (H.E.1a), clasificacion (H.E.1b) y cota de "
         "estabilidad (H.E.1c)."
     )
 
@@ -441,19 +444,19 @@ def generate_user_manual():
     doc.add_paragraph("3. Esperar a que se completen todas las iteraciones.")
     doc.add_paragraph("4. Revisar los resultados en las cuatro secciones:")
     doc.add_paragraph("     a) Evidencia del Hallazgo 1: estabilidad de Bk bajo ruido.", style="List Bullet")
-    doc.add_paragraph("     b) Validacion H.E.1a': cota bottleneck (exitoso).", style="List Bullet")
+    doc.add_paragraph("     b) Validacion H.E.1a: cota bottleneck (exitoso).", style="List Bullet")
     doc.add_paragraph("     c) Validacion H.E.1b: superioridad TDA vs euclidianos.", style="List Bullet")
     doc.add_paragraph("     d) Validacion H.E.1c: cota de estabilidad dB <= 2*dH.", style="List Bullet")
 
     doc.add_heading("4.3 Resultados esperados", level=2)
     add_figure(doc, "H_E_1_3.png",
-               "Figura 3. Resultados H.E.1 — Cuadro 4 (tasa de acierto) y validacion H.E.1a'.")
+               "Figura 3. Resultados H.E.1 — Cuadro 4 (tasa de acierto) y validacion H.E.1a.")
 
     doc.add_paragraph(
         "El Cuadro 4 muestra la tasa de acierto de Bk por nivel de ruido. La hipotesis "
         "original H.E.1 (Bk invariante bajo ruido) se falsifica: la tasa de acierto "
         "disminuye significativamente para niveles de ruido superiores a 0.03. Sin "
-        "embargo, la version reformulada H.E.1a' (cota bottleneck) se valida "
+        "embargo, la version reformulada H.E.1a (cota bottleneck) se valida "
         "exitosamente, verificando que la ratio dB/diam(X) se mantiene dentro "
         "del limite teorico."
     )
@@ -467,8 +470,8 @@ def generate_user_manual():
     doc.add_heading("5. Modulo H.E.2 — Optimizacion SIMP Metrica Compuesta", level=1)
     doc.add_paragraph(
         "Este modulo implementa la optimizacion topologica SIMP y valida la hipotesis "
-        "H.E.2a' (reduccion de compliance mayor o igual a 40% respecto al diseno uniforme) "
-        "y H.E.2b' (invariancia de B1 bajo variacion de malla, radio de filtro y "
+        "H.E.2a (reduccion de compliance mayor o igual a 40% respecto al diseno uniforme) "
+        "y H.E.2b (invariancia de B1 bajo variacion de malla, radio de filtro y "
         "factor de penalizacion)."
     )
 
@@ -500,9 +503,9 @@ def generate_user_manual():
 
     doc.add_paragraph(
         "El Cuadro 1 muestra que la reduccion de compliance supera el 40% en todas las "
-        "configuraciones evaluadas, validando la hipotesis H.E.2a'. El Cuadro 7 "
+        "configuraciones evaluadas, validando la hipotesis H.E.2a. El Cuadro 7 "
         "(barrido de penalizacion p) y el Cuadro 8 (barrido de malla) verifican "
-        "la invariancia de B1, validando la hipotesis H.E.2b'."
+        "la invariancia de B1, validando la hipotesis H.E.2b."
     )
 
     doc.add_page_break()
@@ -804,15 +807,15 @@ def generate_tech_doc():
     add_table_academic(doc,
         ["Hipotesis", "Metodo de validacion", "Criterio de aceptacion"],
         [
-            ["H.E.1a' (cota bottleneck)", "Ratio dB/diam(X) <= 2q",
+            ["H.E.1a (cota bottleneck)", "Ratio dB/diam(X) <= 2q",
              "Todos los shapes deben cumplir la desigualdad"],
             ["H.E.1b (clasificacion)", "Test de McNemar",
              "p < 0.05 (superioridad estadistica de TDA)"],
             ["H.E.1c (estabilidad)", "dB <= 2 * dH(X,Y)",
              "Todos los shapes deben cumplir la cota"],
-            ["H.E.2a' (reduccion)", "(c_unif - c_star) / c_unif >= 0.40",
+            ["H.E.2a (reduccion)", "(c_unif - c_star) / c_unif >= 0.40",
              "Reduccion de compliance >= 40%"],
-            ["H.E.2b' (invariancia)", "B1 invariante",
+            ["H.E.2b (invariancia)", "B1 invariante",
              "B1 constante para variaciones de p, malla y r_min"],
         ],
     )
@@ -856,15 +859,15 @@ def generate_tech_doc():
     add_table_academic(doc,
         ["Cuadro", "Ubicacion", "Contenido"],
         [
-            ["Cuadro 1", "H.E.2a'",
+            ["Cuadro 1", "H.E.2a",
              "Reduccion de compliance >= 40% vs diseno uniforme"],
             ["Cuadro 4", "H.E.1",
              "Tasa de acierto de Bk por nivel de ruido"],
             ["Cuadro 5", "H.E.1",
              "Clasificacion TDA vs Euclidianos"],
-            ["Cuadro 7", "H.E.2b'",
+            ["Cuadro 7", "H.E.2b",
              "Barrido de penalizacion p = {1, 2, 3, 4}"],
-            ["Cuadro 8", "H.E.2b'",
+            ["Cuadro 8", "H.E.2b",
              "Barrido de malla Ne = {1600, 6400, 14400}"],
         ],
     )
@@ -888,9 +891,9 @@ def generate_tech_doc():
     add_table_academic(doc,
         ["Barrido", "Valores", "Verificacion"],
         [
-            ["Penalizacion p", "{1, 2, 3, 4}", "H.E.2b' — invariancia de B1"],
-            ["Malla Ne", "{1600, 6400, 14400}", "H.E.2b' — independencia de malla"],
-            ["Radio r_min", "[1.5, 2.0, 2.5, 3.0, 3.5, 4.0]", "H.E.2b' — invariancia bajo variacion"],
+            ["Penalizacion p", "{1, 2, 3, 4}", "H.E.2b — invariancia de B1"],
+            ["Malla Ne", "{1600, 6400, 14400}", "H.E.2b — independencia de malla"],
+            ["Radio r_min", "[1.5, 2.0, 2.5, 3.0, 3.5, 4.0]", "H.E.2b — invariancia bajo variacion"],
         ],
     )
 
@@ -934,7 +937,7 @@ def generate_tech_doc():
         style="List Bullet",
     )
     doc.add_paragraph(
-        "tda.core.topology, tda.core.betti2d, tda.core.metric, "
+        "tda.core.topology, tda.core.betti2d, "
         "tda.optimization.metric_simp, tda.optimization.beam_optimizer",
         style="List Bullet",
     )
@@ -969,10 +972,10 @@ def generate_tech_doc():
         "valores de Bk a escala fija de filtracion."
     )
 
-    doc.add_heading("6.2 Hallazgo 2: Validacion de H.E.1a'", level=2)
+    doc.add_heading("6.2 Hallazgo 2: Validacion de H.E.1a", level=2)
     doc.add_paragraph(
         "La cota dB/diam(X) <= 2q SI se cumple para todas las configuraciones "
-        "evaluadas. Esto valida la hipotesis reformulada H.E.1a': la estabilidad "
+        "evaluadas. Esto valida la hipotesis reformulada H.E.1a: la estabilidad "
         "se verifica en terminos de distancias entre diagramas de persistencia, "
         "no en valores absolutos de los numeros de Betti."
     )
@@ -980,9 +983,9 @@ def generate_tech_doc():
     doc.add_heading("6.3 Hallazgo 3: Optimizacion SIMP", level=2)
     doc.add_paragraph(
         "La reduccion de compliance supera el 40% en todas las configuraciones "
-        "evaluadas, validando la hipotesis H.E.2a'. La metrica compuesta mu_alpha "
+        "evaluadas, validando la hipotesis H.E.2a. La metrica compuesta mu_alpha "
         "identifica p=3 como configuracion Pareto-optima: minimiza compliance "
-        "manteniendo B1=2 (topologia robusta), validando H.E.2b'."
+        "manteniendo B1=2 (topologia robusta), validando H.E.2b."
     )
 
     doc.add_heading("6.4 Hallazgo 4: Comparacion Integrada", level=2)

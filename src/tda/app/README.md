@@ -1,18 +1,17 @@
 # Modulo de Aplicacion — Plataforma TDA-SIMP
 
-Este modulo implementa la interfaz grafica interactiva del proyecto utilizando Streamlit. La plataforma se estructura como una landing page con navegacion a 4 modulos especializados, cada uno alineado con los objetivos cientificos de la investigacion.
+Este modulo implementa la interfaz grafica interactiva del proyecto utilizando Streamlit. La plataforma se estructura como una landing page con navegacion a 3 modulos especializados, cada uno alineado con los objetivos cientificos de la investigacion.
 
 ## Estructura
 
 ```
 app/
-├── plataforma_tda_simp.py       # Landing page con navegacion a los 4 modulos
+├── plataforma_tda_simp.py       # Landing page con navegacion a los 3 modulos
 ├── theme.py                     # Tema visual, estilos CSS y funciones de UI
 ├── download_utils.py            # Utilidades de exportacion y configuracion .exe
 └── pages/
     ├── 1_H.E.1_Robustez_TDA_vs_Euclidianos.py
     ├── 2_H.E.2_Optimizacion_SIMP_Metrica_Compuesta.py
-    ├── 3_H.G._Comparacion_Integrada_TDA-SIMP.py
     └── 4_Ejemplo_Viga_1D_vs_2D.py
 ```
 
@@ -31,30 +30,18 @@ Validacion de la Hipotesis Especifica H.E.1: la homologia persistente proporcion
 - **Test de McNemar** con tabla de contingencia explicada y **estimación de q***.
 - Incluye diagramas de persistencia (Ripser) y exportación ZIP (CSV + PDF + PNG).
 
-### 2. H.E.2 — Optimizacion SIMP + Metrica Compuesta
+### 2. H.E.2 — Optimizacion SIMP
 
-Validación de la Hipótesis Específica H.E.2: SIMP con métrica compuesta $\mu_\alpha$ logra reducción ≥40% y $\beta_1$ invariante.
+Validación de la Hipótesis Específica H.E.2: SIMP logra reducción ≥40% y $\beta_1$ invariante (evaluación topológica post hoc).
 
 - Optimización topológica 2D con SIMP (algoritmo OC).
-- Métrica compuesta $\mu_\alpha = c + \alpha \cdot \beta_1$ con calibración de $\alpha^*$.
 - **Barrido multi-configuración:** $r_{\min}$, $p$ y malla (rectangular 2:1 o cuadrada).
 - **Figuras 5.4–5.7** con epígrafes del documento y sus datos (compliance, grisura, $\beta_1$, fracción de volumen).
 - **Tabla 5.6** dinámica (compliance vs referentes) y **doble cómputo** de Betti: característica de Euler $\chi$ vs homología cúbica (GUDHI).
-- Validación H.E.2a' (reducción ≥40% vs uniforme) y H.E.2b' ($\beta_1$ invariante, descriptivo).
+- Validación H.E.2a (reducción ≥40% vs uniforme) y H.E.2b ($\beta_1$ invariante, descriptivo).
 - Incluye convergencia, diagramas de persistencia y exportación ZIP con PNG de cada gráfico.
 
-### 3. H.G. — Comparacion Integrada TDA-SIMP
-
-Sintesis integral de TDA+SIMP: validacion de la Hipotesis General y Pareto-optimalidad.
-
-- Barrido de penalización $p=\{2,3,4\}$ con la misma malla.
-- Análisis de dominancia estricta entre configuraciones.
-- Sensibilidad al parámetro $\alpha$ con gráfico.
-- Diagramas de persistencia lado a lado ($H_1$).
-- Tabla 5.9: veredictos del documento (5 filas + evidencia) y Tabla 5.5 como referencia.
-- Veredicto H.G. con $\mu_\alpha$ y exportación ZIP completa.
-
-### 4. Ejemplo Viga 1D vs 2D
+### 3. Ejemplo Viga 1D vs 2D
 
 Laboratorio interactivo de optimizacion estructural: comparacion de enfoques analiticos y numericos.
 

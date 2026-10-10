@@ -41,10 +41,9 @@ def generate_user_manual():
     doc.add_paragraph(
         "Este manual describe el uso de la Plataforma TDA-SIMP: una aplicación "
         "interactiva (Streamlit) que valida hipótesis sobre robustez topológica "
-        "(H.E.1), optimización estructural SIMP (H.E.2), su comparación integrada "
-        "(H.G.) y un laboratorio de viga 1D vs 2D. Cada módulo ejecuta simulaciones "
-        "reales, muestra las Figuras 5.1 a 5.7 del Capítulo 5 y permite descargar "
-        "todos los gráficos como PNG dentro de un ZIP."
+        "(H.E.1), optimización estructural SIMP (H.E.2) y un laboratorio de viga "
+        "1D vs 2D. Cada módulo ejecuta simulaciones reales, muestra las Figuras 5.1 "
+        "a 5.7 del Capítulo 5 y permite descargar todos los gráficos como PNG en un ZIP."
     )
     doc.add_heading("1.2 Tecnologías utilizadas", level=2)
     add_table_academic(doc, ["Componente", "Tecnología"],
@@ -56,8 +55,8 @@ def generate_user_manual():
     doc.add_heading("1.3 Estructura del manual", level=2)
     doc.add_paragraph(
         "Capítulo 2: instalación y ejecución. Capítulo 3: pantalla principal. "
-        "Capítulos 4 a 7: un capítulo por módulo, en el orden de la pantalla "
-        "(H.E.1, H.E.2, H.G., Ejemplo Viga). Capítulo 8: exportación y problemas."
+        "Capítulos 4 a 6: un capítulo por módulo, en el orden de la pantalla "
+        "(H.E.1, H.E.2, Ejemplo Viga). Capítulo 7: exportación y problemas."
     )
 
     # ── 2. Instalación ──
@@ -76,9 +75,9 @@ def generate_user_manual():
     # ── 3. Pantalla principal ──
     doc.add_heading("3. Pantalla Principal — Plataforma TDA-SIMP", level=1)
     doc.add_paragraph(
-        "La pantalla principal (plataforma tda simp) presenta los cuatro módulos "
-        "con tarjetas de navegación: H.E.1 (robustez TDA), H.E.2 (optimización SIMP), "
-        "H.G. (comparación integrada) y Ejemplo Viga 1D vs 2D."
+        "La pantalla principal (plataforma tda simp) presenta los tres módulos "
+        "con tarjetas de navegación: H.E.1 (robustez TDA), H.E.2 (optimización SIMP) "
+        "y Ejemplo Viga 1D vs 2D."
     )
     _shot(doc, "plataforma tda simp.png", "Figura 1. Pantalla principal — Plataforma TDA-SIMP.")
     doc.add_page_break()
@@ -110,7 +109,7 @@ def generate_user_manual():
     _shot(doc, "H_E_1_2_1.png", "Figura 4. Figura 5.2(a) — Tasa de acierto de βₖ por ruido.")
     _shot(doc, "H_E_1_2_2.png", "Figura 5. Datos para la Figura 5.2(a) y hallazgo del régimen de validez.")
     _shot(doc, "H_E_1_3_1.png", "Figura 6. Figura 5.3 — Bottleneck normalizada vs cota 2q.")
-    _shot(doc, "H_E_1_3_2.png", "Figura 7. Veredicto H.E.1a' y datos de la Figura 5.3.")
+    _shot(doc, "H_E_1_3_2.png", "Figura 7. Veredicto H.E.1a y datos de la Figura 5.3.")
     doc.add_heading("4.3 Clasificación, McNemar y Tabla 5.5", level=2)
     doc.add_paragraph(
         "La sección H.E.1b compara exactitud TDA vs euclidiana y aplica el test de McNemar: "
@@ -125,10 +124,10 @@ def generate_user_manual():
     doc.add_page_break()
 
     # ── 5. H.E.2 ──
-    doc.add_heading("5. Módulo H.E.2 — Optimización SIMP + Métrica Compuesta", level=1)
+    doc.add_heading("5. Módulo H.E.2 — Optimización SIMP", level=1)
     doc.add_paragraph(
-        "Optimización topológica 2D con SIMP y métrica compuesta μ(α). Valida H.E.2a' "
-        "(reducción ≥ 40 % vs diseño uniforme) y H.E.2b' (β₁ invariante, descriptivo). "
+        "Optimización topológica 2D con SIMP y evaluación topológica post hoc. Valida "
+        "H.E.2a (reducción ≥ 40 % vs diseño uniforme) y H.E.2b (β₁ invariante). "
         "Incluye Figuras 5.4 a 5.7 con epígrafes del documento, Tabla 5.6 dinámica y "
         "doble cómputo de Betti: característica de Euler del complejo cúbico "
         "(χ = V−E+F, β₁ = β₀−χ) vs homología cúbica persistente (GUDHI)."
@@ -141,16 +140,16 @@ def generate_user_manual():
         "binarizado Ω donde se cuentan β₀ y β₁. La Figura 5.7 barre el umbral u con β₀, "
         "β₁ y la fracción de volumen (línea gris)."
     )
-    _shot(doc, "H_E_2_1_1.png", "Figura 12. H.E.2a' cumplida y Tabla 5.6 — Compliance vs referentes.")
+    _shot(doc, "H_E_2_1_1.png", "Figura 12. H.E.2a cumplida y Tabla 5.6 — Compliance vs referentes.")
     _shot(doc, "H_E_2_1_2.png", "Figura 13. Figura 5.4(b) — Historial de compliance (escala log).")
     _shot(doc, "H_E_2_1_3.png", "Figura 14. Figura 5.7 — Betti vs umbral u con fracción de volumen.")
-    _shot(doc, "H_E_2_2_1.png", "Figura 15. H.E.2b' — Métricas, concordancia χ-GUDHI y persistencia H₁.")
+    _shot(doc, "H_E_2_2_1.png", "Figura 15. H.E.2b — Métricas, concordancia χ-GUDHI y persistencia H₁.")
     _shot(doc, "H_E_2_2_2.png", "Figura 16. Figura 5.4(a) — Densidad continua vs diseño binarizado.")
     doc.add_heading("5.2 Barrido multi-configuración (H.E.2b)", level=2)
     doc.add_paragraph(
         "El barrido corre 12–13 configuraciones (malla, p, rmin). Las Figuras 5.5 y 5.6 "
         "verifican invariancia: compliance y grisura vs p (con β₁ anotado por punto), "
-        "compliance y β₁ vs número de elementos. El veredicto final combina H.E.2a' y H.E.2b'."
+        "compliance y β₁ vs número de elementos. El veredicto final combina H.E.2a y H.E.2b."
     )
     _shot(doc, "H_E_2_3.png", "Figura 17. Métricas, exportación y barrido multi-configuración.")
     _shot(doc, "H_E_2_4_1.png", "Figura 18. Datos y Figura 5.5 — Barrido del factor de penalización.")
@@ -159,42 +158,23 @@ def generate_user_manual():
     _shot(doc, "H_E_2_4_4.png", "Figura 21. Veredicto H.E.2 y plan de acción del módulo.")
     doc.add_page_break()
 
-    # ── 6. H.G. ──
-    doc.add_heading("6. Módulo H.G. — Comparación Integrada TDA-SIMP", level=1)
-    doc.add_paragraph(
-        "Síntesis integral: corre SIMP con p = 2, 3, 4, valida H.G. (μ(α) identifica p = 3 "
-        "como Pareto-óptimo), analiza sensibilidad a α, compara ambos casos lado a lado "
-        "(5.2), muestra diagramas de persistencia por configuración y consolida la "
-        "Tabla 5.9 de veredictos con su evidencia (sección 5.8 del documento)."
-    )
-    _shot(doc, "H_G_0.png", "Figura 22. H.G. — Encabezado y parámetros FEM.")
-    _shot(doc, "H_G_1.png", "Figura 23. Diseño convergido (5.5.1) y validación Pareto H.G.")
-    _shot(doc, "H_G_2.png", "Figura 24. Sensibilidad de μ(α) al peso α.")
-    _shot(doc, "H_G_3.png", "Figura 25. Efecto del factor de penalización (5.5.2).")
-    _shot(doc, "H_G_4.png", "Figura 26. Convergencia del diseño y comparativa de casos (5.2).")
-    _shot(doc, "H_G_5.png", "Figura 27. Diagramas de persistencia por configuración.")
-    _shot(doc, "H_G_6.png", "Figura 28. Tabla 5.9 — Veredicto sobre cada hipótesis.")
-    _shot(doc, "H_G_7.png", "Figura 29. Síntesis de veredictos (5.8) y exportación.")
-    _shot(doc, "H_G_8.png", "Figura 30. Plan de acción del módulo H.G.")
-    doc.add_page_break()
-
-    # ── 7. Viga ──
-    doc.add_heading("7. Módulo Ejemplo Viga 1D vs 2D", level=1)
+    # ── 6. Viga ──
+    doc.add_heading("6. Módulo Ejemplo Viga 1D vs 2D", level=1)
     doc.add_paragraph(
         "Laboratorio de viga en voladizo con cuatro modos: perfil de altura 1D (analítico), "
         "SIMP 2D con animación y TDA post-hoc (GUDHI), barrido de penalización p = 2, 3, 4 "
         "y comparación 1D vs 2D con resumen, exportación STL y ZIP de figuras."
     )
-    doc.add_heading("7.1 Modo 1D — Perfil de altura", level=2)
+    doc.add_heading("6.1 Modo 1D — Perfil de altura", level=2)
     _shot(doc, "E_1_1.png", "Figura 31. Modo 1D — Configuración y perfil de altura.")
     _shot(doc, "E_1_2.png", "Figura 32. Perfil de altura óptimo y momento flector.")
     _shot(doc, "E_1_3.png", "Figura 33. Tensión máxima y completitud de la optimización.")
-    doc.add_heading("7.2 Modo 2D — SIMP topológico", level=2)
+    doc.add_heading("6.2 Modo 2D — SIMP topológico", level=2)
     _shot(doc, "E_2_0.png", "Figura 34. Modo 2D — Configuración SIMP 60×30.")
     _shot(doc, "E_2_1.png", "Figura 35. Animación de la optimización (iteración 45).")
     _shot(doc, "E_2_2.png", "Figura 36. Diseño convergido, métricas y convergencia.")
     _shot(doc, "E_2_3.png", "Figura 37. Diagramas de persistencia (GUDHI) del diseño.")
-    doc.add_heading("7.3 Barrido y comparación", level=2)
+    doc.add_heading("6.3 Barrido y comparación", level=2)
     _shot(doc, "E_3_0.png", "Figura 38. Barrido de penalización p = 2, 3, 4.")
     _shot(doc, "E_3_1.png", "Figura 39. Resultados comparativos del barrido.")
     _shot(doc, "E_4_0.png", "Figura 40. Comparación lado a lado 1D vs 2D.")
@@ -203,21 +183,21 @@ def generate_user_manual():
     doc.add_page_break()
 
     # ── 8. Exportación y problemas ──
-    doc.add_heading("8. Exportación y Solución de Problemas", level=1)
+    doc.add_heading("7. Exportación y Solución de Problemas", level=1)
     doc.add_paragraph(
         "Cada módulo ofrece «Descargar TODO (ZIP)»: CSV de datos, PDF de reporte y PNG "
         "de cada gráfico (Plotly vía kaleido + Chrome, Matplotlib directo). Si un PNG "
         "falla, el ZIP incluye un .txt de error en su lugar para no omitirlo en silencio."
     )
-    doc.add_heading("8.1 Problemas frecuentes", level=2)
+    doc.add_heading("7.1 Problemas frecuentes", level=2)
     add_table_academic(doc, ["Síntoma", "Causa", "Solución"],
         [["PNG ausente / .txt de error", "Falta Chrome para kaleido", "Ejecutar .venv/bin/plotly_get_chrome"],
          ["GUDHI ausente", "Paquete opcional no instalado", "uv pip install gudhi (o veredicto sin verificar)"],
          ["App lenta en barridos", "Ripser/SIMP intensivos", "Reducir puntos, malla o iteraciones"]])
-    doc.add_heading("9. Glosario", level=1)
+    doc.add_heading("8. Glosario", level=1)
     add_table_academic(doc, ["Término", "Significado"],
         [["β₀ / β₁", "Componentes conexas / agujeros (números de Betti)"],
-         ["μ(α)", "Métrica compuesta c + α·β₁"], ["τ", "Umbral relativo de persistencia"],
+         ["τ", "Umbral relativo de persistencia"],
          ["q*", "Nivel crítico de ruido"], ["χ", "Característica de Euler (V−E+F)"]])
 
     out = os.path.join(BASE_DIR, "Manual_de_Usuario.docx")
@@ -233,11 +213,11 @@ def generate_technical_doc():
     doc.add_heading("1. Arquitectura del Sistema", level=1)
     doc.add_paragraph(
         "Paquete instalable tda (src/tda): analysis (métricas, estabilidad, anomalías), "
-        "core (FEM Q4, métrica compuesta, topología, doble cómputo Betti), optimization "
-        "(SIMP 2D, viga 1D, SIMP con TDA), processing (muestreo, ruido, normalización), "
+        "core (FEM Q4, topología, doble cómputo Betti), optimization "
+        "(SIMP 2D, viga 1D), processing (muestreo, ruido, normalización), "
         "simulation (pipeline y experimentos headless), visualization (Plotly/Matplotlib), "
-        "app (plataforma Streamlit: landing + 4 páginas). Gestión con uv (.venv), "
-        "tests con pytest (209 pruebas)."
+        "app (plataforma Streamlit: landing + 3 páginas). Gestión con uv (.venv), "
+        "tests con pytest (232 pruebas)."
     )
     _shot(doc, "plataforma tda simp.png", "Figura 1. Plataforma TDA-SIMP (landing).")
 
@@ -245,10 +225,10 @@ def generate_technical_doc():
     doc.add_heading("2.1 Homología persistente", level=2)
     doc.add_paragraph(
         "Ripser (complejos Vietoris-Rips) para nubes; GUDHI (complejos cúbicos) para "
-        "mallas. Lectura β₁ con umbral relativo τ·diam(X), calibrado en τ = 0.15 "
-        "contra el patrón de oro de 7 nubes (Figura 5.1)."
+        "mallas. Lectura βk = (β₀, β₁) con umbral relativo τ·diam(X); τ = 0.15 "
+        "calibrado contra el patrón de oro de 7 nubes (Figura 5.1)."
     )
-    _shot(doc, "H_E_1_1.png", "Figura 2. Calibración de τ — ventana de acierto 7/7.")
+    _shot(doc, "H_E_1_1.png", "Figura 2. Calibración de τ contra el patrón de oro de 7 nubes.")
     doc.add_heading("2.2 Doble cómputo de Betti (diseños SIMP)", level=2)
     doc.add_paragraph(
         "Método A — característica de Euler del complejo cúbico: β₀ por etiquetado "
@@ -257,28 +237,32 @@ def generate_technical_doc():
         "de concordancia se registra en cada tabla de datos."
     )
     _shot(doc, "H_E_2_2_1.png", "Figura 3. Concordancia χ-GUDHI y persistencia H₁.")
-    doc.add_heading("2.3 Métrica compuesta", level=2)
-    doc.add_paragraph("μ(α) = c + α·β₁ con α = 0.036 (H.G.) y α = 0.012 (observer H.E.2); "
-                      "resuelve el orden parcial entre configuraciones SIMP.")
-    _shot(doc, "H_G_2.png", "Figura 4. Sensibilidad de μ(α) al peso α.")
+    doc.add_heading("2.3 Configuración canónica del caso SIMP", level=2)
+    doc.add_paragraph(
+        "Dominio con elementos unitarios (Lx = nex, Ly = ney), material y carga "
+        "normalizados (E₀ = 1, F = 1), malla 60×30, fV = 0.5, p = 3, rmin = 2.4. "
+        "Esta configuración reproduce los valores del Capítulo 5: c_uniforme = 316.34, "
+        "c_sólido = 39.54, c_SIMP ≈ 75.5 y β₁ = 3."
+    )
+    _shot(doc, "H_E_2_1_1.png", "Figura 4. Compliance vs referentes (Tabla 5.6).")
 
     doc.add_heading("3. Solver FEM y SIMP", level=1)
     doc.add_paragraph(
-        "Motor Q4 (fem.py): ensamble, solver, sensibilidades y criterio OC con filtro "
-        "de sensibilidad rmin. Optimización p = 3, fV = 0.5, mallas rectangulares "
-        "(hasta 120×60) y cuadradas (Ne en {1600, 6400, 14400})."
+        "Motor Q4 (fem.py): ensamble, solver, sensibilidades y criterio de optimalidad "
+        "(OC) con filtro de DENSIDAD rmin (ρ̃ = H·ρ/Hs). Optimización p = 3, fV = 0.5, "
+        "material/carga normalizados (E₀ = 1, F = 1), mallas rectangulares "
+        "(40×20, 80×40, 120×60) con rmin escalado (1.6/3.2/4.8)."
     )
     _shot(doc, "H_E_2_2_2.png", "Figura 5. Campo continuo vs sólido binarizado.")
     _shot(doc, "H_E_2_4_1.png", "Figura 6. Barrido p con grisura y β₁ anotado.")
 
     doc.add_heading("4. Validaciones Estadísticas", level=1)
     doc.add_paragraph(
-        "McNemar (χ² con n01/n10 discordantes, p < 0.001 si ínfimo), cotas bottleneck "
-        "dB/diam ≤ 2q y dB ≤ 2dH, q* estimado, Tabla 5.5 dinámica y Tabla 5.9 con "
-        "valores del documento (1.000; 0.950 vs 0.925; q* ≈ 0.05−0.10; +76.12 %)."
+        "McNemar (χ² con n01/n10 discordantes), cota bottleneck d_B ≤ 2·d_H "
+        "(Teorema de Estabilidad; k = 0,1), q* estimado, Tabla 5.5 dinámica y Tabla 5.9. "
+        "La exactitud TDA vs euclidiana y el valor p se recalculan en cada ejecución."
     )
     _shot(doc, "H_E_1_4_2.png", "Figura 7. McNemar y cota réplica por réplica.")
-    _shot(doc, "H_G_6.png", "Figura 8. Tabla 5.9 de veredictos con evidencia.")
 
     doc.add_heading("5. Exportación y Ejecutable", level=1)
     doc.add_paragraph(
@@ -290,11 +274,10 @@ def generate_technical_doc():
 
     doc.add_heading("6. Hallazgos Principales", level=1)
     doc.add_paragraph(
-        "H.E.1a original: la lectura escalar βₖ deja de ser fiable fuera de su régimen "
-        "(tasa ≈ 0 en q ≥ 0.15); rige H.E.1a' (cota 2q) y H.E.1c (q* delimitado). "
-        "H.E.2a': reducción ≈ 77 % vs uniforme (≥ 40 % exigido). H.E.2b': β₁ = 2 "
-        "invariante en malla; sensible a p y rmin fuera de rango (veredicto parcial "
-        "por configuración). H.G.: μ(α) identifica p = 3 Pareto-óptimo."
+        "La lectura escalar βₖ deja de ser fiable fuera de su régimen (tasa ≈ 0 en "
+        "q ≥ 0.15); rigen H.E.1a (cota 2q), H.E.1b (McNemar) y H.E.1c (q* delimitado). "
+        "H.E.2a: reducción ≈ 76.4 % vs uniforme (≥ 40 % exigido). H.E.2b: β₁ = 3 "
+        "invariante frente a malla, penalización p ∈ {2,3,4} y rmin ∈ [1.5, 4.0]."
     )
     add_note(doc, "Los valores entre paréntesis corresponden a corridas de referencia "
              "(malla 60×30, n = 400, semilla 42); cada ejecución recalcula todo.")

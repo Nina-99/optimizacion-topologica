@@ -1,13 +1,12 @@
 # Módulo Core (Análisis Topológico de Datos)
 
-Este módulo contiene la base matemática y algorítmica del proyecto para el cálculo de invariantes topológicos, distancias entre diagramas de persistencia y métricas compuestas.
+Este módulo contiene la base matemática y algorítmica del proyecto para el cálculo de invariantes topológicos, distancias entre diagramas de persistencia y homología persistente.
 
 ## Archivos
 
 - `topology.py` — Wasserstein, bottleneck, betti_numbers, binarización y homología sobre nubes de puntos.
 - `betti2d.py` — Cálculo de betti y diagramas de persistencia sobre grillas 2D (GUDHI). Utilizado por MetricaTDA_SIMP en la fase TDA post-hoc.
 - `fem.py` — Motor FEM Q4: ensamble de rigidez, solver, sensibilidades y actualización OC.
-- `metric.py` — Métrica compuesta μ_α = c + α·β₁ y calibración de α*.
 
 ## Contexto Matemático
 

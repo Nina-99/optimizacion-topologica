@@ -22,7 +22,7 @@ El desarrollo de este framework está guiado por dos hipótesis específicas de 
   La homología persistente, computada sobre nubes de puntos $X \subset \mathbb{R}^d$ ($d \le 100$) mediante filtraciones de Vietoris-Rips utilizando `Ripser 0.6`, proporciona números de Betti $\beta_0$ (componentes conexas) y $\beta_1$ (ciclos 1-dimensionales) que permanecen estables bajo perturbaciones de ruido gaussiano de magnitud entre el $15\%$ y $20\%$ del diámetro del conjunto de datos. Esta estabilidad supera a la de descriptores geométricos clásicos en tareas de caracterización de formas bajo ruido.
 
 * **H.E.2 — Eficiencia y Convergencia en Optimización Estructural (SIMP):**
-  El método SIMP formulado con un factor de penalización $p = 3$ y una fracción de volumen objetivo $f_V = 0.5$ converge a una distribución óptima de densidades que reduce la *compliance* global en al menos un $40\%$ en comparación con el diseño uniforme de igual volumen (hipótesis corregida H.E.2a′; la comparación contra bloque sólido es imposible por Proposición 8.3). El número de Betti $\beta_1(\Omega_{\text{sólido}})$ del diseño convergido resulta invariante frente a la resolución de malla, el factor de penalización $p \in \{2,3,4\}$ y el radio del filtro $r_{\min} \in [1.5, 4.0]$ (hipótesis corregida H.E.2b′, descriptiva).
+  El método SIMP formulado con un factor de penalización $p = 3$ y una fracción de volumen objetivo $f_V = 0.5$ converge a una distribución óptima de densidades que reduce la *compliance* global en al menos un $40\%$ en comparación con el diseño uniforme de igual volumen (H.E.2a; el bloque sólido no es un referente válido por conservación de la materia). El número de Betti $\beta_1(\Omega_{\text{sólido}})$ del diseño convergido resulta invariante frente a la resolución de malla, el factor de penalización $p \in \{2,3,4\}$ y el radio del filtro $r_{\min} \in [1.5, 4.0]$ (H.E.2b).
 
 ---
 
@@ -95,13 +95,11 @@ EstructuraTopologica/
         │   └── pages/
         │       ├── __init__.py
         │       ├── 1_H.E.1_Robustez_TDA_vs_Euclidianos.py  # H.E.1: Robustez TDA vs Euclidianos
-        │       ├── 2_H.E.2_Optimizacion_SIMP_Metrica_Compuesta.py  # H.E.2: Optimizacion SIMP + metrica compuesta
-        │       ├── 3_H.G._Comparacion_Integrada_TDA-SIMP.py  # H.G.: Comparacion integrada TDA-SIMP
+        │       ├── 2_H.E.2_Optimizacion_SIMP_Metrica_Compuesta.py  # H.E.2: Optimizacion SIMP
         │       └── 4_Ejemplo_Viga_1D_vs_2D.py  # Ejemplo: Viga 1D vs 2D con load cases y STL
         ├── core/                    # Núcleo matemático
         │   ├── __init__.py
         │   ├── fem.py               # Motor FEM Q4: ensamble, solver, sensibilidades, OC
-        │   ├── metric.py            # Métrica compuesta μ_α = c + α·β₁ y calibración de α*
         │   └── topology.py          # Homología persistente, filtraciones y números de Betti
         ├── optimization/            # Optimización estructural SIMP
         │   ├── __init__.py
@@ -218,14 +216,12 @@ uv run streamlit run src/tda/app/plataforma_tda_simp.py
 streamlit run src/tda/app/plataforma_tda_simp.py
 ```
 
-Una vez ejecutado, abra el navegador web en la direccion indicada por la consola (usualmente `http://localhost:8501`). La interfaz interactiva contiene 4 modulos:
+Una vez ejecutado, abra el navegador web en la direccion indicada por la consola (usualmente `http://localhost:8501`). La interfaz interactiva contiene 3 módulos:
 
 1. **H.E.1 — Robustez TDA vs Euclidianos:** Genera nubes de puntos sintéticas (esfera, toro) con ruido gaussiano, ejecuta K-Means y valida la estabilidad de invariantes topológicos ($\beta_0$, $\beta_1$) frente a descriptores euclidianos. Incluye Figura 5.1 (calibración de $\tau$), Figura 5.2(a) (tasa de acierto de $\beta_k$), Figura 5.2(b) (cota réplica por réplica), Figura 5.3 (cota $2q$ por nivel de ruido), test de McNemar, Tabla 5.5 del Caso 1 y estimación de q*.
 
-2. **H.E.2 — Optimización SIMP + Métrica Compuesta:** Optimización topológica 2D con SIMP, métrica compuesta $\mu_\alpha$ y barrido multi-configuración ($r_{\min}$, $p$, malla). Valida H.E.2a' (reducción ≥40% vs uniforme) y H.E.2b' ($\beta_1$ invariante). Incluye Figuras 5.4–5.7 con sus datos, Tabla 5.6 dinámica y doble cómputo de Betti (característica de Euler $\chi$ vs GUDHI).
+2. **H.E.2 — Optimización SIMP:** Optimización topológica 2D con SIMP y evaluación topológica *post hoc* del diseño resultante ($\beta_0$, $\beta_1$), con barrido multi-configuración ($r_{\min}$, $p$, malla). Valida H.E.2a (reducción ≥40% vs uniforme) y H.E.2b ($\beta_1$ invariante). Incluye Figuras 5.4–5.7 con sus datos, Tabla 5.6 dinámica y doble cómputo de Betti (característica de Euler $\chi$ vs GUDHI).
 
-3. **H.G. — Comparación Integrada TDA-SIMP:** Síntesis integral: barrido de penalización $p=\{2,3,4\}$, análisis de dominancia, sensibilidad al parámetro $\alpha$, diagramas de persistencia lado a lado, Tabla 5.9 de veredictos y exportación completa (CSV + PDF + PNG de cada gráfico en ZIP).
-
-4. **Ejemplo Viga 1D vs 2D:** Laboratorio interactivo con 3 modos de carga (Voladizo-Puntual, Articulado-Central, Voladizo-Distribuida), optimizacion analitica 1D, SIMP 2D con animacion, barrido de penalizacion, comparacion lado a lado y exportacion STL del diseno binario.
+3. **Ejemplo Viga 1D vs 2D:** Laboratorio interactivo con 3 modos de carga (Voladizo-Puntual, Articulado-Central, Voladizo-Distribuida), optimizacion analitica 1D, SIMP 2D con animacion, barrido de penalizacion, comparacion lado a lado y exportacion STL del diseno binario.
 
 > **Citación:** Si utilizás este framework en publicaciones académicas, por favor referenciá el repositorio y el proyecto de investigación asociado, disponible en la documentación del repositorio.
