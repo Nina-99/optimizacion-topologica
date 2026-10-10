@@ -15,7 +15,7 @@ pytest.importorskip("streamlit", reason="Streamlit no instalado")
 PAGE_FILENAMES = [
     "1_H.E.1_Robustez_TDA_vs_Euclidianos.py",
     "2_H.E.2_Optimizacion_SIMP_Metrica_Compuesta.py",
-    "3_H.G._Comparacion_Integrada_TDA-SIMP.py",
+    "3_H.G._Hipotesis_General.py",
     "4_Ejemplo_Viga_1D_vs_2D.py"
 ]
 
