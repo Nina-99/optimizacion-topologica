@@ -2,8 +2,8 @@
 
 Landing page con navegación a los 4 módulos:
   1. H.E.1 — Robustez TDA vs Euclidianos
-  2. H.E.2 — Optimización SIMP + Métrica Compuesta μ(α)
-  3. H.G. — Comparación Integrada TDA-SIMP
+  2. H.E.2 — Optimización SIMP (evaluación topológica post hoc)
+  3. H.G. — Hipótesis General (síntesis)
   4. Ejemplo — Viga 1D
 """
 # ══════════════════════════════════════════════════════════════
@@ -80,8 +80,8 @@ def _img_to_base64(path):
 _uagrm_b64 = _img_to_base64(_os.path.join(_logo_dir, "logoUAGRM.png"))
 _upi_b64 = _img_to_base64(_os.path.join(_logo_dir, "Logo-UPI.png"))
 
-_uagrm_tag = f'<img src="data:image/png;base64,{_uagrm_b64}" style="height:120px;max-width:100%;object-fit:contain;" />' if _uagrm_b64 else ""
-_upi_tag = f'<img src="data:image/png;base64,{_upi_b64}" style="height:120px;max-width:100%;object-fit:contain;" />' if _upi_b64 else ""
+_uagrm_tag = f'<img src="data:image/png;base64,{_uagrm_b64}" style="max-width:100%;object-fit:contain;" />' if _uagrm_b64 else ""
+_upi_tag = f'<img src="data:image/png;base64,{_upi_b64}" style="max-width:100%;object-fit:contain;" />' if _upi_b64 else ""
 
 _bg_animation = "heroGradient 8s ease infinite"
 
@@ -212,19 +212,19 @@ with cols[1]:
     st.markdown(landing_card(
         icon="🧮",
         title="H.E.2 — Optimización",
-        description="Implementación de SIMP con métrica compuesta μ(α) para optimización de compliance y topología.",
+        description="SIMP para optimización de compliance y evaluación topológica post hoc del diseño (β₀, β₁).",
         variant="orange"
     ), unsafe_allow_html=True)
     st.page_link("pages/2_H.E.2_Optimizacion_SIMP_Metrica_Compuesta.py", label="🧮 Abrir H.E.2", width='stretch')
 
 with cols[2]:
     st.markdown(landing_card(
-        icon="🔬",
-        title="H.G. — Comparación",
-        description="Síntesis integral de TDA+SIMP: Validación de la Hipótesis General y Pareto-optimalidad.",
+        icon="🧭",
+        title="H.G. — Hipótesis General",
+        description="Síntesis de los veredictos de H.E.1a/b/c y H.E.2a/b (Tablas 5.9 y 5.3).",
         variant="orange"
     ), unsafe_allow_html=True)
-    st.page_link("pages/3_H.G._Comparacion_Integrada_TDA-SIMP.py", label="🔬 Abrir H.G.", width='stretch')
+    st.page_link("pages/3_H.G._Hipotesis_General.py", label="🧭 Abrir H.G.", width='stretch')
 
 with cols[3]:
     st.markdown(landing_card(
@@ -234,6 +234,47 @@ with cols[3]:
         variant="orange"
     ), unsafe_allow_html=True)
     st.page_link("pages/4_Ejemplo_Viga_1D_vs_2D.py", label="🧪 Abrir Ejemplo", width='stretch')
+
+
+# ── Semáforo de hipótesis (última corrida) ──
+def _hg_chip(label, ok):
+    color, icon = (("#27ae60", "✓") if ok is True else ("#e74c3c", "×") if ok is False else ("#7f8c8d", "—"))
+    return (f'<span style="background:{color};color:#fff;border-radius:6px;'
+            f'padding:5px 12px;margin:3px;font-weight:700;display:inline-block;">{label} {icon}</span>')
+
+_he1 = st.session_state.get("he1_results") and st.session_state.get("tda_he1_run")
+_he2 = st.session_state.get("simp_optimized")
+if _he1 or _he2:
+    qs = [0.0, 0.05, 0.10, 0.15, 0.20]
+    subset = ["circulo", "disco", "anillo"]
+    chips_vals = []
+    if _he1:
+        sw = (st.session_state.get("he1_results") or {}).get("sweep", {})
+        vals = [sw[s]["cumple_frac"][i] for s in sw for i in range(len(qs))]
+        frac = sum(vals) / len(vals) if vals else 0.0
+        acc = [sum(sw[s]["acierto"][i] for s in subset if s in sw) / max(len(subset), 1)
+               for i in range(len(qs))]
+        cand = [q for q, a in zip(qs, acc) if a >= 0.95]
+        qstar = max(cand) if cand else None
+        mc = (st.session_state.get("he1_results") or {}).get("mcnemar", {})
+        mm = mc.get("mc_nemar", {})
+        he1b = bool(mm.get("significant")) and (mc.get("exactitud_tda", 0) > mc.get("exactitud_eucl", 0))
+        chips_vals += [("H.E.1a", frac == 1.0), ("H.E.1b", he1b),
+                       ("H.E.1c", qstar is not None and 0.05 <= qstar <= 0.10)]
+    if _he2:
+        red = st.session_state.get("simp_reduccion", 0.0)
+        df = st.session_state.get("sweep_results", [])
+        inv = None
+        if st.session_state.get("sweep_done") and df:
+            dp = [r["beta1"] for r in df if r["Config"].startswith("p=") and r["p"] >= 2]
+            dm = [r["beta1"] for r in df if r["Config"].startswith("malla")]
+            dr = [r["beta1"] for r in df if r["Config"].startswith("rmin")]
+            conc = all(r["Concordancia"] == "Si" for r in df)
+            inv = len(set(dp)) <= 1 and len(set(dm)) <= 1 and len(set(dr)) <= 1 and conc
+        chips_vals += [("H.E.2a", red >= 40.0), ("H.E.2b", inv)]
+    st.markdown("#### 🚦 Estado de hipótesis (última corrida)")
+    st.markdown("<div>" + "".join(_hg_chip(l, o) for l, o in chips_vals) + "</div>", unsafe_allow_html=True)
+    st.caption("La síntesis completa (Tabla 5.9 y veredicto H.G.) está en la pestaña H.G.")
 
 
 # ── Footer ──

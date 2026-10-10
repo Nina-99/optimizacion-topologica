@@ -360,290 +360,6 @@ def _badge(icono: str, label: str, color: str) -> str:
     )
 
 
-def diagnosticar_he2(reduccion: float, beta1: int, mu: float,
-                      alpha: float, rmin: float, penal: float,
-                      volfrac: float, n_iter: int, converged: bool,
-                      max_iter: int = 200,
-                      beta1_invariante: bool = None) -> dict:
-    """Diagnóstico de H.E.2 con criterios corregidos (§4.4).
-
-    Criterios corregidos:
-      H.E.2a': Reducción ≥ 40% frente al diseño uniforme de igual volumen
-      H.E.2b': $\\beta_1$ es invariante (descriptivo, no prescriptivo)
-          — Se verifica que $\\beta_1$ no cambia al variar $r_{min}$, $p$ o resolución de malla.
-          — NO se exige $\\beta_1 \\le 2$ (eso era la formulación descartada en la documentación).
-
-    Parámetros:
-        reduccion: Reducción de compliance vs diseño uniforme (%)
-        beta1: Número de Betti $\\beta_1$ del diseño convergido
-        mu: Métrica compuesta $\\mu_\\alpha$
-        alpha, rmin, penal, volfrac: Parámetros de la optimización
-        n_iter: Iteraciones ejecutadas
-        converged: Si la optimización convergió
-        max_iter: Máximo de iteraciones
-        beta1_invariante: True si $\\beta_1$ es invariante en barrido de configs.
-            None = no se verificó (solo se muestra $\\beta_1$ como informativo).
-
-    Returns dict con keys:
-        badges_html: str  — HTML inline con badges resumen
-        razones: list[str] — explicaciones por qué pasa/falla
-        sugerencias: list[str] — qué ajustar
-        veredicto: str     — "CUMPLIDA" / "PARCIAL" / "NO CUMPLIDA"
-    """
-    cumple_red = reduccion >= 40
-
-    # H.E.2b': $\\beta_1$ invariante (descriptivo)
-    # Si no se verificó el barrido, solo informar el valor de $\\beta_1$
-    if beta1_invariante is not None:
-        cumple_b1 = beta1_invariante
-    else:
-        cumple_b1 = None  # No se verificó
-
-    badges = []
-    razones = []
-    sugerencias = []
-
-    # ── Badges ──
-    badges.append(_badge("✅" if cumple_red else "❌",
-                         f"Reducción {reduccion:.1f}%",
-                         "#27ae60" if cumple_red else "#e74c3c"))
-
-    if cumple_b1 is not None:
-        badges.append(_badge("✅" if cumple_b1 else "❌",
-                             f"β<sub>1</sub> invariante",
-                             "#27ae60" if cumple_b1 else "#e74c3c"))
-    else:
-        badges.append(_badge("ℹ️", f"β<sub>1</sub>={beta1} (sin barrido)", "#2980b9"))
-
-    badges.append(_badge("📊", f"μ<sub>α</sub>={mu:.4f}", "#2980b9"))
-
-    # ── Razones ──
-    if cumple_red:
-        razones.append(
-            f"La optimización SIMP con $p$={penal}, $f_V$={volfrac} redujo la compliance "
-            f"un {reduccion:.1f}% respecto al diseño uniforme de igual volumen, "
-            f"superando el umbral del 40% (H.E.2a')."
-        )
-    else:
-        if n_iter < 150:
-            razones.append(
-                f"La reducción ({reduccion:.1f}%) es insuficiente porque la optimización "
-                f"solo corrió {n_iter} iteraciones y {'no convergió' if not converged else 'convergió prematuramente'}. "
-                f"El optimizador OC necesita más iteraciones para alcanzar el diseño óptimo."
-            )
-        elif volfrac > 0.6:
-            razones.append(
-                f"Con $f_V$={volfrac} (>0.5), el diseño inicial ya tiene poco espacio para "
-                f"mejorar la rigidez. La reducción marginal es baja."
-            )
-        else:
-            razones.append(
-                f"La reducción ({reduccion:.1f}%) no alcanza el 40%. "
-                f"El diseño converge a una topología subóptima."
-            )
-
-    if cumple_b1 is True:
-        razones.append(
-            f"$\\beta_1$={beta1} es invariante frente a variaciones de $r_{{min}}$, $p$ y resolución de malla. "
-            f"Esto confirma que $\\beta_1$ es un descriptor estable del diseño (H.E.2b')."
-        )
-    elif cumple_b1 is False:
-        razones.append(
-            f"$\\beta_1$={beta1} varía al cambiar los parámetros. "
-            f"El descriptor no es estable para esta configuración."
-        )
-    else:
-        razones.append(
-            f"$\\beta_1$={beta1} (valor para la configuración base). "
-            f"Para confirmar H.E.2b' se requiere barrido de $r_{{min}} \\in [1.5, 4.0]$, "
-            f"$p \\in {{2, 3, 4}}$ y al menos 3 resoluciones de malla."
-        )
-
-    # ── Sensibilidad de parámetros ──
-    if not cumple_red or cumple_b1 is False:
-        razones.append(
-            "**Sensibilidad de parámetros:**\n"
-            "- `$\\alpha$` ↑ → penaliza más agujeros ($\\beta_1$ baja) pero puede subir compliance\n"
-            "- `α` ↑↑ → over-penaliza, topología muy sólida, compliance sube\n"
-            "- `rmin` ↑ → suaviza la topología, reduce ciclos espurios\n"
-            "- `p` ↑ → penaliza más materia intermedia, topología más binaria\n"
-            "- `max_iter` ↑ → mejor convergencia de compliance"
-        )
-
-    # ── Sugerencias ──
-    if not cumple_red:
-        if n_iter >= max_iter and not converged:
-            sugerencias.append(
-                f"La optimización alcanzó el máximo de {max_iter} iteraciones sin converger. "
-                f"Aumentar `max_iter` a {max_iter + 100} para mejor convergencia."
-            )
-        elif not converged:
-            sugerencias.append(
-                f"La optimización no convergió con tol=10⁻⁴. "
-                f"Considerar relajar a tol=10⁻³ o aumentar `max_iter`."
-            )
-        else:
-            sugerencias.append(
-                f"La optimización convergió en {n_iter} iteraciones pero la reducción "
-                f"({reduccion:.1f}%) no supera el 40%. Probar ajustar α, rmin o p."
-            )
-
-    if cumple_b1 is False:
-        alpha_sugerido = min(alpha * 3, 1.0)
-        rmin_sugerido = max(rmin, 3.0)
-        sugerencias.append(
-            f"Aumentar α de {alpha:.3f} a ~{alpha_sugerido:.3f} para penalizar más agujeros."
-        )
-        sugerencias.append(
-            f"Aumentar rmin de {rmin:.1f} a ~{rmin_sugerido:.1f} para suavizar ciclos espurios."
-        )
-
-    if cumple_red and cumple_b1 is not False:
-        sugerencias.append("Los parámetros actuales son adecuados. No se requieren ajustes.")
-
-    # ── Veredicto ──
-    if cumple_red and cumple_b1 is True:
-        veredicto = "CUMPLIDA"
-    elif cumple_red and cumple_b1 is None:
-        # Reducción cumple, $\\beta_1$ no verificado — informar
-        veredicto = "CUMPLIDA"
-        sugerencias.insert(0,
-            "⚠️ H.E.2b' ($\\beta_1$ invariante) no verificada en esta ejecución. "
-            "Ejecutar el barrido completo de configuraciones para confirmar."
-        )
-    elif cumple_red or cumple_b1 is True:
-        veredicto = "PARCIAL"
-    else:
-        veredicto = "NO CUMPLIDA"
-
-    return {
-        "badges_html": " ".join(badges),
-        "razones": razones,
-        "sugerencias": sugerencias,
-        "veredicto": veredicto,
-    }
-
-
-def diagnosticar_hg(c_eucl: float, c_tda: float, beta1_eucl: int,
-                     beta1_tda: int, mu_eucl: float, mu_tda: float,
-                     alpha: float) -> dict:
-    """Diagnóstico de H.G: comparación euclidiano vs TDA.
-
-    La hipótesis general compara la métrica $\\mu_\\alpha$ = $c + \\alpha\\cdot\\beta_1$.
-    $\\mu_{eucl}$ = $c_{eucl}$ (porque $\\alpha=0$ en euclidiano).
-    $\\mu_{tda}$ = $c_{tda} + \\alpha\\cdot\\beta_{1,tda}$.
-
-    Returns dict con keys:
-        badges_html, razones, sugerencias, veredicto
-    """
-    # Comparar $\\mu_\\alpha$ (métrica compuesta), NO compliance directamente
-    mejora_mu = mu_tda < mu_eucl
-    mejora_b1 = beta1_tda <= beta1_eucl
-    delta_mu = mu_tda - mu_eucl
-    delta_b1 = beta1_tda - beta1_eucl
-
-    badges = []
-    razones = []
-    sugerencias = []
-
-    # ── Badges ──
-    icon_mu = "↓" if mejora_mu else "↑" if delta_mu > 0 else "="
-    badges.append(_badge(
-        "✅" if mejora_mu else "⚠️" if delta_mu == 0 else "❌",
-        f"μ<sub>α</sub> {icon_mu} {abs(delta_mu):.4f}",
-        "#27ae60" if mejora_mu else "#f39c12" if delta_mu == 0 else "#e74c3c"
-    ))
-    badges.append(_badge("📊", f"μ<sub>eucl</sub>={mu_eucl:.4f}", "#7f8c8d"))
-    badges.append(_badge("📊", f"μ<sub>tda</sub>={mu_tda:.4f}", "#2980b9"))
-
-    # ── Razones ──
-    if mejora_mu:
-        pct = (1 - mu_tda / mu_eucl) * 100 if mu_eucl > 0 else 0
-        razones.append(
-            f"SIMP+TDA produce $\\mu_\\alpha$ {abs(delta_mu):.4f} menor que SIMP euclidiano "
-            f"({pct:.1f}% de mejora en la métrica compuesta). La regularización topológica $\\mu_\\alpha$ guía "
-            f"el OC hacia diseños más eficientes y topológicamente limpios."
-        )
-    elif delta_mu == 0:
-        razones.append(
-            "Ambos enfoques producen $\\mu_\\alpha$ idéntica. Esto ocurre cuando "
-            "$\\alpha=0$ o cuando la topología converge al mismo diseño sin importar la "
-            "regularización topológica."
-        )
-    else:
-        razones.append(
-            f"SIMP euclidiano produce $\\mu_\\alpha$ {abs(delta_mu):.4f} menor. "
-            f"Esto sugiere que $\\alpha$={alpha} está over-penalizando la función objetivo, "
-            f"forzando una topología más simple a costa de rigidez."
-        )
-
-    # Compliance es igual porque TDA opera post-hoc (documentación)
-    if abs(c_tda - c_eucl) < 1e-6:
-        razones.append(
-            "ℹ️ Compliance es idéntica en ambos enfoques. Esto es **esperado**: "
-            "TDA opera post hoc (documentación) y no modifica la "
-            "optimización SIMP. La diferencia está en la métrica compuesta $\\mu_\\alpha$."
-        )
-
-    if mejora_b1:
-        if delta_b1 < 0:
-            razones.append(
-                f"$\\beta_1$ baja de {beta1_eucl} a {beta1_tda}: TDA suprime "
-                f"{abs(delta_b1)} agujero(s) espurio(s), mejorando la manufacturabilidad."
-            )
-        else:
-            razones.append(
-                f"$\\beta_1$ se mantiene en {beta1_tda}: ambos enfoques producen "
-                f"topología con la misma cantidad de agujeros."
-            )
-    else:
-        razones.append(
-            f"$\\beta_1$ sube de {beta1_eucl} a {beta1_tda}: la regularización TDA "
-            f"está introduciendo ciclos adicionales en lugar de suprimirlos. "
-            f"Esto indica que $\\alpha$={alpha} es demasiado bajo para esta malla."
-        )
-
-    # ── Sensibilidad ──
-    razones.append(
-        "**Relación α ↔ resultados:**\n"
-        "- `$\\alpha$` = 0 → euclidiano puro (sin influencia topológica)\n"
-        "- `$\\alpha$` pequeño (0.01-0.05) → efecto sutil, puede no cambiar $\\beta_1$\n"
-        "- `$\\alpha$` medio (0.05-0.2) → suprime ciclos espurios, aumenta ligeramente $c$\n"
-        "- `$\\alpha$` alto (>0.2) → over-penaliza, topología muy sólida, $c$ sube mucho"
-    )
-
-    # ── Sugerencias ──
-    if not mejora_mu and not mejora_b1:
-        sugerencias.append(
-            f"$\\alpha$={alpha} no produce mejoras en $\\mu_\\alpha$. Probar $\\alpha=0$ (euclidiano puro) como baseline, "
-            f"o subir $\\alpha$ a ~{min(alpha * 5, 0.5):.3f} para efecto más marcado."
-        )
-    elif not mejora_mu:
-        sugerencias.append(
-            f"$\\mu_\\alpha$ empeora con TDA. Reducir $\\alpha$ de {alpha:.3f} a ~{alpha * 0.5:.3f} "
-            f"para mitigar la penalización excesiva."
-        )
-    elif not mejora_b1:
-        sugerencias.append(
-            f"$\\mu_\\alpha$ mejora pero $\\beta_1$ no. Subir $\\alpha$ de {alpha:.3f} a ~{min(alpha * 3, 0.3):.3f} "
-            f"para forzar supresión de agujeros."
-        )
-    else:
-        sugerencias.append("Ambos criterios se cumplen. Los parámetros son adecuados.")
-
-    if mejora_mu and mejora_b1:
-        veredicto = "VALIDADA"
-    elif mejora_mu or mejora_b1:
-        veredicto = "PARCIAL"
-    else:
-        veredicto = "NO VALIDADA"
-
-    return {
-        "badges_html": " ".join(badges),
-        "razones": razones,
-        "sugerencias": sugerencias,
-        "veredicto": veredicto,
-    }
 def report_header(title, subtitle=""):
     """Genera HTML para un header con gradiente violeta (reportes)."""
     style_hdr = (
@@ -670,51 +386,70 @@ def responsive_style():
     return custom_fonts() + """
 <style>
 /* ═══════════════════════════════════════════════════════════════
-   RESPONSIVE — Columnas, metricas, tablas, mobile
+   RESPONSIVE UNIVERSAL — cualquier dispositivo
    ═══════════════════════════════════════════════════════════════ */
+
+/* Nada se sale del ancho */
+.stPlotlyChart, .js-plotly-plot, .stImage, img, .stDataFrame, .stTable {
+    max-width: 100% !important;
+}
+img { max-width: 100%; height: auto; }
+.stDataFrame, .stTable { overflow-x: auto !important; }
+.js-plotly-plot .plotly, .js-plotly-plot .plot-container { width: 100% !important; }
+
+/* Tipografía fluida */
+h1, .stMarkdown h1 { font-size: clamp(1.3rem, 4.5vw, 2.2rem) !important; }
+h2, .stMarkdown h2 { font-size: clamp(1.15rem, 3.6vw, 1.7rem) !important; }
+h3, .stMarkdown h3 { font-size: clamp(1.0rem, 3vw, 1.35rem) !important; }
+
+/* Padding del área principal fluido */
+.block-container {
+    padding-left: clamp(0.6rem, 4vw, 4rem) !important;
+    padding-right: clamp(0.6rem, 4vw, 4rem) !important;
+    padding-top: 2rem !important;
+    max-width: 100% !important;
+}
+
+/* ── MÓVIL (≤768px) ── */
 @media (max-width: 768px) {
-    /* Columnas: apilar verticalmente */
+    /* Todas las columnas se apilan */
     [data-testid="stHorizontalBlock"] > div {
         min-width: 100% !important;
         flex: 1 1 100% !important;
         padding-right: 0 !important;
+        padding-left: 0 !important;
     }
-    /* Metric cards: texto mas chico */
-    [data-testid="stMetric"] {
-        padding: 0.5rem 0.4rem !important;
-    }
-    [data-testid="stMetric"] label {
-        font-size: 0.75rem !important;
-    }
-    [data-testid="stMetric"] [data-testid="stMetricValue"] {
-        font-size: 1.1rem !important;
-    }
-    /* Tablas: scroll horizontal */
-    .stDataFrame {
-        overflow-x: auto !important;
-    }
-    /* Botones: full width */
-    .stButton > button,
-    .stDownloadButton > button {
-        width: 100% !important;
-    }
-    /* Headers: reducir padding */
-    [data-testid="stHeader"] {
-        padding: 0.5rem 0.5rem !important;
-    }
-    /* Sidebar: ocultar en mobile por defecto (Streamlit lo hace, pero reforzar) */
-    [data-testid="stSidebar"][aria-expanded="false"] {
-        min-width: 0 !important;
-    }
+    /* Métricas */
+    [data-testid="stMetric"] { padding: 0.5rem 0.4rem !important; }
+    [data-testid="stMetric"] label { font-size: 0.75rem !important; }
+    [data-testid="stMetric"] [data-testid="stMetricValue"] { font-size: 1.1rem !important; }
+    /* Botones / descargas full width */
+    .stButton > button, .stDownloadButton > button { width: 100% !important; }
+    /* Cabecera */
+    [data-testid="stHeader"] { padding: 0.4rem 0.4rem !important; }
+    /* Sidebar compactada */
+    [data-testid="stSidebar"] { min-width: 260px !important; }
+    [data-testid="stSidebar"][aria-expanded="false"] { min-width: 0 !important; }
+    /* Tablas y tabs */
+    .stDataFrame { font-size: 0.8rem !important; }
+    .stTabs [data-baseweb="tab-list"] { flex-wrap: nowrap !important; overflow-x: auto !important; }
+    /* Títulos */
+    h1, .stMarkdown h1 { font-size: 1.4rem !important; }
+    /* Leyendas de Plotly más chicas */
+    .js-plotly-plot .legend { font-size: 10px !important; }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   TABLET (769-1024px): 2 columnas max
-   ═══════════════════════════════════════════════════════════════ */
+/* ── MÓVIL CHICO (≤480px) ── */
+@media (max-width: 480px) {
+    [data-testid="stMetric"] [data-testid="stMetricValue"] { font-size: 0.95rem !important; }
+    h1, .stMarkdown h1 { font-size: 1.2rem !important; }
+    .block-container { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+    .stDataFrame { font-size: 0.72rem !important; }
+}
+
+/* ── TABLET (769–1024px) ── */
 @media (min-width: 769px) and (max-width: 1024px) {
-    [data-testid="stHorizontalBlock"] > div {
-        min-width: 45% !important;
-    }
+    [data-testid="stHorizontalBlock"] > div { min-width: 45% !important; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -898,13 +633,13 @@ def page_header(title, subtitle=""):
     return f"""
 <div style="
     background: linear-gradient(135deg, #2c1a00 0%, #3d2200 40%, #1a0f00 70%);
-    padding: 1.5rem 2rem;
+    padding: clamp(1rem, 3vw, 1.5rem) clamp(1rem, 4vw, 2rem);
     border-radius: 16px;
     border-left: 4px solid {ORANGE};
     margin-bottom: 1.5rem;
 ">
-    <h2 style="margin:0;color:{ORANGE};font-weight:800;font-size:1.6rem;">{title}</h2>
-    {f'<p style="margin:0.3rem 0 0 0;color:{WHITE_DIM};font-size:0.95rem;">{subtitle}</p>' if subtitle else ''}
+    <h2 style="margin:0;color:{ORANGE};font-weight:800;font-size:clamp(1.1rem, 4vw, 1.6rem);">{title}</h2>
+    {f'<p style="margin:0.3rem 0 0 0;color:{WHITE_DIM};font-size:clamp(0.8rem, 2.5vw, 0.95rem);">{subtitle}</p>' if subtitle else ''}
 </div>
 """
 def update_hero_orange(hero_html):
