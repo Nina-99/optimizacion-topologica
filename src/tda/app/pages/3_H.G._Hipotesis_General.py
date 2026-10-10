@@ -209,15 +209,49 @@ elif any(s is False for s in sostiene):
 else:
     st.info("Sin datos aún: ejecutá los protocolos para emitir el veredicto.")
 
-# ── Exportar ─────────────────────────────────────────────────────────
+# ── Estudio reproducible completo ────────────────────────────────────
 st.markdown("---")
+st.subheader("📦 Estudio reproducible")
+st.caption("ZIP con tablas, datos crudos, figuras, parámetros y semilla — todo lo necesario para "
+           "reejecutar y auditar el estudio (compuerta de reproducibilidad F6 del Cap. IV).")
 try:
+    from datetime import datetime
+    import os as _os
+    from tda.app.download_utils import write_figs_zip
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
-        z.writestr("HG/tabla_5_9.csv", pd.DataFrame(filas).to_csv(index=False))
-        z.writestr("HG/tabla_5_3.csv", tabla53.to_csv(index=False))
-    download_button("📦 Descargar síntesis (ZIP)", buf.getvalue(), "hg_sintesis.zip",
-                    "application/zip", width="stretch")
+        readme = (
+            "ESTUDIO REPRODUCIBLE — TDA-SIMP\n"
+            "================================\n"
+            f"Fecha: {datetime.now():%Y-%m-%d %H:%M}\n"
+            f"Semilla maestra: {SEED}\n\n"
+            f"H.E.1: catálogo de 7 nubes; q ∈ {Q_LEVELS}; τ = {TAU_CALIBRADO}; "
+            f"n = {n_points}; R = {n_rep} réplicas; σ = q·diam(X).\n"
+            "H.E.2: viga en voladizo 60×30; f_V = 0.5; p = 3; r_min = 2.4; "
+            "elementos unitarios (E0 = 1, F = 1); filtro de densidad.\n\n"
+            "Contenido:\n"
+            "  tabla_5_9.csv / tabla_5_3.csv  — síntesis y comparación estructural\n"
+            "  he1/replicas_dB_dH.csv         — réplicas crudas (dB, dH)\n"
+            "  he2/barrido_HE2b.csv           — barrido de invariancia de β₁\n"
+            "  figuras/*.png                  — figuras de la corrida\n"
+            "  requirements.txt               — dependencias (versiones instaladas)\n"
+        )
+        z.writestr("estudio/README.txt", readme)
+        z.writestr("estudio/tabla_5_9.csv", pd.DataFrame(filas).to_csv(index=False))
+        z.writestr("estudio/tabla_5_3.csv", tabla53.to_csv(index=False))
+        h1 = st.session_state.get("he1_results", {})
+        if h1.get("crudo"):
+            z.writestr("estudio/he1/replicas_dB_dH.csv", pd.DataFrame(h1["crudo"]).to_csv(index=False))
+        if st.session_state.get("sweep_done"):
+            z.writestr("estudio/he2/barrido_HE2b.csv",
+                       pd.DataFrame(st.session_state.get("sweep_results", [])).to_csv(index=False))
+        figs = {**st.session_state.get("he1_figs", {}), **st.session_state.get("he2_figs", {})}
+        if figs:
+            write_figs_zip(z, "estudio/figuras", figs)
+        if _os.path.exists("requirements.txt"):
+            z.writestr("estudio/requirements.txt", open("requirements.txt").read())
+    download_button("📦 Descargar estudio completo (ZIP)", buf.getvalue(),
+                    "estudio_tda_simp.zip", "application/zip", width="stretch")
 except Exception as e:
     st.error(f"Error en la exportación: {e}")
 
