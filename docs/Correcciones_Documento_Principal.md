@@ -71,16 +71,13 @@ La densidad física que entra al ensamble FEM es la filtrada `ρ̃` (no `ρ` cru
 
 ---
 
-## Item 6 — Malla del barrido (Tabla 1.1 vs Figura 5.6)
+## Item 6 — Malla del barrido (Tabla 1.1 vs Figura 5.6) — NO requiere corrección (solo aclarar)
 
-**Antes**
-- Tabla 1.1: `Ne ∈ {1600, 6400, 14400}`.
-- H.E.2b: `Ne ∈ {1600, 6400, 14400}`.
-- Figura 5.6: `rmin = 1.6, 3.2, 4.8`.
+**Estado:** revisado. La Tabla 1.1 y la Figura 5.6 **son coherentes entre sí**, siempre que el estudio de independencia de malla se entienda sobre el **dominio cuadrado 60×60**:
+- `Ne ∈ {1600, 6400, 14400}` = 40², 80², 120² (dominio cuadrado).
+- `rmin ∈ {1.6, 3.2, 4.8}` = 2.4·(nx/60) con nx = 40, 80, 120.
 
-**Después** (coherente con Figura 5.6 y con el software): mallas `40×20`, `80×40`, `120×60` → `Ne ∈ {800, 3200, 7200}`, con `rmin` escalado `{1.6, 3.2, 4.8}`.
-
-**Razón:** `rmin = 2.4 × (nx/60)` implica `nx = 40, 80, 120`. Para una viga 2:1, `Ne = nx·ny = 800, 3200, 7200`. La Tabla 1.1 (1600/6400/14400 = 40²/80²/120²) corresponde a dominio cuadrado y contradice la Figura 5.6.
+**Acción:** añadir una aclaración de que el barrido de H.E.2b usa el **dominio cuadrado 60×60** (para que no se lea asumiendo la viga 2:1 del caso base). El software ya lo implementa así; **no hay que cambiar los números**.
 
 ---
 
