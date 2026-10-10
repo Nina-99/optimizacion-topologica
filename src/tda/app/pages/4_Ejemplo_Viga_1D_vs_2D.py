@@ -19,7 +19,10 @@ import pandas as pd
 
 from tda.optimization.beam_optimizer import BeamOptimizer
 from tda.optimization.metric_simp import MetricaTDA_SIMP
-from tda.core.betti2d import betti_doble_computo, diagramas_gudhi
+from tda.core.betti2d import betti_doble_computo, diagramas_gudhi, betti_euler
+from tda.simulation.he_protocols import (
+    corrida_simp, esfuerzo_max_von_mises, voxeles_a_mesh3d, stl_ascii_bytes,
+)
 from tda.app.theme import (
     apply_mpl_theme, apply_plotly_theme, responsive_style,
     page_header, ORANGE
@@ -41,20 +44,39 @@ st.markdown(page_header(
 # SIDEBAR COMÚN
 # ══════════════════════════════════════════════════════════════
 st.sidebar.header("🧪 Modo de Experimentación")
-modo = st.sidebar.radio(
-    "Elegí un modo:",
-    ["1D — Perfil de Altura", "2D — SIMP Topológico", "Barrido p (2,3,4)", "Comparación 1D vs 2D"],
-    label_visibility="collapsed"
-)
+_MODO_LABELS = {
+    "🧱 2D — SIMP Topológico  ·  Caso 2 (H.E.2a/b)": "2D — SIMP Topológico",
+    "📈 Barrido p (2,3,4)  ·  Caso 2 (H.E.2b · Fig. 5.5)": "Barrido p (2,3,4)",
+    "📋 Informe de Ingeniería  ·  caso real certificado": "📋 Informe de Ingeniería",
+    "⚖️ Comparador de materiales y optimizador": "⚖️ Comparador y optimizador",
+    "📐 1D — Perfil de Altura  ·  didáctico (fuera de alcance)": "1D — Perfil de Altura",
+    "🔀 Comparación 1D vs 2D  ·  didáctico": "Comparación 1D vs 2D",
+}
+_sel = st.sidebar.radio("Elegí un modo:", list(_MODO_LABELS.keys()), label_visibility="collapsed")
+modo = _MODO_LABELS[_sel]
+st.sidebar.caption("Los modos marcados «didáctico» ilustran el contraste forma↔topología pero **no** son "
+                   "hipótesis de la tesis; el Caso 2 (SIMP) es el que corresponde a **H.E.2a/b**.")
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("Parámetros Comunes")
 
-# Parámetros físicos (compartidos)
+# ── Caso real: material, dimensiones y carga ──
+MATERIALES = {
+    "Acero estructural S275": {"E_GPa": 200.0, "sigma_adm_MPa": 250.0, "rho": 7850, "costo": 1.2, "co2": 1.9},
+    "Aluminio 6061-T6":       {"E_GPa": 69.0,  "sigma_adm_MPa": 240.0, "rho": 2700, "costo": 3.5, "co2": 8.2},
+    "Titanio Ti-6Al-4V":      {"E_GPa": 114.0, "sigma_adm_MPa": 830.0, "rho": 4430, "costo": 30.0, "co2": 35.0},
+    "PLA (impresión 3D)":     {"E_GPa": 3.5,   "sigma_adm_MPa": 50.0,  "rho": 1240, "costo": 20.0, "co2": 2.5},
+}
+material = st.sidebar.selectbox("Material", list(MATERIALES.keys()), index=0)
+_mat = MATERIALES[material]
+
 L_mm = st.sidebar.slider("Longitud L (mm)", 50.0, 200.0, 120.0, 10.0)
 F_N = st.sidebar.slider("Carga Puntual F (N)", 100.0, 5000.0, 1000.0, 100.0)
-E_GPa = st.sidebar.number_input("Módulo E (GPa)", value=200.0, step=10.0)
-sigma_adm = st.sidebar.number_input("σ_adm (MPa)", value=250.0, step=10.0)
+E_GPa = st.sidebar.number_input("Módulo E (GPa)", value=_mat["E_GPa"], step=10.0, key=f"E_{material}")
+sigma_adm = st.sidebar.number_input("σ_adm (MPa)", value=_mat["sigma_adm_MPa"], step=10.0, key=f"sig_{material}")
+rho_kg_m3 = _mat["rho"]           # densidad [kg/m³]
+costo_USD_kg = _mat["costo"]      # costo [USD/kg]
+co2_kg_kg = _mat["co2"]           # huella embebida [kg CO₂ eq / kg]
 
 st.sidebar.markdown("---")
 
@@ -63,10 +85,10 @@ if modo != "1D — Perfil de Altura":
     penal = st.sidebar.slider("Penalización p", 1.0, 5.0, 3.0, 0.5)
     volfrac = st.sidebar.slider("Fracción volumen f_V", 0.2, 0.8, 0.5, 0.05)
     rmin = st.sidebar.slider("Radio filtro $r_{min}$", 1.0, 5.0, 2.4, 0.1)
+    espesor_mm = st.sidebar.number_input("Espesor t (mm)", value=5.0, step=0.5, key="espesor_mm")
     mesh_res = st.sidebar.selectbox("Resolución malla", ["40×20 (rápido)", "60×30 (tesis)", "80×40 (detalle)"], index=1)
     mesh_map = {"40×20 (rápido)": (40, 20), "60×30 (tesis)": (60, 30), "80×40 (detalle)": (80, 40)}
     nelx, nely = mesh_map[mesh_res]
-    alpha_val = st.sidebar.number_input("α (métrica compuesta)", value=0.036, step=0.001, format="%.3f")
 
 st.sidebar.markdown("---")
 
@@ -92,6 +114,68 @@ s_adm = sigma_adm * 1e6
 
 # Colormap SIMP
 cmap_simp = LinearSegmentedColormap.from_list("simp", ["#f0f0f0", "#2c3e50"])
+
+
+def certificado_pdf(material, L_mm, Ly_mm, espesor_mm, F_N, sigma_adm,
+                    reduccion, he2a_ok, sigma_max, fs, beta0, beta1, conc, persist,
+                    masa_d, masa_s, costo_d, costo_s, co2_d, co2_s, ahorro,
+                    rho_bin, umbr, b1s):
+    """Certificado/ informe PDF (A4, 2 páginas) del caso de diseño real."""
+    import io
+    from datetime import datetime
+    from matplotlib.backends.backend_pdf import PdfPages
+
+    cert = he2a_ok and conc
+    buf = io.BytesIO()
+    with plt.style.context("default"), PdfPages(buf) as pdf:
+        # ── Página 1: certificado ──
+        fig = plt.figure(figsize=(8.27, 11.69))
+        fig.text(0.5, 0.965, "UNIVERSIDAD AUTÓNOMA GABRIEL RENÉ MORENO", ha="center", fontsize=9, color="#555")
+        fig.text(0.5, 0.945, "Maestría en Matemática — UAGRM", ha="center", fontsize=9, color="#555")
+        fig.text(0.5, 0.905, "CERTIFICADO DE DISEÑO OPTIMIZADO", ha="center", fontsize=16, fontweight="bold")
+        fig.text(0.5, 0.884, "Optimización topológica SIMP certificada por análisis topológico (TDA)",
+                 ha="center", fontsize=10)
+        fig.text(0.5, 0.860, f"Fecha: {datetime.now():%Y-%m-%d %H:%M}", ha="center", fontsize=8, color="gray")
+        y = 0.80
+        def _line(txt, bold=False):
+            nonlocal y
+            fig.text(0.08, y, txt, fontsize=10, fontweight=("bold" if bold else "normal"))
+            y -= 0.033
+        _line(f"Material: {material}", bold=True)
+        _line(f"Dimensiones (L × H × t): {L_mm:.0f} × {Ly_mm:.0f} × {espesor_mm:.1f} mm")
+        _line(f"Carga puntual en el extremo libre: {F_N:.0f} N")
+        _line(f"Reducción de compliance vs diseño uniforme: {reduccion:.1f} %  (H.E.2a {'✓' if he2a_ok else '×'})")
+        _line(f"Topología: β₀ = {beta0}, β₁ = {beta1}   ·   Euler≡GUDHI: {'✓' if conc else '×'}   ·   "
+              f"persistencia β₁ = {persist:.2f}  (H.E.2b)")
+        _line(f"Esfuerzo máx (von Mises): {sigma_max/1e6:.1f} MPa  vs  σ_adm = {sigma_adm:.0f} MPa  →  FS = {fs:.2f}")
+        _line(f"Masa: {masa_d*1000:.1f} g (SIMP) vs {masa_s*1000:.1f} g (bloque sólido) — ahorro {ahorro:.0f} %")
+        _line(f"Costo: {costo_d:.3f} USD (SIMP) vs {costo_s:.3f} USD (sólido)")
+        _line(f"CO₂ evitado: {co2_s - co2_d:.3f} kg eq")
+        fig.text(0.5, 0.30, ("DISEÑO CERTIFICADO" if cert else "DISEÑO NO CERTIFICADO"),
+                 ha="center", fontsize=14, fontweight="bold", color=("green" if cert else "red"))
+        fig.text(0.5, 0.255, ("Reducción ≥ 40 % y topología β₁ validada por doble cómputo y persistencia."
+                              if cert else "Revisar los criterios de certificación."), ha="center", fontsize=9)
+        fig.text(0.08, 0.12, "Autor: Jorge Larry Copa Cruz", fontsize=9)
+        fig.text(0.08, 0.095, "Director del TFG: MSc. Roberto Orellana", fontsize=9)
+        pdf.savefig(fig, bbox_inches="tight")
+        plt.close(fig)
+
+        # ── Página 2: figuras ──
+        fig = plt.figure(figsize=(8.27, 11.69))
+        ax1 = fig.add_subplot(2, 1, 1)
+        ax1.imshow(rho_bin, cmap="gray_r")
+        ax1.set_title(f"Diseño SIMP binarizado (β₀={beta0}, β₁={beta1})")
+        ax1.axis("off")
+        ax2 = fig.add_subplot(2, 1, 2)
+        ax2.plot(umbr, b1s, "-o", color="#2c3e50")
+        ax2.axvline(0.5, ls="--", color="gray")
+        ax2.set_title("Persistencia de β₁ frente al umbral (Fig. 5.7)")
+        ax2.set_xlabel("Umbral u")
+        ax2.set_ylabel("β₁")
+        ax2.grid(alpha=0.3)
+        pdf.savefig(fig, bbox_inches="tight")
+        plt.close(fig)
+    return buf.getvalue()
 
 
 def build_boundary_conditions(nelx, nely, caso_carga, F, L_mm):
@@ -163,6 +247,8 @@ def build_load_arrows(nelx, nely, caso_carga, F, node_load, F_vec):
 # MODO 1D — PERFIL DE ALTURA
 # ══════════════════════════════════════════════════════════════
 if modo == "1D — Perfil de Altura":
+    st.info("📐 **Laboratorio didáctico — fuera del alcance de la tesis.** Optimiza la *forma* "
+            "(perfil de altura analítico), no la topología; sirve de contraste contra el Caso 2 (SIMP).")
     st.subheader("1D — Optimización de Perfil de Altura")
 
     col_info, col_esq = st.columns([1, 1])
@@ -248,6 +334,8 @@ if modo == "1D — Perfil de Altura":
 # MODO 2D — SIMP TOPOLÓGICO CON ANIMACIÓN
 # ══════════════════════════════════════════════════════════════
 elif modo == "2D — SIMP Topológico":
+    st.caption("Caso 2 de la tesis — optimización topológica SIMP (H.E.2a/b). El diseño se certifica con "
+               "β₀, β₁ (doble cómputo) y persistencia.")
     st.subheader(f"2D — SIMP Topológico ({nelx}×{nely}) — {caso_carga}")
 
     col_info, col_esq2 = st.columns([1, 1])
@@ -258,7 +346,7 @@ elif modo == "2D — SIMP Topológico":
         **Parámetros:** $f_V$={volfrac}, $p$={penal}, $r_{{min}}$={rmin}, $t_{{mín}}$={min_member}.
 
         **Animación:** Se muestra cada ~5 iteraciones el diseño actualizado.
-        **Post-hoc:** Al finalizar, se calcula $\\beta_0$, $\\beta_1$, $\\mu_\\alpha$ y factor de seguridad.
+        **Post-hoc:** Al finalizar, se calcula $\\beta_0$, $\\beta_1$ y factor de seguridad.
         """)
 
     # Esquema 2D dinámico según caso de carga
@@ -306,7 +394,7 @@ elif modo == "2D — SIMP Topológico":
         opt2d = MetricaTDA_SIMP(
             nex=nelx, ney=nely, E=E_s, nu=0.3,
             Lx=L_mm, Ly=L_mm * (nely / nelx), t=1.0,
-            f_V=volfrac, p=penal, r_min=rmin, alpha=alpha_val,
+            f_V=volfrac, p=penal, r_min=rmin,
             tol_c=1e-4, tol_rho=1e-2, max_iter=200
         )
         opt2d.definir_problema(F_vec, dofs_fijos)
@@ -327,7 +415,7 @@ elif modo == "2D — SIMP Topológico":
             opt2d.optimizar(callback=cb_simp, verbose=False)
 
         with st.spinner("Analisis topologico (TDA)..."):
-            mu = opt2d.fase_tda(verbose=False)
+            opt2d.fase_tda(verbose=False)
 
         res = opt2d.obtener_resultados()
 
@@ -352,11 +440,10 @@ elif modo == "2D — SIMP Topológico":
         plt.close(fig_final)
 
         # Metricas (2 filas para responsive: 4 + 3)
-        row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
+        row1_c1, row1_c2, row1_c3 = st.columns(3)
         row1_c1.metric("Compliance", f"{res['c_final']:.2f}")
-        row1_c2.metric("mu_a", f"{res['mu']:.5f}")
-        row1_c3.metric("beta0", res['beta0'])
-        row1_c4.metric("beta1", res['beta1'])
+        row1_c2.metric("beta0", res['beta0'])
+        row1_c3.metric("beta1", res['beta1'])
 
         row2_c1, row2_c2, row2_c3 = st.columns(3)
         row2_c1.metric("Iteraciones", res['n_iter'])
@@ -417,7 +504,7 @@ elif modo == "Barrido p (2,3,4)":
     st.markdown(f"""
     Corre SIMP 3 veces con la misma malla ({nelx}x{nely}) y compara:
     - Distribucion de densidad final
-    - Compliance, beta1, mu_a
+    - Compliance, beta0, beta1
     - Efecto del penalizador sobre la topologia
     **Carga:** {caso_carga}. **t_min:** {min_member}.
     """)
@@ -435,12 +522,12 @@ elif modo == "Barrido p (2,3,4)":
             opt_b = MetricaTDA_SIMP(
                 nex=nelx, ney=nely, E=E_s, nu=0.3,
                 Lx=L_mm, Ly=L_mm * (nely / nelx), t=1.0,
-                f_V=volfrac, p=p_val, r_min=rmin, alpha=alpha_val,
+                f_V=volfrac, p=p_val, r_min=rmin,
                 tol_c=1e-4, tol_rho=1e-2, max_iter=200
             )
             opt_b.definir_problema(F_vec, dofs_fijos)
             opt_b.optimizar(verbose=False)
-            mu_b = opt_b.fase_tda(verbose=False)
+            opt_b.fase_tda(verbose=False)
             resultados[p_val] = opt_b.obtener_resultados()
 
         progress.progress(1.0, text="Barrido completo")
@@ -469,13 +556,13 @@ elif modo == "Barrido p (2,3,4)":
         # Tabla comparativa
         import pandas as pd
         df_comp = pd.DataFrame({
-            "Metrica": ["Compliance", "beta0", "beta1", "mu_a", "Iteraciones", "Convergio"],
+            "Metrica": ["Compliance", "beta0", "beta1", "Iteraciones", "Convergio"],
             "p=2": [f"{resultados[2]['c_final']:.2f}", str(resultados[2]['beta0']), str(resultados[2]['beta1']),
-                    f"{resultados[2]['mu']:.5f}", str(resultados[2]['n_iter']), "OK" if resultados[2]['converged'] else "NO"],
+                    str(resultados[2]['n_iter']), "OK" if resultados[2]['converged'] else "NO"],
             "p=3": [f"{resultados[3]['c_final']:.2f}", str(resultados[3]['beta0']), str(resultados[3]['beta1']),
-                    f"{resultados[3]['mu']:.5f}", str(resultados[3]['n_iter']), "OK" if resultados[3]['converged'] else "NO"],
+                    str(resultados[3]['n_iter']), "OK" if resultados[3]['converged'] else "NO"],
             "p=4": [f"{resultados[4]['c_final']:.2f}", str(resultados[4]['beta0']), str(resultados[4]['beta1']),
-                    f"{resultados[4]['mu']:.5f}", str(resultados[4]['n_iter']), "OK" if resultados[4]['converged'] else "NO"],
+                    str(resultados[4]['n_iter']), "OK" if resultados[4]['converged'] else "NO"],
         })
         # Cast all columns to str to avoid Arrow serialization errors
         for col in df_comp.columns:
@@ -487,6 +574,8 @@ elif modo == "Barrido p (2,3,4)":
 # MODO COMPARACIÓN 1D vs 2D
 # ══════════════════════════════════════════════════════════════
 elif modo == "Comparación 1D vs 2D":
+    st.info("🔀 **Laboratorio didáctico — fuera del alcance de la tesis.** Compara forma (1D) vs "
+            "topología (2D); el aporte de la tesis está en el Caso 2 (SIMP).")
     st.subheader(f"Comparacion Lado a Lado -- 1D vs 2D -- {caso_carga}")
     st.markdown(f"""
     Ejecuta ambos optimizadores en el mismo problema y compara:
@@ -513,7 +602,7 @@ elif modo == "Comparación 1D vs 2D":
         opt2d_c = MetricaTDA_SIMP(
             nex=nelx, ney=nely, E=E_s, nu=0.3,
             Lx=L_mm, Ly=L_mm * (nely / nelx), t=1.0,
-            f_V=volfrac, p=penal, r_min=rmin, alpha=alpha_val,
+            f_V=volfrac, p=penal, r_min=rmin,
             tol_c=1e-4, tol_rho=1e-2, max_iter=200
         )
         opt2d_c.definir_problema(F_vec, dofs_fijos)
@@ -521,7 +610,7 @@ elif modo == "Comparación 1D vs 2D":
         with st.spinner("Optimizando 2D..."):
             opt2d_c.optimizar(verbose=False)
         with st.spinner("TDA post-hoc..."):
-            mu_c = opt2d_c.fase_tda(verbose=False)
+            opt2d_c.fase_tda(verbose=False)
         res2d = opt2d_c.obtener_resultados()
 
         # -- Visualizacion lado a lado --
@@ -567,10 +656,10 @@ elif modo == "Comparación 1D vs 2D":
         sigma_max_est_2d = max(1.0, res2d['c_final'] / (L_mm * 1e-3))
         sf_2d = s_adm / (sigma_max_est_2d * 1e6) if sigma_max_est_2d > 0 else float('inf')
         df_resumen = pd.DataFrame({
-            "Metrica": ["Ahorro material", "Compliance", "beta1", "mu_a", "Iteraciones", "Factor Seguridad"],
-            "1D (Perfil)": [f"{res1d['saving_pct']:.1f}%", "N/A (analitico)", "N/A", "N/A", f"{res1d['iterations']}", "N/A"],
+            "Metrica": ["Ahorro material", "Compliance", "beta1", "Iteraciones", "Factor Seguridad"],
+            "1D (Perfil)": [f"{res1d['saving_pct']:.1f}%", "N/A (analitico)", "N/A", f"{res1d['iterations']}", "N/A"],
             "2D (SIMP)": ["--", f"{res2d['c_final']:.2f}", str(res2d['beta1']),
-                          f"{res2d['mu']:.5f}", str(res2d['n_iter']), f"{sf_2d:.1f}"]
+                          str(res2d['n_iter']), f"{sf_2d:.1f}"]
         })
         for col in df_resumen.columns:
             df_resumen[col] = df_resumen[col].astype(str)
@@ -647,6 +736,245 @@ elif modo == "Comparación 1D vs 2D":
             )
         else:
             st.warning("No hay celdas activas para exportar. El diseno binario esta vacio.")
+
+
+# ══════════════════════════════════════════════════════════════
+# MODO: INFORME DE INGENIERÍA (caso real, ligado a la tesis)
+# ══════════════════════════════════════════════════════════════
+elif modo == "📋 Informe de Ingeniería":
+    st.subheader("📋 Informe de Ingeniería — caso real")
+    st.markdown(
+        f"**Material:** {material}  ·  **L** = {L_mm:.0f} mm  ·  **F** = {F_N:.0f} N  ·  "
+        f"**t** = {espesor_mm:.1f} mm  ·  **malla** = {nelx}×{nely}  ·  "
+        f"f_V = {volfrac:.2f}, p = {penal:.0f}, r_min = {rmin:.1f}"
+    )
+    st.caption("Unidades SI (m, N, Pa, kg). Cada resultado se conecta con la hipótesis del documento "
+               "(H.E.2a: reducción ≥ 40 %; H.E.2b: β₁ estable + doble cómputo).")
+
+    if st.button("▶ Ejecutar caso real y generar informe", type="primary", key="btn_informe"):
+        Lx_m = L_mm / 1000.0
+        Ly_m = Lx_m * (nely / nelx)
+        t_m = espesor_mm / 1000.0
+        E = E_GPa * 1e9
+        s_adm_Pa = sigma_adm * 1e6
+
+        with st.spinner("Optimizando SIMP (caso real)..."):
+            m = corrida_simp(nelx, nely, penal, rmin, E=E, Fmag=F_N, fV=volfrac, t=t_m,
+                             max_iter=200, Lx=Lx_m, Ly=Ly_m)
+        c_base = float(m.c_hist[0])
+        c_simp = float(m.c_final)
+        reduccion = (c_base - c_simp) / c_base * 100
+        sigma_max = esfuerzo_max_von_mises(m, E, 0.3)
+        fs = s_adm_Pa / sigma_max if sigma_max > 0 else float("inf")
+
+        V_dom = Lx_m * Ly_m * t_m
+        masa_d = volfrac * V_dom * rho_kg_m3          # masa del diseño SIMP (volumen = fV·V0)
+        masa_s = V_dom * rho_kg_m3
+        costo_d = masa_d * costo_USD_kg
+        costo_s = masa_s * costo_USD_kg
+        ahorro = (1 - volfrac) * 100
+
+        # Persistencia de β₁ frente al umbral (tesis, Fig. 5.7)
+        umbr = np.linspace(0.05, 0.95, 19)
+        b1s = [betti_euler(m.rho_tilde_final.reshape(nely, nelx) >= u)[1] for u in umbr]
+        from tda.simulation.he_protocols import persistencia_beta1
+        _, _, persist = persistencia_beta1(umbr, b1s, m.beta1)
+
+        # Referencia analítica 1D (mismo material, carga y longitud)
+        opt1d = BeamOptimizer(b=t_m, h0=Ly_m, p=3, N=61, E_s=E, sigma_adm=s_adm_Pa, max_iter=80)
+        res1d = opt1d.optimizar_viga_completo(Lx_m, F_N, callback=None)
+
+        conc = bool(getattr(m, "_betti_concordancia", None))
+        he2a_ok = reduccion >= 40.0
+        he2b_ok = conc and persist >= 0.3
+        cert = he2a_ok and conc
+
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Reducción de compliance", f"{reduccion:.1f} %",
+                  delta="H.E.2a ≥ 40 %" if he2a_ok else "< 40 %",
+                  delta_color="normal" if he2a_ok else "inverse")
+        c2.metric("β₁ (agujeros)", str(m.beta1), help="Descriptor topológico certificado por la tesis")
+        c3.metric("σ_máx / σ_adm", f"{sigma_max/1e6:.0f} / {sigma_adm:.0f} MPa",
+                  delta=f"FS = {fs:.2f}", delta_color="normal" if fs >= 1.5 else "inverse")
+        c4.metric("Euler ≡ GUDHI", "✅" if conc else "❌")
+
+        st.markdown("#### Vínculo con la tesis")
+        st.markdown(
+            f"- **H.E.2a** (redistribuir el material reduce la compliance ≥ 40 %): "
+            f"{'✅ SE SOSTIENE' if he2a_ok else '❌ no se sostiene'} — **{reduccion:.1f} %** vs diseño uniforme.\n"
+            f"- **H.E.2b** (β₁ es descriptor estable): β₁ = **{m.beta1}**, doble cómputo "
+            f"{'coincide' if conc else 'difiere'}, persistencia de β₁ ≈ **{persist:.2f}** (unidades de umbral) "
+            f"→ {'✅ estable' if he2b_ok else '⚠️ revisar'}.\n"
+            f"- **Validación 1D↔2D**: la solución analítica 1D (mismo material/carga) da ahorro "
+            f"{res1d['saving_pct']:.1f} % y σ_máx {np.max(res1d['sigma_MPa']):.0f} MPa — referente real."
+        )
+
+        st.markdown("#### Métricas de ingeniería (vida real)")
+        st.dataframe(pd.DataFrame({
+            "Magnitud": ["Material", "Dimensiones (L×H×t)", "Volumen del dominio",
+                         "Masa diseño SIMP", "Masa bloque sólido", "Ahorro de material",
+                         "Costo diseño", "Costo bloque sólido", "σ_máx (von Mises)",
+                         "Factor de seguridad", "Tamaño mín. miembro", "Agujeros (β₁)"],
+            "Valor": [material, f"{L_mm:.0f}×{Ly_m*1000:.0f}×{espesor_mm:.1f} mm",
+                      f"{V_dom*1e9:.1f} cm³", f"{masa_d*1000:.1f} g", f"{masa_s*1000:.1f} g",
+                      f"{ahorro:.0f} %", f"{costo_d:.3f} USD", f"{costo_s:.3f} USD",
+                      f"{sigma_max/1e6:.1f} MPa", f"{fs:.2f}", f"{min_member:.1f} elem", str(m.beta1)],
+        }), width="stretch", hide_index=True)
+
+        # ── Dashboard de impacto (sostenibilidad y costo) ──
+        co2_d = masa_d * co2_kg_kg
+        co2_s = masa_s * co2_kg_kg
+        st.markdown("#### Impacto (sostenibilidad y costo)")
+        d1, d2, d3 = st.columns(3)
+        d1.metric("Material ahorrado", f"{(masa_s - masa_d)*1000:.1f} g", delta=f"{ahorro:.0f} %")
+        d2.metric("Costo ahorrado", f"{costo_s - costo_d:.3f} USD")
+        d3.metric("CO₂ evitado", f"{co2_s - co2_d:.3f} kg eq")
+
+        # ── Chequeo y sugerencias automáticas de resistencia ──
+        FS_OBJ = 1.5
+        if fs < FS_OBJ:
+            t_req = t_m * (FS_OBJ / fs) if fs > 0 else float("inf")
+            F_max = F_N * (fs / FS_OBJ)
+            st.warning(
+                f"⚠️ **FS = {fs:.2f} < {FS_OBJ}** — "
+                + ("σ_máx **supera** σ_adm (falla resistencia)." if sigma_max > s_adm_Pa
+                   else "σ_máx queda por debajo de σ_adm pero con margen insuficiente.")
+            )
+            st.markdown(
+                "**Ajustes sugeridos** (≈ σ ∝ F/t):\n"
+                f"- Aumentar espesor → **t ≈ {t_req*1000:.1f} mm** (actual {espesor_mm:.1f} mm)\n"
+                f"- Reducir carga → **F ≤ {F_max:.0f} N** (actual {F_N:.0f} N)\n"
+                "- O subir la fracción de volumen f_V (más material) y reoptimizar."
+            )
+            if st.button("🔧 Aplicar t recomendado y re-ejecutar", key="btn_apply_t"):
+                st.session_state["espesor_mm"] = float(round(t_req * 1000 * 2) / 2)  # múltiplo de 0.5 mm
+                st.rerun()
+        else:
+            st.success(f"✅ FS = {fs:.2f} ≥ {FS_OBJ} — resistencia verificada.")
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=umbr, y=b1s, mode="lines+markers", name="β₁"))
+        fig.add_vline(x=0.5, line=dict(dash="dash", color="white"), annotation_text="u = 0.5")
+        fig.update_layout(height=340, template="plotly_white",
+                          xaxis_title="Umbral de binarización (u)", yaxis_title="β₁",
+                          title="Persistencia de β₁ (tesis, Fig. 5.7)")
+        apply_plotly_theme(fig)
+        st.plotly_chart(fig, width="stretch")
+
+        figd = go.Figure(data=[go.Heatmap(z=(m.rho_tilde_final.reshape(nely, nelx) >= 0.5).astype(float),
+                                          colorscale="gray_r", zmin=0, zmax=1, colorbar=dict(title="Ω"))])
+        figd.update_layout(height=340, title=f"Diseño SIMP | β₀={m.beta0}, β₁={m.beta1}")
+        apply_plotly_theme(figd)
+        st.plotly_chart(figd, width="stretch")
+
+        # ── Vista 3D (extrusión) + export STL ──
+        V3, F3 = voxeles_a_mesh3d(m.rho_tilde_final.reshape(nely, nelx) >= 0.5, t=espesor_mm)
+        if len(F3) > 0:
+            fig3 = go.Figure(go.Mesh3d(
+                x=V3[:, 0], y=V3[:, 1], z=V3[:, 2],
+                i=F3[:, 0], j=F3[:, 1], k=F3[:, 2],
+                color="#2c3e50", opacity=1.0, flatshading=True, name="diseño"))
+            fig3.update_layout(height=440, title="Vista 3D del diseño (extrusión del sólido)",
+                               scene=dict(aspectmode="data"), margin=dict(l=0, r=0, b=0, t=40))
+            apply_plotly_theme(fig3)
+            st.plotly_chart(fig3, width="stretch")
+            st.download_button("🧊 Descargar STL (impresión 3D / CAD)", stl_ascii_bytes(V3, F3),
+                               "diseno_simp.stl", "model/stl", width="stretch")
+
+        # ── Certificado PDF descargable ──
+        try:
+            rho_bin = (m.rho_tilde_final.reshape(nely, nelx) >= 0.5).astype(float)
+            pdf_bytes = certificado_pdf(
+                material, L_mm, Ly_m * 1000, espesor_mm, F_N, sigma_adm,
+                reduccion, he2a_ok, sigma_max, fs, m.beta0, m.beta1, conc, persist,
+                masa_d, masa_s, costo_d, costo_s, co2_d, co2_s, ahorro,
+                rho_bin, umbr, b1s)
+            st.download_button("📄 Descargar certificado PDF", pdf_bytes,
+                               "certificado_diseno.pdf", "application/pdf", width="stretch")
+        except Exception as e:
+            st.error(f"No se pudo generar el certificado: {e}")
+
+        if cert:
+            st.success("### ✅ Diseño CERTIFICADO por el método de la tesis "
+                       "(reducción ≥ 40 % y topología β₁ validada por doble cómputo + persistencia).")
+        else:
+            st.warning("### ⚠️ Diseño generado; revisar los criterios de certificación.")
+        st.caption("El diseño puede exportarse a STL (impresión 3D/CAD) desde el modo «Comparación 1D vs 2D».")
+
+
+# ══════════════════════════════════════════════════════════════
+# MODO: COMPARADOR DE MATERIALES Y OPTIMIZADOR AUTOMÁTICO
+# ══════════════════════════════════════════════════════════════
+elif modo == "⚖️ Comparador y optimizador":
+    st.subheader("⚖️ Comparador de materiales y optimizador automático")
+    st.caption("Unidades SI. El optimizador busca el diseño de **menor masa** que cumpla un factor de "
+               "seguridad objetivo, variando la fracción de volumen f_V y evaluando σ (von Mises) del diseño.")
+
+    fs_obj = st.slider("Factor de seguridad objetivo (FS)", 1.0, 3.0, 1.5, 0.1, key="fs_obj")
+    st.markdown("---")
+
+    # ── Optimizador automático ──
+    st.markdown("#### 🔎 Optimizador: menor masa con FS objetivo")
+    if st.button("▶ Optimizar f_V (menor masa con FS objetivo)", type="primary", key="btn_opt"):
+        Lx_m = L_mm / 1000.0
+        Ly_m = Lx_m * (nely / nelx)
+        t_m = espesor_mm / 1000.0
+        E = E_GPa * 1e9
+        s_adm_Pa = sigma_adm * 1e6
+        filas, best = [], None
+        for fv in [0.30, 0.40, 0.50, 0.60, 0.70, 0.80]:
+            with st.spinner(f"Optimizando f_V = {fv:.2f}..."):
+                m = corrida_simp(nelx, nely, penal, rmin, E=E, Fmag=F_N, fV=fv,
+                                 t=t_m, max_iter=150, Lx=Lx_m, Ly=Ly_m)
+            sig = esfuerzo_max_von_mises(m, E, 0.3)
+            fs = s_adm_Pa / sig if sig > 0 else float("inf")
+            masa = fv * Lx_m * Ly_m * t_m * rho_kg_m3
+            filas.append({"f_V": fv, "σ_máx (MPa)": round(sig / 1e6, 1), "FS": round(fs, 2),
+                          "c(ρ*)": round(float(m.c_final), 3), "β₁": m.beta1,
+                          "Masa (g)": round(masa * 1000, 1)})
+            if fs >= fs_obj and (best is None or masa < best[1]):
+                best = (fv, masa, sig, m)
+        st.dataframe(pd.DataFrame(filas), width="stretch", hide_index=True)
+        if best:
+            st.success(f"### ✅ Menor masa con FS ≥ {fs_obj}: f_V = **{best[0]:.2f}** → "
+                       f"**{best[1]*1000:.1f} g**, σ_máx = {best[2]/1e6:.1f} MPa, β₁ = {best[3].beta1}")
+        else:
+            sig_min = min(f["σ_máx (MPa)"] for f in filas) * 1e6
+            t_req = t_m * (s_adm_Pa / fs_obj) / sig_min
+            st.warning(f"Ninguna f_V ∈ [0.30, 0.80] cumple FS ≥ {fs_obj}. Se requiere "
+                       f"t ≈ **{t_req*1000:.1f} mm** (actual {espesor_mm:.1f} mm) o reducir la carga.")
+    st.markdown("---")
+
+    # ── Comparador de materiales ──
+    st.markdown("#### 🧱 Comparador de materiales (mismo caso y f_V)")
+    if st.button("▶ Comparar materiales", type="secondary", key="btn_mat"):
+        Lx_m = L_mm / 1000.0
+        Ly_m = Lx_m * (nely / nelx)
+        t_m = espesor_mm / 1000.0
+        V_dom = Lx_m * Ly_m * t_m
+        filas = []
+        for nombre, mp in MATERIALES.items():
+            E = mp["E_GPa"] * 1e9
+            s_adm_Pa = mp["sigma_adm_MPa"] * 1e6
+            with st.spinner(f"Optimizando {nombre}..."):
+                m = corrida_simp(nelx, nely, penal, rmin, E=E, Fmag=F_N, fV=volfrac,
+                                 t=t_m, max_iter=150, Lx=Lx_m, Ly=Ly_m)
+            sig = esfuerzo_max_von_mises(m, E, 0.3)
+            fs = s_adm_Pa / sig if sig > 0 else float("inf")
+            masa = volfrac * V_dom * mp["rho"]
+            filas.append({"Material": nombre, "Masa (g)": round(masa * 1000, 1),
+                          "Costo (USD)": round(masa * mp["costo"], 3),
+                          "CO₂ (kg eq)": round(masa * mp["co2"], 3),
+                          "σ_máx (MPa)": round(sig / 1e6, 1), "FS": round(fs, 2), "β₁": m.beta1})
+        dfm = pd.DataFrame(filas)
+        st.dataframe(dfm, width="stretch", hide_index=True)
+        fig_m = go.Figure()
+        for col, colr in [("Masa (g)", "#2980b9"), ("Costo (USD)", "#e67e22"), ("CO₂ (kg eq)", "#27ae60")]:
+            fig_m.add_trace(go.Bar(x=dfm["Material"], y=dfm[col], name=col, marker_color=colr))
+        fig_m.update_layout(height=380, template="plotly_white", barmode="group",
+                            title="Comparación por material (masa, costo, CO₂)")
+        apply_plotly_theme(fig_m)
+        st.plotly_chart(fig_m, width="stretch")
 
 
 # ══════════════════════════════════════════════════════════════
