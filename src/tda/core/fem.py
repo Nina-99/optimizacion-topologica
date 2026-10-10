@@ -3,7 +3,7 @@
 Implementa la formulación de elementos finitos Q4 (cuadrilateral de 4 nodos)
 para problemas de elasticidad 2D en estado plano de tensiones.
 
-Bloques 1-2 del Algoritmo 1 (Métrica Compuesta TDA-SIMP):
+Bloques 1-2 del Algoritmo 1 (SIMP + TDA):
   - Matriz de rigidez elemental K_0 (8×8) con cuadratura de Gauss 2×2
   - Ensamble vectorizado de la matriz global K(ρ) con SIMP
   - Solver K·U = F con condiciones de contorno

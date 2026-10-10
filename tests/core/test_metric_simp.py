@@ -19,13 +19,12 @@ class TestInit:
 
     def test_basic_params(self):
         """Los parámetros básicos deben almacenarse correctamente."""
-        m = MetricaTDA_SIMP(nex=60, ney=30, f_V=0.5, p=3, alpha=0.012)
+        m = MetricaTDA_SIMP(nex=60, ney=30, f_V=0.5, p=3)
         assert m.nex == 60
         assert m.ney == 30
         assert m.N_e == 1800
         assert m.f_V == 0.5
         assert m.p == 3
-        assert m.alpha == 0.012
 
     def test_dof_count(self):
         """n_dof debe ser 2 × (nex+1) × (ney+1)."""
@@ -49,11 +48,12 @@ class TestInit:
         assert m.DOFS.shape == (4, 8)
 
     def test_filter_matrix(self):
-        """H debe ser (N_e, N_e) con entradas ≥ 0."""
+        """H debe ser (N_e, N_e) con entradas ≥ 0 y ≤ r_min."""
         m = MetricaTDA_SIMP(nex=2, ney=2, r_min=2.4)
-        assert m.H.shape == (4, 4)
-        assert np.all(m.H >= 0)
-        assert np.all(m.H <= 2.4)
+        H = m.H.toarray() if hasattr(m.H, "toarray") else m.H
+        assert H.shape == (4, 4)
+        assert np.all(H >= 0)
+        assert np.all(H <= 2.4)
 
     def test_default_tolerance(self):
         """tol_c y tol_rho por defecto deben ser 1e-4 y 1e-2 (Perfil §9.4.4)."""
@@ -199,11 +199,11 @@ class TestFaseTDA:
 
     def test_fase_tda_sets_beta1(self, m_2x2):
         """fase_tda debe setear beta1 (0 si no hay puntos)."""
-        mu = m_2x2.fase_tda()
+        ret = m_2x2.fase_tda()
         assert m_2x2.beta1 is not None
         assert m_2x2.beta1 >= 0
         assert isinstance(m_2x2.beta1, int)
-        assert isinstance(mu, float)
+        assert ret == m_2x2.beta1
 
     def test_fase_tda_sets_concordancia(self, m_2x2):
         """fase_tda debe setear betti_concordancia (bool)."""
@@ -211,12 +211,11 @@ class TestFaseTDA:
         assert m_2x2._betti_concordancia is not None
         assert isinstance(m_2x2._betti_concordancia, bool)
 
-    def test_fase_tda_sets_mu(self, m_2x2):
-        """fase_tda debe setear mu (métrica compuesta)."""
-        mu = m_2x2.fase_tda()
-        assert m_2x2.mu is not None
-        assert_allclose(m_2x2.mu, mu, atol=1e-12)
-        assert m_2x2.mu > 0
+    def test_fase_tda_returns_beta1(self, m_2x2):
+        """fase_tda debe retornar β₁ del diseño (ya no existe métrica compuesta)."""
+        ret = m_2x2.fase_tda()
+        assert ret == m_2x2.beta1
+        assert not hasattr(m_2x2, "mu")
 
     def test_fase_tda_sets_t_tda(self, m_2x2):
         """fase_tda debe setear t_tda > 0."""
@@ -228,7 +227,7 @@ class TestFaseTDA:
         m_2x2.fase_tda()
         res = m_2x2.obtener_resultados()
         for key in ["rho_final", "rho_tilde_final", "c_final", "c_hist", "beta1",
-                     "betti_concordancia", "mu", "nex", "ney",
+                     "betti_concordancia", "nex", "ney",
                      "tol_c", "tol_rho"]:
             assert key in res, f"Falta clave '{key}' en resultados"
 

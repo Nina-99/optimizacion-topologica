@@ -1,55 +1,8 @@
-"""Tests unidad — módulos core: FEM, topología, métricas, métrica compuesta."""
+"""Tests unidad — módulos core: FEM, topología, Betti 2D."""
 
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
-
-
-class TestMetricaCompuesta:
-    """Tests de la métrica compuesta μ_α = c + α·β₁ (Definición 1.9)."""
-
-    def test_metrica_compuesta_basica(self):
-        """μ_α = c + α·β₁ debe calcular correctamente."""
-        from tda.core.metric import metrica_compuesta
-        assert metrica_compuesta(c=100.0, beta1=2, alpha=0.012) == 100.0 + 0.012 * 2
-        assert metrica_compuesta(c=50.0, beta1=0, alpha=0.012) == 50.0
-        assert metrica_compuesta(c=200.0, beta1=5, alpha=0.1) == 200.0 + 0.5
-
-    def test_metrica_compuesta_positiva(self):
-        """μ_α siempre debe ser positiva (Teorema 1.1(i))."""
-        from tda.core.metric import metrica_compuesta
-        for c in [0.1, 1.0, 10.0, 100.0]:
-            for beta1 in [0, 1, 2, 5]:
-                for alpha in [0.001, 0.01, 0.1]:
-                    mu = metrica_compuesta(c, beta1, alpha)
-                    assert mu > 0, f"μ_α={mu} no es positiva para c={c}, β₁={beta1}, α={alpha}"
-
-    def test_metrica_compuesta_monotonia(self):
-        """Menor β₁ → menor μ_α con c fija (Teorema 1.1(iii))."""
-        from tda.core.metric import metrica_compuesta
-        c, alpha = 100.0, 0.012
-        mu_b0 = metrica_compuesta(c, 0, alpha)
-        mu_b2 = metrica_compuesta(c, 2, alpha)
-        mu_b5 = metrica_compuesta(c, 5, alpha)
-        assert mu_b0 < mu_b2 < mu_b5
-
-    def test_calibrar_alpha_optimo(self):
-        """α* = (c̄ − c_min)/(β₁,max − β₁,min) (Proposición 1.1)."""
-        from tda.core.metric import calibrar_alpha_optimo
-        c_vals = [100.0, 120.0, 80.0]
-        b1_vals = [0, 2, 5]
-        alpha_star = calibrar_alpha_optimo(c_vals, b1_vals)
-        c_mean = np.mean(c_vals)
-        c_min = min(c_vals)
-        b1_range = max(b1_vals) - min(b1_vals)
-        expected = (c_mean - c_min) / b1_range
-        assert_allclose(alpha_star, expected, rtol=1e-10)
-
-    def test_calibrar_alpha_b1_constante(self):
-        """Si β₁ es constante, α* debe ser un valor por defecto razonable."""
-        from tda.core.metric import calibrar_alpha_optimo
-        alpha_star = calibrar_alpha_optimo([100, 110], [2, 2])
-        assert alpha_star >= 1e-4  # Mínimo razonable
 
 
 class TestTopology:

@@ -1,11 +1,11 @@
 """Experimento headless para validar las hipótesis H.E.2 corregidas.
 
 Criterios de validación (tras el estudio piloto §4.4):
-  H.E.2a': c(fV·1) − c(ρ⋆) / c(fV·1) ≥ 0.40
+  H.E.2a: c(fV·1) − c(ρ⋆) / c(fV·1) ≥ 0.40
       — Reducción ≥ 40% frente al diseño uniforme de igual volumen
       (NO frente al bloque sólido, que era lógicamente imposible: §4.4 Hallazgo 2)
 
-  H.E.2b': β₁(Ω_sólido) es independiente de la resolución de malla y del
+  H.E.2b: β₁(Ω_sólido) es independiente de la resolución de malla y del
       radio del filtro rmin ∈ [1.5, 4.0].
       — Descriptor invariante (descriptivo, no prescriptivo)
       (NO β₁ ≤ 2, que era una cota sobre un invariante no controlado: §4.4 Hallazgo 3)
@@ -25,7 +25,7 @@ from tda.optimization.metric_simp import MetricaTDA_SIMP
 
 
 def run_headless_experiment():
-    """Ejecuta el experimento SIMP validando H.E.2a' y H.E.2b' corregidas.
+    """Ejecuta el experimento SIMP validando H.E.2a y H.E.2b corregidas.
 
     Configuración base (Perfil §9.4.1):
       - Viga voladizo 2D, 60×30 elementos Q4
@@ -40,44 +40,50 @@ def run_headless_experiment():
     print("  (tras estudio piloto §4.4)")
     print("=" * 70)
 
-    # ── Configuración base ────────────────────────────────────────────────
+    # ── Configuración base (canónica del Cap. III) ────────────────────────
     nelx, nely = 60, 30
     fV = 0.5
     penal = 3.0
     rmin = 2.4
-    E_acero = 200000.0  # MPa (acero)
-    espesor = 1.0       # mm
+    # Material y dominio NORMALIZADOS: E0 = 1, elementos unitarios.
+    # Es la escala que reproduce los valores del Cap. V
+    #   c_uniforme = 316.34, c_sólido = 39.54, c_SIMP ≈ 75.55.
+    E_material = 1.0
+    espesor = 1.0
 
     print(f"\nConfiguración: malla {nelx}×{nely}, fV={fV}, p={penal}, rmin={rmin}")
 
     # ── Condiciones de contorno: viga en voladizo ─────────────────────────
+    # El nodo (ex, ey) se indexa como ey*nnx + ex. El borde izquierdo es el
+    # conjunto ex = 0, es decir los nodos ey*nnx (ey = 0..nely).
     nnx = nelx + 1
     n_dof = 2 * nnx * (nely + 1)
-    dofs_fijos = np.arange(0, 2 * (nely + 1))
+    idx_izq = np.arange(0, nely + 1) * nnx
+    dofs_fijos = np.sort(np.concatenate([2 * idx_izq, 2 * idx_izq + 1]))
     node_load = (nely // 2) * nnx + nelx
     F = np.zeros(n_dof)
-    F[2 * node_load + 1] = -1000.0  # 1 kN
+    F[2 * node_load + 1] = -1.0
 
     # ── 1. Optimización SIMP base ─────────────────────────────────────────
     print("\n--- Fase 1: Optimización SIMP ---")
     m = MetricaTDA_SIMP(
-        nex=nelx, ney=nely, E=E_acero, nu=0.3,
-        Lx=120.0, Ly=40.0, t=espesor,
-        f_V=fV, p=penal, r_min=rmin, alpha=0.012, max_iter=200
+        nex=nelx, ney=nely, E=E_material, nu=0.3,
+        Lx=60.0, Ly=30.0, t=espesor,
+        f_V=fV, p=penal, r_min=rmin, max_iter=200
     )
     m.definir_problema(F, dofs_fijos)
     m.optimizar(verbose=True)
 
     # ── 2. Análisis TDA ───────────────────────────────────────────────────
     print("\n--- Fase 2: Análisis TDA ---")
-    mu = m.fase_tda(verbose=True)
+    m.fase_tda(verbose=True)
 
     # ── 3. Cálculo del referente uniforme ──────────────────────────────────
     # Diseño uniforme ρ ≡ fV (mismo volumen que SIMP)
     m_uniforme = MetricaTDA_SIMP(
-        nex=nelx, ney=nely, E=E_acero, nu=0.3,
-        Lx=120.0, Ly=40.0, t=espesor,
-        f_V=fV, p=penal, r_min=rmin, alpha=0.012, max_iter=1
+        nex=nelx, ney=nely, E=E_material, nu=0.3,
+        Lx=60.0, Ly=30.0, t=espesor,
+        f_V=fV, p=penal, r_min=rmin, max_iter=1
     )
     m_uniforme.definir_problema(F, dofs_fijos)
     # Compliance del diseño uniforme: resolver FEM una vez con ρ = fV
@@ -87,25 +93,25 @@ def run_headless_experiment():
     U_uniforme = resolver_FEM(K_uniforme, F, dofs_fijos, m_uniforme.n_dof)
     c_uniforme, _ = calcular_compliance_sensibilidades(U_uniforme, rho_uniforme, m_uniforme.DOFS, m_uniforme.K0, penal)
 
-    # ── 4. Validación H.E.2a' ─────────────────────────────────────────────
-    # H.E.2a': (c(fV·1) - c(ρ⋆)) / c(fV·1) ≥ 0.40
+    # ── 4. Validación H.E.2a ─────────────────────────────────────────────
+    # H.E.2a: (c(fV·1) - c(ρ⋆)) / c(fV·1) ≥ 0.40
     c_simp = m.c_final
     reduccion_vs_uniforme = (c_uniforme - c_simp) / c_uniforme
 
     print(f"\n{'='*70}")
-    print(f"  RESULTADOS H.E.2a' (referente: diseño uniforme de igual volumen)")
+    print(f"  RESULTADOS H.E.2a (referente: diseño uniforme de igual volumen)")
     print(f"{'='*70}")
     print(f"  c(uniforme ρ={fV}) = {c_uniforme:.4f}")
     print(f"  c(SIMP ρ⋆)        = {c_simp:.4f}")
     print(f"  Reducción          = {reduccion_vs_uniforme*100:.2f}%")
-    print(f"  Umbral H.E.2a'     = ≥ 40%")
+    print(f"  Umbral H.E.2a     = ≥ 40%")
     he2a_cumple = reduccion_vs_uniforme >= 0.40
     print(f"  Veredicto          = {'✅ CUMPLE' if he2a_cumple else '❌ NO CUMPLE'}")
 
-    # ── 5. Validación H.E.2b' (barrido de configuraciones) ────────────────
-    # H.E.2b': β₁ es independiente de la resolución de malla y del filtro
+    # ── 5. Validación H.E.2b (barrido de configuraciones) ────────────────
+    # H.E.2b: β₁ es independiente de la resolución de malla y del filtro
     print(f"\n{'='*70}")
-    print(f"  RESULTADOS H.E.2b' (invariancia de β₁)")
+    print(f"  RESULTADOS H.E.2b (invariancia de β₁)")
     print(f"{'='*70}")
 
     configs_beta1 = []
@@ -114,9 +120,9 @@ def run_headless_experiment():
     print("\n  Barrido de rmin:")
     for rmin_val in [1.5, 2.0, 2.4, 3.0, 4.0]:
         m_cfg = MetricaTDA_SIMP(
-            nex=nelx, ney=nely, E=E_acero, nu=0.3,
-            Lx=120.0, Ly=40.0, t=espesor,
-            f_V=fV, p=penal, r_min=rmin_val, alpha=0.012, max_iter=200
+            nex=nelx, ney=nely, E=E_material, nu=0.3,
+            Lx=60.0, Ly=30.0, t=espesor,
+            f_V=fV, p=penal, r_min=rmin_val, max_iter=200
         )
         m_cfg.definir_problema(F, dofs_fijos)
         m_cfg.optimizar(verbose=False)
@@ -133,9 +139,9 @@ def run_headless_experiment():
     print("\n  Barrido de penalización p:")
     for p_val in [2, 3, 4]:
         m_cfg = MetricaTDA_SIMP(
-            nex=nelx, ney=nely, E=E_acero, nu=0.3,
-            Lx=120.0, Ly=40.0, t=espesor,
-            f_V=fV, p=p_val, r_min=rmin, alpha=0.012, max_iter=200
+            nex=nelx, ney=nely, E=E_material, nu=0.3,
+            Lx=60.0, Ly=30.0, t=espesor,
+            f_V=fV, p=p_val, r_min=rmin, max_iter=200
         )
         m_cfg.definir_problema(F, dofs_fijos)
         m_cfg.optimizar(verbose=False)
@@ -154,15 +160,16 @@ def run_headless_experiment():
         rmin_escalado = rmin * (nelx_cfg / nelx)
         nnx_cfg = nelx_cfg + 1
         n_dof_cfg = 2 * nnx_cfg * (nely_cfg + 1)
-        dofs_fijos_cfg = np.arange(0, 2 * (nely_cfg + 1))
+        idx_izq_cfg = np.arange(0, nely_cfg + 1) * nnx_cfg
+        dofs_fijos_cfg = np.sort(np.concatenate([2 * idx_izq_cfg, 2 * idx_izq_cfg + 1]))
         node_load_cfg = (nely_cfg // 2) * nnx_cfg + nelx_cfg
         F_cfg = np.zeros(n_dof_cfg)
-        F_cfg[2 * node_load_cfg + 1] = -1000.0
+        F_cfg[2 * node_load_cfg + 1] = -1.0
 
         m_cfg = MetricaTDA_SIMP(
-            nex=nelx_cfg, ney=nely_cfg, E=E_acero, nu=0.3,
-            Lx=120.0, Ly=40.0, t=espesor,
-            f_V=fV, p=penal, r_min=rmin_escalado, alpha=0.012, max_iter=200
+            nex=nelx_cfg, ney=nely_cfg, E=E_material, nu=0.3,
+            Lx=60.0, Ly=30.0, t=espesor,
+            f_V=fV, p=penal, r_min=rmin_escalado, max_iter=200
         )
         m_cfg.definir_problema(F_cfg, dofs_fijos_cfg)
         m_cfg.optimizar(verbose=False)
@@ -180,21 +187,20 @@ def run_headless_experiment():
 
     print(f"\n  Valores de β₁ observados: {set(betas1)}")
     print(f"  Invariancia de β₁:        {'✅ SÍ — β₁ es invariante' if beta1_invariante else '❌ NO — β₁ varía'}")
-    print(f"  Veredicto H.E.2b':        {'✅ SE SOSTIENE' if beta1_invariante else '❌ NO SE SOSTIENE'}")
+    print(f"  Veredicto H.E.2b:        {'✅ SE SOSTIENE' if beta1_invariante else '❌ NO SE SOSTIENE'}")
 
     # ── 6. Síntesis final ─────────────────────────────────────────────────
     print(f"\n{'='*70}")
     print(f"  SÍNTESIS DEL CONTRASTE DE HIPÓTESIS")
     print(f"{'='*70}")
-    print(f"  H.E.2a' (reducción ≥40% vs uniforme): {reduccion_vs_uniforme*100:.2f}% → {'✅' if he2a_cumple else '❌'}")
-    print(f"  H.E.2b' (β₁ invariante):              β₁={betas1[0]} en {len(configs_beta1)} configs → {'✅' if beta1_invariante else '❌'}")
-    print(f"  Métrica compuesta μ_α:                 {mu:.5f}")
+    print(f"  H.E.2a (reducción ≥40% vs uniforme): {reduccion_vs_uniforme*100:.2f}% → {'✅' if he2a_cumple else '❌'}")
+    print(f"  H.E.2b (β₁ invariante):              β₁={betas1[0]} en {len(configs_beta1)} configs → {'✅' if beta1_invariante else '❌'}")
     print(f"  Concordancia Euler-GUDHI:              100% (ver MetricaTDA_SIMP.fase_tda)")
 
     # ── 7. Exportar resultados ─────────────────────────────────────────────
     os.makedirs("data", exist_ok=True)
     df = pd.DataFrame([{
-        "experimento": "H.E.2_corregida",
+        "experimento": "H.E.2",
         "malla": f"{nelx}×{nely}",
         "volfrac": fV,
         "penal": penal,
@@ -205,7 +211,6 @@ def run_headless_experiment():
         "beta1_base": betas1[0],
         "beta1_invariante": beta1_invariante,
         "n_configs_beta1": len(configs_beta1),
-        "mu_alpha": mu,
         "he2a_cumple": he2a_cumple,
         "he2b_cumple": beta1_invariante,
     }])

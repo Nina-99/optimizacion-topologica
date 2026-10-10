@@ -6,7 +6,6 @@ Contiene:
             — para nubes de puntos (TDA)
 - betti2d:  Cálculo de β₀, β₁ de diseños SIMP por doble cómputo
             (Euler 4-conexo + GUDHI cubical) — §8.5 del Perfil
-- metric:   Métrica compuesta μ_α y calibración de α*
 """
 
 from tda.core.fem import (
@@ -34,11 +33,6 @@ from tda.core.betti2d import (
     diagramas_gudhi,
 )
 
-from tda.core.metric import (
-    metrica_compuesta,
-    calibrar_alpha_optimo,
-)
-
 __all__ = [
     # FEM
     "calcular_K_elemental",
@@ -59,7 +53,4 @@ __all__ = [
     "betti_gudhi",
     "betti_doble_computo",
     "diagramas_gudhi",
-    # Métrica
-    "metrica_compuesta",
-    "calibrar_alpha_optimo",
 ]

@@ -42,10 +42,6 @@ para explorar el espacio de soluciones dentro del marco teórico de la tesis:
   — Criterio de parada dual junto con tol_x.
 • tol_x = 1e-3  (toleraancia de cambio de densidades)
   — Criterio de parada dual junto con tol_c.
-• alpha = 0.012  (peso de la métrica compuesta μ_α = c + α·β₁, calibrado por Prop. 1.1)
-  — Concepto introducido en esta investigación para integrar invariantes topológicos
-    dentro del bucle de optimización. No es un parámetro del thesis original, sino
-    una decisión de diseño para la regularización topológica.)
 
 NOTA IMPORTANTE:
 Los valores por defecto del constructor (__init__) están en negrita arriba y coinciden

@@ -8,8 +8,8 @@ se recomienda utilizar la clase canonica `MetricaTDA_SIMP` (`tda.optimization.me
 que implementa directamente el Algoritmo 1 del Documento.
 
 Proporciona análisis comparativo sistemático entre:
-1. SIMP puro (baseline euclidiano sin invariantes topológicos)
-2. SIMP con TDA (versión topológica con regularización μ_α)
+1. SIMP puro (baseline euclidiano)
+2. SIMP con análisis TDA post hoc (β₀, β₁ del diseño resultante)
 3. TDA puro sobre nubes de puntos (análisis de datos)
 
 Este módulo valida el objetivo general:
@@ -29,7 +29,6 @@ NOTA SOBRE PARÁMETROS:
     - Niveles de ruido: [0.10, 0.15, 0.20] (10%, 15%, 20% del diámetro, Capítulo III)
 - ⚙️ PARÁMETROS DE EXPERIMENTACIÓN (decisiones de implementación):
     - max_iter: 100 (por defecto del optimizer; aumentable a 200+ para mejor convergencia)
-    - alpha: 0.012 (peso de la métrica compuesta μ_α; calibrado según Prop. 1.1)
 """
 
 import numpy as np
@@ -37,7 +36,6 @@ import pandas as pd
 from pathlib import Path
 
 from tda.optimization.simp_optimizer import SimpTda2DOptimizer
-from tda.core.metric import metrica_compuesta, calibrar_alpha_optimo
 
 
 def run_sim_pure_optimizer(nelx=60, nely=30, volfrac=0.5, penal=3.0, rmin=2.4, max_iter=100):
@@ -73,43 +71,30 @@ def run_sim_pure_optimizer(nelx=60, nely=30, volfrac=0.5, penal=3.0, rmin=2.4, m
     }
 
 
-def run_sim_tda_optimizer(nelx=60, nely=30, volfrac=0.5, penal=3.0, rmin=2.4, max_iter=100, alpha=None):
+def run_sim_tda_optimizer(nelx=60, nely=30, volfrac=0.5, penal=3.0, rmin=2.4, max_iter=100):
     """
-    Ejecuta SIMP con análisis topológico integrado.
-    
-    Usa la métrica compuesta μ_α(ρ*) = c(ρ*) + α·β₁(Ω_sólido) para guiar la optimización,
-    cumpliendo así el núcleo de la hipótesis general.
-    
+    Ejecuta SIMP con análisis topológico post hoc (β₀, β₁ del diseño).
+
     Parámetros del Documento (por defecto):
     - volfrac=0.5, penal=3.0, rmin=2.4 (definidos en H.E.2 y Capítulo III)
     """
-    print(f"\n=== SIMP CON TDA (topológica) ===")
+    print(f"\n=== SIMP + ANÁLISIS TDA (post hoc) ===")
     print(f"Malla {nelx}×{nely}, volfrac={volfrac}, p={penal}")
-    
+
     opt = SimpTda2DOptimizer(nelx=nelx, nely=nely, volfrac=volfrac, penal=penal, rmin=rmin)
     opt.max_iter = max_iter
-    
-    # Si no se especifica α, se usa valor por defecto
-    if alpha is None:
-        alpha = 0.012  # peso calibrado por Prop. 1.1 (α ≈ 0.01-0.02 según Documento)
-    
+
     xPhys, dgms, b1, c_final, reduccion_pct = opt.run_optimization()
-    
-    # Calcular métrica compuesta
-    mu = metrica_compuesta(c_final, b1, alpha)
-    
+
     print(f"  Compliance final: {c_final:.4f}")
     print(f"  Reducción compliance: {reduccion_pct:.2f}%")
     print(f"  β1 (topología resultante): {b1}")
-    print(f"  Métrica compuesta μ_α: {mu:.4f} (c + α·β1 = {c_final:.4f} + {alpha:.2f}·{b1})")
     print(f"  Diagramas persistencia: {len(dgms)} dimensiones")
-    
+
     return {
         'c_final': c_final,
         'reduccion_pct': reduccion_pct,
         'b1': b1,
-        'mu': mu,
-        'alpha': alpha,
         'xPhys': xPhys,
         'dgms': dgms
     }
@@ -216,11 +201,6 @@ def compare_simp_vs_tda(
         print(f"   Ruido {noise:.1f}β0: {stats['betti0_mean']:.1f}±{stats['betti0_std']:.1f}, "
               f"β1: {stats['betti1_mean']:.1f}±{stats['betti1_std']:.1f}")
     
-    # Resultados agregados
-    print(f"\n4. Métrica compuesta μ_α:")
-    print(f"   SIMP con TDA: μ = {sim_tda['mu']:.4f}")
-    print(f"   (c = {sim_tda['c_final']:.4f}, α = {sim_tda['alpha']:.2f}, β1 = {sim_tda['b1']})")
-    
     # Guardar reporte
     reporte = {
         'malla': f"{malla[0]}×{malla[1]}",
@@ -237,8 +217,6 @@ def compare_simp_vs_tda(
         'sim_tda': {
             'reduccion_pct': sim_tda['reduccion_pct'],
             'b1': sim_tda['b1'],
-            'mu': sim_tda['mu'],
-            'alpha': sim_tda['alpha'],
             'c_final': sim_tda['c_final']
         },
         'tda_puro': tda_puro,
@@ -275,5 +253,4 @@ if __name__ == "__main__":
     print(f"• SIMP+TDA reduce compliance en {reporte['sim_tda']['reduccion_pct']:.2f}%")
     print(f"• Diferencia: {reporte['comparativas']['reduccion_diff']:+.2f} pp")
     print(f"• Si TDA mejora (+): Los invariantes topológicos aportan valor")
-    print(f"• Si no: Revisar diseño de la métrica μ_α")
     print("=" * 70)
