@@ -184,7 +184,9 @@ Con βk, `esfera` y `gaussiana` leen β₀ = 2–3 (las H₀ de una muestra fini
 
 ---
 
-## Resumen de trazabilidad (software → tesis)| Hipótesis | Función | Dato | Figura |
+## Resumen de trazabilidad (software → tesis)
+
+| Hipótesis | Función | Dato | Figura |
 |---|---|---|---|
 | H.E.1a | `stability.verificar_cota_bottleneck` | — | 5.2(b), 5.3 |
 | H.E.1b | `stability.comparar_tda_vs_euclidiano` | — | Tabla 5.5 |
