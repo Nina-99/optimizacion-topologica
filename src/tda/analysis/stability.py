@@ -1,7 +1,7 @@
 """Análisis de estabilidad topológica frente a ruido.
 
 Implementa el barrido sistemático de niveles de ruido para verificar
-las hipótesis H.E.1a', H.E.1b y H.E.1c del Perfil.
+las hipótesis H.E.1a, H.E.1b y H.E.1c del Perfil.
 
 Umbrales: τ · diam(X) — relativo al diámetro de la nube (Def. 8.1 del Perfil).
 
@@ -123,7 +123,7 @@ def betti_significativos(
 
 
 # ═══════════════════════════════════════════════════════════════════
-# H.E.1a' — COTA BOTTLENECK: dB/diam ≤ 2q
+# H.E.1a — COTA BOTTLENECK: dB/diam ≤ 2q
 # ═══════════════════════════════════════════════════════════════════
 
 def verificar_cota_bottleneck(
@@ -132,9 +132,9 @@ def verificar_cota_bottleneck(
     q: float,
     maxdim: int = 1,
 ) -> Dict:
-    """Verifica la cota H.E.1a': dB(Dgm(X), Dgm(Y)) / diam(X) ≤ 2q.
+    """Verifica la cota H.E.1a: dB(Dgm(X), Dgm(Y)) / diam(X) ≤ 2q.
 
-    Ref: H.E.1a' reformulada (§7 metodología):
+    Ref: H.E.1a reformulada (§7 metodología):
         dB(Dgm VR(X), Dgm VR(Y)) / diam(X) ≤ 2q
 
     Parámetros
@@ -195,34 +195,42 @@ def clasificador_tda(
     return 1 if b1 > 0 else 0
 
 
-def clasificador_euclidiano(
-    pts: np.ndarray,
-) -> int:
-    """Descriptor euclidiano compuesto: espectro PCA + inercia k-medias + dispersión radial.
+def descriptor_euclidiano(pts: np.ndarray) -> np.ndarray:
+    """Descriptor euclidiano compuesto (H.E.1b): [espectro PCA, inercia k-medias, dispersión radial].
 
-    Retorna 0 o 1 (la mejor asignación de las dos clases).
+    - Espectro PCA: suma de las varianzas explicadas (traza de la covarianza).
+    - Inercia de k-medias: km.inertia_ / N (dispersión intra-clúster, k = 2).
+    - Dispersión radial: distancia media al centroide.
     """
     from sklearn.decomposition import PCA
     from sklearn.cluster import KMeans
 
-    # PCA: varianza explicada
     pca = PCA(n_components=min(2, pts.shape[1]))
     pca.fit(pts)
-    inertia_pca = float(np.sum(pca.explained_variance_))
+    espectro_pca = float(np.sum(pca.explained_variance_))
 
-    # K-Means: inercia
     km = KMeans(n_clusters=2, random_state=42, n_init=10)
     km.fit(pts)
-    inertia_km = km.inertia_
+    inercia_km = float(km.inertia_) / max(len(pts), 1)
 
-    # Dispersión radial
-    centroid = pts.mean(axis=0)
-    radial = np.mean(np.linalg.norm(pts - centroid, axis=1))
+    radial = float(np.mean(np.linalg.norm(pts - pts.mean(axis=0), axis=1)))
 
-    # Compuesto: normalizar y sumar
-    # El anillo tiene mayor inercia PCA y menor dispersión radial que el disco
-    score = inertia_pca + radial
-    return 1 if score > 2.0 else 0  # umbral calibrado
+    return np.array([espectro_pca, inercia_km, radial])
+
+
+def clasificador_euclidiano(pts: np.ndarray, centroides=None) -> int:
+    """Clasificador euclidiano de referencia: vecino más cercano sobre el
+    descriptor compuesto [espectro PCA, inercia de k-medias, dispersión radial].
+
+    `centroides` = (mu, sd, c_disco, c_anillo) estandarizados, aprendidos de
+    muestras LIMPIAS. Sin `centroides`, devuelve el descriptor crudo.
+    """
+    d = descriptor_euclidiano(pts)
+    if centroides is None:
+        return d
+    mu, sd, c0, c1 = centroides
+    dn = (d - mu) / sd
+    return 0 if np.linalg.norm(dn - c0) <= np.linalg.norm(dn - c1) else 1
 
 
 def comparar_tda_vs_euclidiano(
@@ -255,6 +263,16 @@ def comparar_tda_vs_euclidiano(
     np.random.seed(random_seed)
     n_per_class = n_rep // 2
 
+    # Centroides del descriptor euclidiano aprendidos de muestras LIMPIAS
+    n_train = max(20, n_per_class // 4)
+    F_disco = np.array([descriptor_euclidiano(generate_cloud("disco", n_points)) for _ in range(n_train)])
+    F_anillo = np.array([descriptor_euclidiano(generate_cloud("anillo", n_points)) for _ in range(n_train)])
+    F = np.vstack([F_disco, F_anillo])
+    mu, sd = F.mean(axis=0), F.std(axis=0) + 1e-12
+    centroides = (mu, sd,
+                  (F_disco.mean(axis=0) - mu) / sd,
+                  (F_anillo.mean(axis=0) - mu) / sd)
+
     y_true = np.array([0] * n_per_class + [1] * n_per_class)
     y_tda = np.zeros(len(y_true), dtype=int)
     y_eucl = np.zeros(len(y_true), dtype=int)
@@ -270,8 +288,8 @@ def comparar_tda_vs_euclidiano(
 
         y_tda[i] = clasificador_tda(disco, tau)
         y_tda[n_per_class + i] = clasificador_tda(anillo, tau)
-        y_eucl[i] = clasificador_euclidiano(disco)
-        y_eucl[n_per_class + i] = clasificador_euclidiano(anillo)
+        y_eucl[i] = clasificador_euclidiano(disco, centroides)
+        y_eucl[n_per_class + i] = clasificador_euclidiano(anillo, centroides)
 
     acc_tda = float(np.mean(y_tda == y_true))
     acc_eucl = float(np.mean(y_eucl == y_true))
@@ -290,7 +308,7 @@ def comparar_tda_vs_euclidiano(
 
 
 # ═══════════════════════════════════════════════════════════════════
-# BARRIDO COMPLETO — H.E.1a' + H.E.1c
+# BARRIDO COMPLETO — H.E.1a + H.E.1c
 # ═══════════════════════════════════════════════════════════════════
 
 def barrido_cota_bottleneck(
@@ -301,7 +319,7 @@ def barrido_cota_bottleneck(
     tau: float = 0.15,
     random_seed: int = 42,
 ) -> Dict:
-    """Barrido completo de H.E.1a': verifica dB/diam ≤ 2q.
+    """Barrido completo de H.E.1a: verifica dB/diam ≤ 2q.
 
     Para cada nivel de ruido q, genera n réplicas de cada nube,
     perturba con ruido gaussiano de nivel relativo q, y verifica la cota.
@@ -357,7 +375,7 @@ def barrido_cota_bottleneck(
                 if b0_r == b0_teo and b1_r == b1_teo:
                     aciertos += 1
 
-                # H.E.1a': cota bottleneck
+                # H.E.1a: cota bottleneck
                 res_bn = verificar_cota_bottleneck(X_limpia, Y_perturbada, q)
                 ratios.append(res_bn["ratio"])
                 if res_bn["cumple"]:
