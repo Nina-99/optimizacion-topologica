@@ -439,10 +439,13 @@ if st.session_state.get("simp_optimized", False):
     except Exception as e:
         st.error(f"Error en la exportación: {e}")
 
-methodology_expander("📖 Plan de Acción — H.E.2", [
-    ("H.E.2a", r"\frac{c(f_{V}\cdot \mathbf{1}) - c(\rho^{\star})}{c(f_{V}\cdot \mathbf{1})} \ge 0.40"),
-    ("H.E.2b", r"\beta_{1}(\Omega_{\text{sólido}})\ \text{invariante para}\ r_{\min}\in[1.5,4.0],\ p\in\{2,3,4\},\ \text{malla con } r_{\min}\ \text{escalado}"),
-    ("Formulación SIMP", r"\min c(\rho)=U^{T}K(\rho)U \quad \text{s.a.}\quad K(\rho)U=F,\quad \sum_e \rho_e v_e = f_V V_0"),
-    ("Referente", r"c(\rho)\ge c(1)\ \Rightarrow\ \text{el referente es el diseño uniforme, no el bloque sólido}"),
+methodology_expander("📖 Protocolo y compuertas — H.E.2", [
+    ("Protocolo y compuertas", (
+        "| Sub-hipótesis | Se mide | Instrumento | Criterio | Evidencia |\n"
+        "|---|---|---|---|---|\n"
+        "| H.E.2a | reducción de compliance vs diseño uniforme | FEM Q4 + OC (Alg. 2) | $\\ge 40\\,\\%$ | Fig. 5.4(b), Tabla 5.6 |\n"
+        "| H.E.2b | $\\beta_1$ frente a malla, $p$ y $r_{\\min}$ + doble cómputo | Euler vs GUDHI | invariante y 100 % de concordancia | Figs. 5.5, 5.6, 5.7 |\n"
+    )),
+    ("Compuertas (Cap. IV)", "La concordancia Euler–GUDHI (F2) es bloqueante; el referente es el **diseño uniforme** de igual volumen (no el bloque sólido, por conservación de la materia)."),
 ], "H.E.2")
 st.markdown("---")

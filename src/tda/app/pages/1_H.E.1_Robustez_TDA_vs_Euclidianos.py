@@ -350,13 +350,15 @@ if st.session_state.get("tda_he1_run", False) and res:
     except Exception as e:
         st.error(f"Error en la exportación: {e}")
 
-methodology_expander("📖 Plan de Acción — H.E.1", [
-    ("H.E.1a — estabilidad de diagramas",
-     r"d_{B}\bigl(\mathrm{Dgm}_{k}^{\mathrm{VR}}(X),\ \mathrm{Dgm}_{k}^{\mathrm{VR}}(Y)\bigr) \le 2\,d_{H}(X,Y),\quad k=0,1"),
-    ("H.E.1b — ventaja comparativa",
-     "Exactitud TDA vs euclidiana (disco/anillo + afín) con contraste de McNemar ($p<0.05$)"),
-    ("H.E.1c — rango de fiabilidad",
-     r"\exists\, q^{*} : \beta_{k}^{(\tau)}(X) = \beta_{k}^{\mathrm{teo}} \ \text{para}\ q < q^{*}"),
+methodology_expander("📖 Protocolo y compuertas — H.E.1", [
+    ("Protocolo y compuertas", (
+        "| Sub-hipótesis | Se mide | Instrumento | Criterio | Evidencia |\n"
+        "|---|---|---|---|---|\n"
+        "| H.E.1a | $d_B$ vs $2\\,d_H$ por réplica | Ripser + Bottleneck | 100 % de las réplicas | Figs. 5.2(b), 5.3 |\n"
+        "| H.E.1b | exactitud TDA vs euclidiano | McNemar | $p < 0.05$ | Tabla 5.5 |\n"
+        "| H.E.1c | $q^*$ (acierto de $\\beta_k$) | barrido de ruido | $q^* \\in [0.05, 0.10]$ | Fig. 5.2(a) |\n"
+    )),
+    ("Compuertas (Cap. IV)", "Calibración de $\\tau$ (F3) **antes** de medir; la cota $d_B \\le 2\\,d_H$ es bloqueante (F4) y la concordancia Euler–GUDHI valida el indicador."),
 ], "H.E.1")
 st.markdown("---")
 apply_mpl_theme()

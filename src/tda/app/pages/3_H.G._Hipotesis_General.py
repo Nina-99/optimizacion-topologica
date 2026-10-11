@@ -255,10 +255,16 @@ try:
 except Exception as e:
     st.error(f"Error en la exportación: {e}")
 
-methodology_expander("📖 Plan de Acción — H.G.", [
-    ("Hipótesis general (§1.5)",
-     "Estructuras topológicas → descriptores estables y globalmente consistentes; ventaja formal, no indiscriminada."),
-    ("Síntesis", "H.E.1a · H.E.1b · H.E.1c · H.E.2a · H.E.2b (Tabla 5.9)."),
-    ("Articulación TDA–SIMP",
-     r"Complejo simplicial (VR) y complejo cúbico son instancias del mismo complejo de cadenas (C_\bullet, \partial_\bullet)."),
+methodology_expander("📖 Protocolo y compuertas — H.G.", [
+    ("Protocolo", (
+        "Corre los protocolos de H.E.1 y H.E.2 y consolida los veredictos.\n\n"
+        "| Ítem | Se mide | Criterio | Evidencia |\n"
+        "|---|---|---|---|\n"
+        "| H.E.1a | $d_B \\le 2\\,d_H$ | 100 % de réplicas | Fig. 5.2(b) |\n"
+        "| H.E.1b | TDA vs euclidiano | McNemar $p < 0.05$ | Tabla 5.5 |\n"
+        "| H.E.1c | $q^*$ | $q^* \\in [0.05, 0.10]$ | Fig. 5.2(a) |\n"
+        "| H.E.2a | reducción de compliance | $\\ge 40\\,\\%$ vs uniforme | Fig. 5.4(b) |\n"
+        "| H.E.2b | $\\beta_1$ invariante | malla, $p$, $r_{\\min}$ + Euler≡GUDHI | Figs. 5.5–5.7 |\n"
+    )),
+    ("Articulación TDA–SIMP", "Complejo simplicial (VR) y complejo cúbico son instancias del mismo complejo de cadenas; un rasgo se acepta si **persiste** en la filtración ($\\varepsilon$ en TDA, $u$ en SIMP)."),
 ], "H.G.")

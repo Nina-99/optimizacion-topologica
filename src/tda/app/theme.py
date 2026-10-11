@@ -600,7 +600,7 @@ def methodology_expander(title, content_items, page_name):
         return any(m in text for m in latex_markers)
 
     with st.expander(title, expanded=False):
-        st.markdown(f"### {page_name} — Plan de Acción")
+        st.markdown(f"### {page_name} — Protocolo y compuertas")
 
         for label, text in content_items:
             if label == "fórmulas":
@@ -621,7 +621,7 @@ def methodology_expander(title, content_items, page_name):
                 st.markdown(text)
 
         st.markdown("---")
-        st.caption("Verificar consistencia con el Documento")
+        st.caption("Trazabilidad con el Cap. IV del documento.")
 
 
 # ═══════════════════════════════════════════════════════════════

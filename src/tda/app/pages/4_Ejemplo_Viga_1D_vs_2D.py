@@ -25,7 +25,7 @@ from tda.simulation.he_protocols import (
 )
 from tda.app.theme import (
     apply_mpl_theme, apply_plotly_theme, responsive_style,
-    page_header, ORANGE
+    page_header, ORANGE, methodology_expander,
 )
 
 from tda.app.download_utils import export_settings_ui
@@ -999,6 +999,22 @@ if _figs_viga:
     )
 else:
     st.info("Ejecutar una simulación para generar y descargar las figuras.")
+
+
+# ══════════════════════════════════════════════════════════════
+# PROTOCOLO Y COMPUERTAS (vínculo con la tesis)
+# ══════════════════════════════════════════════════════════════
+methodology_expander("📖 Protocolo y compuertas — Ejemplo Viga", [
+    ("Vínculo con la tesis (Caso 2)", (
+        "El caso real se certifica con los mismos criterios que el Caso 2.\n\n"
+        "| Criterio | Umbral | Evidencia |\n"
+        "|---|---|---|\n"
+        "| H.E.2a — reducción de compliance | $\\ge 40\\,\\%$ vs uniforme | informe |\n"
+        "| H.E.2b — $\\beta_1$ estable | doble cómputo + persistencia | Fig. 5.7 |\n"
+        "| Resistencia | $FS \\ge 1.5$ | $\\sigma_{\\max}$ vs $\\sigma_{adm}$ |\n"
+    )),
+    ("Alcance", "Los modos **1D** y **Comparación** son **didácticos** (fuera del alcance de la tesis); el aporte es el Caso 2 (SIMP)."),
+], "Ejemplo Viga")
 
 
 # ══════════════════════════════════════════════════════════════
