@@ -252,7 +252,7 @@ if _he1 or _he2:
         sw = (st.session_state.get("he1_results") or {}).get("sweep", {})
         vals = [sw[s]["cumple_frac"][i] for s in sw for i in range(len(qs))]
         frac = sum(vals) / len(vals) if vals else 0.0
-        acc = [sum(sw[s]["acierto"][i] for s in subset if s in sw) / max(len(subset), 1)
+        acc = [sum(sw[s].get("acierto_b1", sw[s]["acierto"])[i] for s in subset if s in sw) / max(len(subset), 1)
                for i in range(len(qs))]
         cand = [q for q, a in zip(qs, acc) if a >= 0.95]
         qstar = max(cand) if cand else None

@@ -93,7 +93,7 @@ ejecutar = st.button("▶ Ejecutar protocolo H.E.1", type="primary")
 
 # ── 0. Calibración previa del umbral τ (Figura 5.1) ──────────────────
 st.subheader("Paso previo — Figura 5.1: Curva de calibración del umbral relativo de persistencia $\\tau$")
-st.caption("El eje vertical cuenta cuántas de las siete nubes de referencia reciben la lectura $\\beta_k$ correcta. La franja verde marca la ventana en que el acierto es total.")
+st.caption("El eje vertical cuenta cuántas de las siete nubes de referencia reciben la lectura $\\beta_1$ correcta (invariante que $\\tau$ filtra). El documento la enuncia como $\\beta_k$; con $\\beta_k$ no se reproduce el plateau 7/7 — ver Item 13.")
 if st.button("Calibrar τ (Figura 5.1)", key="btn_calib_tau"):
     with st.spinner("Calibrando contra el patrón de oro (7 nubes)..."):
         taus, aciertos = calibrar_tau(n_points, SEED)
@@ -349,9 +349,9 @@ if st.session_state.get("tda_he1_run", False) and res:
     fig52a.add_hline(y=ACC_ALTO, line=dict(dash="dot", color="red"),
                      annotation_text="50 %")
     fig52a.update_layout(height=380, template="plotly_white",
-                         title="Colapso de la lectura de β₁",
+                         title="Colapso de la lectura de βk",
                          xaxis_title="nivel de ruido q = σₙ/diam(X)",
-                         yaxis_title="tasa de acierto de β₁",
+                         yaxis_title="tasa de acierto de βk",
                          xaxis=dict(range=[0.0, 0.20], dtick=0.05),
                          yaxis=dict(range=[0.0, 1.0], dtick=0.2))
     apply_plotly_theme(fig52a)
@@ -359,20 +359,19 @@ if st.session_state.get("tda_he1_run", False) and res:
     st.session_state.setdefault("he1_figs", {})["fig52a_tasa_acierto"] = fig52a
 
     # q* = máx{q : tasa de acierto ≥ 0.95} sobre el subconjunto validado (Tabla 5.5, nota a)
-    acc_all = [float(np.mean([sweep[s]["acierto"][i] for s in CATALOGO])) for i in range(len(qs))]
-    acc_subs = [float(np.mean([sweep[s]["acierto"][i] for s in SUBCONJUNTO_VALIDADO])) for i in range(len(qs))]
-    st.caption("Criterio de acierto evaluado sobre el subconjunto validado (círculo, disco, anillo), "
-               "según la nota (a) de la Tabla 5.5. La Fig. 5.2(a) muestra las 7 nubes. "
-               "Se mide **β₁** (el invariante que τ filtra); el documento lo enuncia sobre βk — ver Item 13 "
-               "del archivo de correcciones.")
-    candidatos = [q for q, a in zip(qs, acc_subs) if a >= ACC_BAJO]
+    acc_bk_all = [float(np.mean([sweep[s]["acierto"][i] for s in CATALOGO])) for i in range(len(qs))]
+    acc_b1 = [float(np.mean([sweep[s]["acierto_b1"][i] for s in SUBCONJUNTO_VALIDADO])) for i in range(len(qs))]
+    st.caption("La Fig. 5.2(a) muestra **βk = (β₀, β₁)** (como el documento). El nivel crítico **q\\*** se delimita "
+               "sobre **β₁** (el invariante que la filtración controla), evaluado en el subconjunto validado "
+               "(círculo, disco, anillo) según la nota (a) de la Tabla 5.5 — ver Item 13 del archivo de correcciones.")
+    candidatos = [q for q, a in zip(qs, acc_b1) if a >= ACC_BAJO]
     q_star = max(candidatos) if candidatos else None
-    q_bajo_colapso = next((q for q, a in zip(qs, acc_subs) if q > 0 and a < ACC_ALTO), None)
+    q_bajo_colapso = next((q for q, a in zip(qs, acc_b1) if q > 0 and a < ACC_ALTO), None)
     st.dataframe(pd.DataFrame({"q": qs,
-                               "Acierto β₁ (validado)": [f"{a:.3f}" for a in acc_subs],
-                               "Acierto β₁ (catálogo)": [f"{a:.3f}" for a in acc_all],
-                               "≥ 0.95": ["✅" if a >= ACC_BAJO else "—" for a in acc_subs],
-                               "< 0.50": ["✅" if a < ACC_ALTO else "—" for a in acc_subs]}),
+                               "Acierto βk (catálogo)": [f"{a:.3f}" for a in acc_bk_all],
+                               "Acierto β₁ (validado)": [f"{a:.3f}" for a in acc_b1],
+                               "≥ 0.95": ["✅" if a >= ACC_BAJO else "—" for a in acc_b1],
+                               "< 0.50": ["✅" if a < ACC_ALTO else "—" for a in acc_b1]}),
                  width="stretch", hide_index=True)
     in_rango = q_star is not None and Q_STAR_RANGO[0] <= q_star <= Q_STAR_RANGO[1]
     if in_rango:
@@ -386,8 +385,8 @@ if st.session_state.get("tda_he1_run", False) and res:
     # 4. Veredicto H.E.1 (Tabla 5.5)
     # ══════════════════════════════════════════════════════════════════
     st.subheader("4. Veredicto H.E.1 — Tabla 5.5 (indicador, criterio, esperado, medido)")
-    acc_bajo = float(np.mean([a for q, a in zip(qs, acc_subs) if q <= 0.05])) if any(q <= 0.05 for q in qs) else None
-    acc_alto = float(np.mean([a for q, a in zip(qs, acc_subs) if q >= 0.15])) if any(q >= 0.15 for q in qs) else None
+    acc_bajo = float(np.mean([a for q, a in zip(qs, acc_b1) if q <= 0.05])) if any(q <= 0.05 for q in qs) else None
+    acc_alto = float(np.mean([a for q, a in zip(qs, acc_b1) if q >= 0.15])) if any(q >= 0.15 for q in qs) else None
     filas55 = [
         {"Indicador": "dB ≤ 2 dH", "Criterio": "Fracción de réplicas = 1.0",
          "Esperado": "1.000", "Medido": f"{frac_global:.3f}", "Veredicto": "✓" if frac_global == 1.0 else "×"},

@@ -99,7 +99,7 @@ if he1_run:
         frac = float(np.mean([sw[s]["cumple_frac"][i] for s in sw for i in range(len(Q_LEVELS))]))
         he1a_ok = frac == 1.0
         he1a_val = f"{frac:.3f}"
-        acc_subs = [float(np.mean([sw[s]["acierto"][i] for s in SUBCONJUNTO_VALIDADO if s in sw]))
+        acc_subs = [float(np.mean([sw[s].get("acierto_b1", sw[s]["acierto"])[i] for s in SUBCONJUNTO_VALIDADO if s in sw]))
                     for i in range(len(Q_LEVELS))]
         cand = [q for q, a in zip(Q_LEVELS, acc_subs) if a >= 0.95]
         q_star = max(cand) if cand else None

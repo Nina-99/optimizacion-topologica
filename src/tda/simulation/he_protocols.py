@@ -49,29 +49,33 @@ def bottleneck_cota(dgm_X, dgm_Y, maxdim=1):
 def protocolo_he1(n_points, q_levels, n_rep, tau=TAU_CALIBRADO, seed=SEED):
     """Recorre el catálogo (H.E.1a y H.E.1c) siguiendo el Algoritmo maestro.
 
-    Devuelve (resultados, crudo): por nube, acierto de βk, razón bottleneck
-    media/std (dB/dH), razón dB/diam y fracción que cumple dB ≤ 2dH; y las
-    réplicas crudas (dB, dH) para la Fig. 5.2(b).
+    Devuelve (resultados, crudo): por nube, acierto βk (Fig. 5.2(a)), acierto β₁
+    (criterio q*, H.E.1c), razón bottleneck media/std (dB/dH), razón dB/diam y
+    fracción que cumple dB ≤ 2dH; y las réplicas crudas (dB, dH) para la Fig. 5.2(b).
     """
     resultados, crudo = {}, []
     for shape in CATALOGO:
+        np.random.seed(seed)          # semilla: catálogo reproducible (Algoritmo maestro)
         X0 = generate_cloud(shape, n_points)
         b0_teo, b1_teo = betti_teorico(shape)
         diam = compute_diameter(X0)
         dgm_X = ripser(X0, maxdim=1)["dgms"]
         resultados[shape] = {
             "betti_teorico": (b0_teo, b1_teo), "diam": diam,
-            "acierto": [], "ratio_medio": [], "ratio_diam_medio": [], "ratio_std": [], "cumple_frac": [],
+            "acierto": [], "acierto_b1": [],
+            "ratio_medio": [], "ratio_diam_medio": [], "ratio_std": [], "cumple_frac": [],
         }
         for q in q_levels:
-            aciertos, rdH, rDiam, cumple = 0, [], [], 0
+            aciertos, aciertos1, rdH, rDiam, cumple = 0, 0, [], [], 0
             for r in range(n_rep):
                 np.random.seed(seed + 1000 * r + int(1e5 * q))       # Algoritmo maestro
                 Y = add_gaussian_noise(X0, q)
                 dgm_Y = ripser(Y, maxdim=1)["dgms"]
                 b0, b1 = betti_persistente(dgm_Y, tau, diam)
-                if b1 == b1_teo:      # H.E.1c mide el invariante β₁ (lo que τ filtra)
+                if b0 == b0_teo and b1 == b1_teo:   # βk = (β₀, β₁)  → Fig. 5.2(a)
                     aciertos += 1
+                if b1 == b1_teo:                    # β₁ (invariante que τ filtra) → q* (H.E.1c)
+                    aciertos1 += 1
                 dB = bottleneck_cota(dgm_X, dgm_Y)
                 dH = hausdorff_distance(X0, Y)
                 rdH.append(dB / dH if dH > 0 else 0.0)
@@ -81,6 +85,7 @@ def protocolo_he1(n_points, q_levels, n_rep, tau=TAU_CALIBRADO, seed=SEED):
                 crudo.append({"shape": shape, "q": q, "dB": dB, "dH": dH, "diam": diam,
                               "dB_diam": dB / diam if diam > 0 else 0.0})
             resultados[shape]["acierto"].append(aciertos / n_rep)
+            resultados[shape]["acierto_b1"].append(aciertos1 / n_rep)
             resultados[shape]["ratio_medio"].append(float(np.mean(rdH)))
             resultados[shape]["ratio_diam_medio"].append(float(np.mean(rDiam)))
             resultados[shape]["ratio_std"].append(float(np.std(rdH)))
