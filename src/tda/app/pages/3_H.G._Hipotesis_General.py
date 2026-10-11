@@ -217,6 +217,36 @@ elif any(s is False for s in sostiene):
 else:
     st.info("Sin datos aún: ejecutá los protocolos para emitir el veredicto.")
 
+# ── Reproducibilidad (compuerta F6) ──────────────────────────────────
+st.markdown("---")
+st.subheader("🧪 Reproducibilidad — compuerta F6")
+st.caption("Reejecuta la configuración canónica (semilla 42) y la compara con los CSV versionados en "
+           "`data/`. La igualdad demuestra que el estudio es reproducible desde cero.")
+if st.button("▶ Reproducir desde semilla y comparar con los CSV", key="btn_f6"):
+    import os as _os
+    m_chk = corrida_simp(60, 30, P_DEFECTO, RMIN_DEFECTO, max_iter=200)
+    c_u2, c_s2, b1_2 = float(m_chk.c_hist[0]), float(m_chk.c_final), int(m_chk.beta1)
+    ruta = _os.path.join("data", "validacion_HE2_corregida.csv")
+    if _os.path.exists(ruta):
+        dfchk = pd.read_csv(ruta)
+        c_u_csv, c_s_csv = float(dfchk["c_uniforme"].iloc[0]), float(dfchk["c_simp"].iloc[0])
+        b1_csv = int(dfchk["beta1_base"].iloc[0])
+        ok = abs(c_u2 - c_u_csv) < 1e-6 and abs(c_s2 - c_s_csv) < 1e-6 and b1_2 == b1_csv
+        st.dataframe(pd.DataFrame({
+            "Magnitud": ["c uniforme", "c SIMP", "β₁"],
+            "Reproducido ahora": [f"{c_u2:.6f}", f"{c_s2:.6f}", str(b1_2)],
+            "CSV del repositorio": [f"{c_u_csv:.6f}", f"{c_s_csv:.6f}", str(b1_csv)],
+            "Δ": [f"{abs(c_u2-c_u_csv):.2e}", f"{abs(c_s2-c_s_csv):.2e}", "—"],
+        }), width="stretch", hide_index=True)
+        if ok:
+            st.success("### ✅ Reproducido — idéntico a `data/validacion_HE2_corregida.csv` (Δ < 1e-6). "
+                       "La compuerta F6 del Cap. IV se cumple.")
+        else:
+            st.warning("⚠️ Diferencias respecto al CSV; revisar entorno o parámetros.")
+    else:
+        st.info("No se encontró `data/validacion_HE2_corregida.csv`. Generálo con "
+                "`python -m tda.simulation.experiment_simp`.")
+
 # ── Estudio reproducible completo ────────────────────────────────────
 st.markdown("---")
 st.subheader("📦 Estudio reproducible")

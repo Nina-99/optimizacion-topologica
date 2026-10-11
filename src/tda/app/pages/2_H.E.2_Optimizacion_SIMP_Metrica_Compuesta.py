@@ -385,6 +385,25 @@ if st.session_state.get("simp_optimized", False):
                        f"El umbral adoptado u = 0.5 cae en el centro de la meseta.")
         else:
             st.warning("⚠️ β₁ varía con el umbral de binarización.")
+
+    # ── 🎚️ Umbral interactivo (persistencia en vivo) ─────────────────
+    st.markdown("**🎚️ Umbral interactivo — persistencia en vivo:** mové el umbral y mirá cómo cambia el sólido y la lectura β₀/β₁.")
+    u_live = st.slider("Umbral de binarización u", 0.05, 0.95, 0.50, 0.05, key="u_live")
+    from tda.core.betti2d import betti_euler as _betti_euler
+    S_live = (rho_tilde_final.reshape(ney_, nex_) >= u_live)
+    b0l, b1l = _betti_euler(S_live)
+    colA, colB = st.columns([3, 1])
+    with colA:
+        fig_live = go.Figure(data=[go.Heatmap(z=S_live.astype(float), colorscale="gray_r",
+                                               zmin=0, zmax=1, showscale=False)])
+        fig_live.update_layout(height=320, title=f"Ω sólido (u = {u_live:.2f})",
+                               margin=dict(l=0, r=0, b=0, t=40))
+        apply_plotly_theme(fig_live)
+        st.plotly_chart(fig_live, width="stretch")
+    with colB:
+        st.metric("β₀ (componentes)", b0l)
+        st.metric("β₁ (agujeros)", b1l)
+        st.caption("Los 3 agujeros persisten para u ∈ [0.05, 0.85]: rasgo real, no artefacto.")
     st.markdown("---")
 
     # ── 3. Veredicto H.E.2 ──────────────────────────────────────────
