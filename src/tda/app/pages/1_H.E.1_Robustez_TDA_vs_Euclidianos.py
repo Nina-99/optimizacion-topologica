@@ -109,7 +109,7 @@ if calib:
         fig51.add_vrect(x0=min(ventana), x1=max(ventana), fillcolor="green", opacity=0.15, line_width=0)
     fig51.add_trace(go.Scatter(x=taus, y=aciertos, mode="lines+markers",
                                line=dict(color="royalblue"),
-                               name=f"Nubes con lectura βk correcta (de {len(CATALOGO)})"))
+                               name=f"Nubes con lectura β₁ correcta (de {len(CATALOGO)})"))
     if ventana:
         fig51.add_trace(go.Scatter(x=[None], y=[None], mode="markers",
                                    marker=dict(color="green", opacity=0.4, symbol="square", size=12),
@@ -119,7 +119,7 @@ if calib:
                                name=f"τ adoptado = {TAU_CALIBRADO}"))
     fig51.update_layout(height=380, template="plotly_white",
                         xaxis_title="Umbral relativo de persistencia (τ)",
-                        yaxis_title=f"Nubes con lectura βk correcta (de {len(CATALOGO)})",
+                        yaxis_title=f"Nubes con lectura β₁ correcta (de {len(CATALOGO)})",
                         xaxis=dict(range=[0.05, 0.40], dtick=0.05),
                         yaxis=dict(range=[0, len(CATALOGO)], dtick=1))
     apply_plotly_theme(fig51)
@@ -348,7 +348,7 @@ if st.session_state.get("tda_he1_run", False) and res:
                      annotation_text="50 %")
     fig52a.update_layout(height=380, template="plotly_white",
                          xaxis_title="Nivel relativo de ruido (q)",
-                         yaxis_title="Tasa de acierto de βk",
+                         yaxis_title="Tasa de acierto de β₁",
                          xaxis=dict(range=[min(qs), max(qs)]), yaxis=dict(range=[0, 1]))
     apply_plotly_theme(fig52a)
     st.plotly_chart(fig52a, width="stretch")
@@ -358,13 +358,15 @@ if st.session_state.get("tda_he1_run", False) and res:
     acc_all = [float(np.mean([sweep[s]["acierto"][i] for s in CATALOGO])) for i in range(len(qs))]
     acc_subs = [float(np.mean([sweep[s]["acierto"][i] for s in SUBCONJUNTO_VALIDADO])) for i in range(len(qs))]
     st.caption("Criterio de acierto evaluado sobre el subconjunto validado (círculo, disco, anillo), "
-               "según la nota (a) de la Tabla 5.5. La Fig. 5.2(a) muestra las 7 nubes.")
+               "según la nota (a) de la Tabla 5.5. La Fig. 5.2(a) muestra las 7 nubes. "
+               "Se mide **β₁** (el invariante que τ filtra); el documento lo enuncia sobre βk — ver Item 13 "
+               "del archivo de correcciones.")
     candidatos = [q for q, a in zip(qs, acc_subs) if a >= ACC_BAJO]
     q_star = max(candidatos) if candidatos else None
     q_bajo_colapso = next((q for q, a in zip(qs, acc_subs) if q > 0 and a < ACC_ALTO), None)
     st.dataframe(pd.DataFrame({"q": qs,
-                               "Acierto βk (validado)": [f"{a:.3f}" for a in acc_subs],
-                               "Acierto βk (catálogo)": [f"{a:.3f}" for a in acc_all],
+                               "Acierto β₁ (validado)": [f"{a:.3f}" for a in acc_subs],
+                               "Acierto β₁ (catálogo)": [f"{a:.3f}" for a in acc_all],
                                "≥ 0.95": ["✅" if a >= ACC_BAJO else "—" for a in acc_subs],
                                "< 0.50": ["✅" if a < ACC_ALTO else "—" for a in acc_subs]}),
                  width="stretch", hide_index=True)
@@ -385,10 +387,10 @@ if st.session_state.get("tda_he1_run", False) and res:
     filas55 = [
         {"Indicador": "dB ≤ 2 dH", "Criterio": "Fracción de réplicas = 1.0",
          "Esperado": "1.000", "Medido": f"{frac_global:.3f}", "Veredicto": "✓" if frac_global == 1.0 else "×"},
-        {"Indicador": "Acierto de βk, q ≤ 0.05", "Criterio": "≥ 0.95",
+        {"Indicador": "Acierto de β₁, q ≤ 0.05", "Criterio": "≥ 0.95",
          "Esperado": "≥ 0.95", "Medido": f"{acc_bajo:.2f}" if acc_bajo is not None else "—",
          "Veredicto": "✓" if (acc_bajo is not None and acc_bajo >= 0.95) else "×"},
-        {"Indicador": "Acierto de βk, q ≥ 0.15", "Criterio": "< 0.50 (régimen no válido)",
+        {"Indicador": "Acierto de β₁, q ≥ 0.15", "Criterio": "< 0.50 (régimen no válido)",
          "Esperado": "< 0.50", "Medido": f"{acc_alto:.3f}" if acc_alto is not None else "—",
          "Veredicto": "✓" if (acc_alto is not None and acc_alto < 0.50) else "×"},
         {"Indicador": "Nivel crítico q*", "Criterio": "Delimitado empíricamente",

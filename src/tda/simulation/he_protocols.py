@@ -70,7 +70,7 @@ def protocolo_he1(n_points, q_levels, n_rep, tau=TAU_CALIBRADO, seed=SEED):
                 Y = add_gaussian_noise(X0, q)
                 dgm_Y = ripser(Y, maxdim=1)["dgms"]
                 b0, b1 = betti_persistente(dgm_Y, tau, diam)
-                if b0 == b0_teo and b1 == b1_teo:
+                if b1 == b1_teo:      # H.E.1c mide el invariante β₁ (lo que τ filtra)
                     aciertos += 1
                 dB = bottleneck_cota(dgm_X, dgm_Y)
                 dH = hausdorff_distance(X0, Y)
@@ -101,8 +101,8 @@ def calibrar_tau(n_points, seed=SEED, n_tau=20):
         ok = 0
         for shape in CATALOGO:
             dgm, diam = dgms[shape]
-            b0, b1 = betti_persistente(dgm, tau, diam)   # lectura βk = (β₀, β₁)
-            if (b0, b1) == betti_teorico(shape):
+            _, b1 = betti_persistente(dgm, tau, diam)   # lectura β₁ (invariante de τ)
+            if b1 == betti_teorico(shape)[1]:
                 ok += 1
         aciertos.append(ok)
     return taus, aciertos

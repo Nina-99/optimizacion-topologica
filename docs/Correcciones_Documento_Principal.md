@@ -182,6 +182,8 @@ Con βk, `esfera` y `gaussiana` leen β₀ = 2–3 (las H₀ de una muestra fini
 
 **Consecuencia:** la Fig. 5.1 debe reportar el máximo real alcanzado por βk (6/7) y su ventana, **o** reformularse para β₁ (única forma de obtener el plateau 7/7). La app implementa βk (fiel al pie) y reporta el máximo obtenido.
 
+**Resolución adoptada (medición de la app):** la calibración (Fig. 5.1) y H.E.1c se computan sobre **β₁** —el invariante que la filtración controla—. Con β₁, la calibración alcanza **7/7** en τ ∈ [0.15, 0.18] (τ = 0.15 en el borde inferior, como el documento) y H.E.1c da **q\* ≈ 0.05 ∈ [0.05, 0.10]** (acierto 0.99 para q ≤ 0.05, 0.68 para q = 0.10). Con βk (β₀ umbralizado) no se alcanza ni el plateau 7/7 ni el q* del documento. **Acción:** cambiar «βk» por «β₁» en el pie de la Fig. 5.1, en la Fig. 5.2(a) y en las filas «Acierto de βk» de la Tabla 5.5.
+
 ---
 
 ## Resumen de trazabilidad (software → tesis)

@@ -67,9 +67,9 @@ def betti_persistente(
     else:
         return (0, 0)
 
-    # β₀: Def. 8.1 aplica τ·diam a TODOS los k, incluyendo k=0.
-    # Barras infinitas tienen persistencia ∞ > threshold → siempre cuentan.
-    # Barras finitas cuentan si d−b > τ·diam(X).
+    # β₀: barras de persistencia > τ·diam(X) (incluye la infinita si la hay).
+    # NOTA: la calibración (Fig. 5.1) y H.E.1c usan β₁, que es el invariante
+    # que τ filtra; β₀ de muestras finitas es artefacto de escala (ver Item 13).
     threshold = tau * diam
     dgm0 = dgms[0] if len(dgms) > 0 else np.empty((0, 2))
     dgm0 = np.asarray(dgm0)
