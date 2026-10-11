@@ -78,9 +78,10 @@ st.markdown("---")
 st.sidebar.header("🏗️ Optimización SIMP")
 dominio = st.sidebar.radio(
     "Dominio",
-    ["Rectangular (viga en voladizo, 2:1)", "Cuadrado (independencia de malla)"],
+    ["Rectangular (viga en voladizo, 2:1)", "Cuadrado (dominio 60×60)"],
     key="simp_dominio",
-    help="Rectangular: caso tesis (viga empotrada). Cuadrado: control de malla (H.E.2b).",
+    help="Rectangular: caso base de la tesis (viga empotrada). Cuadrado: dominio alternativo "
+         "(el barrido de malla de H.E.2b usa siempre el cuadrado).",
 )
 
 if dominio.startswith("Rectangular"):
@@ -105,11 +106,9 @@ rmin = st.sidebar.number_input("Radio de filtro (rmin, elementos)", value=RMIN_D
 
 with st.sidebar.expander("⚙️ Parámetros de ejecución", expanded=False):
     max_iter = st.slider("Iteraciones máximas", 100, 500, 200, key="simp_max_iter")
-    E_acero = st.number_input("Módulo Young E₀ (normalizado)", value=1.0, step=0.1,
-                              help="Config canónica: E₀ = 1.")
-    F_carga = st.number_input("Carga F (normalizada)", value=1.0, step=0.1,
-                              help="Config canónica: F = 1.")
-    espesor = st.number_input("Espesor", value=1.0, step=0.1)
+    st.caption("Config canónica fija del Cap. V — no editable, para preservar la reproducibilidad: "
+               "E₀ = 1, F = 1, espesor = 1, elementos unitarios (Lx = nex, Ly = ney).")
+E_acero, F_carga, espesor = 1.0, 1.0, 1.0
 
 current_params_he2 = (dominio, malla_opcion, penal, rmin, max_iter)
 if "last_params_he2" not in st.session_state:

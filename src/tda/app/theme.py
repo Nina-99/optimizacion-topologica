@@ -613,9 +613,6 @@ def methodology_expander(title, content_items, page_name):
             elif label == "algoritmo":
                 st.markdown("#### Algoritmo")
                 st.code(text, language="text")
-            elif _is_latex(text):
-                st.markdown(f"**{label}**")
-                st.latex(text)
             else:
                 st.markdown(f"**{label}**")
                 st.markdown(text)

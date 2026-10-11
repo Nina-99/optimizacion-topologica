@@ -39,6 +39,14 @@ st.markdown(
     "euclidiana **se manifiesta en aquellos indicadores que el teorema de estabilidad respalda "
     "formalmente, y no de manera indiscriminada**."
 )
+st.info(
+    "**¿Por qué teorema se cumple?** El respaldo formal es el **Teorema de Estabilidad** de "
+    "Cohen-Steiner, Edelsbrunner & Harer (2010):  "
+    "$d_B\\bigl(\\mathrm{Dgm}\\,f,\\,\\mathrm{Dgm}\\,g\\bigr) \\le \\lVert f-g\\rVert_\\infty$.  "
+    "Para filtraciones de **Vietoris–Rips** se particulariza en $d_B \\le 2\\,d_H$ (k = 0, 1), que es "
+    "**exactamente** el criterio de **H.E.1a**. Ese resultado es el que sustenta el criterio unificado "
+    "de *persistencia* (un rasgo es real si persiste a lo largo de la filtración)."
+)
 
 # ── Sidebar ──────────────────────────────────────────────────────────
 st.sidebar.header("🧭 H.G. — Hipótesis General")
