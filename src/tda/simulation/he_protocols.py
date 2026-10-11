@@ -60,7 +60,7 @@ def protocolo_he1(n_points, q_levels, n_rep, tau=TAU_CALIBRADO, seed=SEED):
         diam = compute_diameter(X0)
         dgm_X = ripser(X0, maxdim=1)["dgms"]
         resultados[shape] = {
-            "betti_teorico": (b0_teo, b1_teo),
+            "betti_teorico": (b0_teo, b1_teo), "diam": diam,
             "acierto": [], "ratio_medio": [], "ratio_diam_medio": [], "ratio_std": [], "cumple_frac": [],
         }
         for q in q_levels:
@@ -78,7 +78,7 @@ def protocolo_he1(n_points, q_levels, n_rep, tau=TAU_CALIBRADO, seed=SEED):
                 rDiam.append(dB / diam if diam > 0 else 0.0)
                 if dB <= 2 * dH:
                     cumple += 1
-                crudo.append({"shape": shape, "q": q, "dB": dB, "dH": dH,
+                crudo.append({"shape": shape, "q": q, "dB": dB, "dH": dH, "diam": diam,
                               "dB_diam": dB / diam if diam > 0 else 0.0})
             resultados[shape]["acierto"].append(aciertos / n_rep)
             resultados[shape]["ratio_medio"].append(float(np.mean(rdH)))

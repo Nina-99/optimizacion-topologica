@@ -238,13 +238,18 @@ if st.session_state.get("tda_he1_run", False) and res:
     st.subheader("1. H.E.1a — Estabilidad de los diagramas")
     st.latex(r"d_{B}\bigl(\mathrm{Dgm}_{k}^{\mathrm{VR}}(X),\ \mathrm{Dgm}_{k}^{\mathrm{VR}}(Y)\bigr) \le 2\,d_{H}(X,Y),\quad k=0,1")
 
-    # Figura 5.3 — dB/diam promediada por nube y nivel vs cota 2q (según el PDF)
-    st.markdown("**Figura 5.3:** Distancia bottleneck normalizada por el diámetro, promediada por nube y nivel de ruido, contrastada con la cota $2q$.")
+    # Figura 5.3 — dB/diam promediada por nube y nivel vs cota 2q (documento) y cota del teorema 2·dH/diam
+    st.markdown("**Figura 5.3:** Distancia bottleneck normalizada por el diámetro, promediada por nube y nivel de ruido. Se contrasta con la cota del documento ($2q$, blanca) y con la cota del **Teorema de Estabilidad** ($2\\,d_H/\\mathrm{diam}$, naranja) — la que **sostiene H.E.1a**.")
     fig53 = go.Figure()
     for shape in CATALOGO:
         fig53.add_trace(go.Scatter(x=qs, y=sweep[shape]["ratio_diam_medio"], mode="lines+markers", name=shape))
     fig53.add_trace(go.Scatter(x=qs, y=[2 * q for q in qs], mode="lines",
-                               line=dict(dash="dash", color="white"), name="Cota 2q"))
+                               line=dict(dash="dash", color="white"), name="Cota del documento: 2q"))
+    cota_teo = [float(np.mean([2 * c["dH"] / c["diam"] for c in crudo if abs(c["q"] - q) < 1e-9]))
+                for q in qs]
+    fig53.add_trace(go.Scatter(x=qs, y=cota_teo, mode="lines",
+                               line=dict(dash="dot", color="#e67e22", width=3),
+                               name="Cota del teorema: 2·dH/diam (media)"))
     fig53.update_layout(height=380, template="plotly_white",
                         xaxis_title="Nivel relativo de ruido (q)",
                         yaxis_title="dB / diam(X)",
