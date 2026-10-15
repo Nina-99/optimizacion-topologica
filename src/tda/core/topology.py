@@ -97,47 +97,57 @@ def wasserstein_distance(dgm1: np.ndarray, dgm2: np.ndarray) -> float:
 
 
 def bottleneck_distance(dgm1: np.ndarray, dgm2: np.ndarray) -> float:
-    """Calcula la distancia de Bottleneck entre dos diagramas de persistencia.
+    """Calcula la distancia Bottleneck exacta entre dos diagramas de persistencia.
 
-    Implementacion pura numpy: para cada punto de ambos diagramas, calcula
-    la minima distancia a cualquier punto del otro diagrama o a la diagonal.
-    Retorna el maximo de todas esas minimas distancias.
+    Definicion estandar (Cohen-Steiner et al. 2007): minimo sobre
+    biyecciones entre (A union Diagonal) y (B union Diagonal) del
+    maximo costo L_inf, donde el costo punto-diagonal es
+    persistencia/2. Se resuelve con asignacion hungara
+    (scipy.optimize.linear_sum_assignment).
 
-    Parámetros:
+    Parametros:
         dgm1: Primer diagrama de forma (n, 2) con [nacimiento, muerte].
         dgm2: Segundo diagrama de forma (m, 2) con [nacimiento, muerte].
 
     Retorna:
-        Distancia de Bottleneck W_inf(dgm1, dgm2).
+        Distancia Bottleneck dB(dgm1, dgm2) con norma L_inf.
     """
+    from scipy.optimize import linear_sum_assignment
+
     if dgm1.ndim != 2 or dgm1.shape[1] != 2:
         raise ValueError("dgm1 debe tener forma (n, 2)")
     if dgm2.ndim != 2 or dgm2.shape[1] != 2:
         raise ValueError("dgm2 debe tener forma (m, 2)")
 
-    # Handle empty diagrams
-    if len(dgm1) == 0 and len(dgm2) == 0:
+    A = np.asarray(dgm1, dtype=float).reshape(-1, 2)
+    B = np.asarray(dgm2, dtype=float).reshape(-1, 2)
+    A = A[np.isfinite(A[:, 1])] if len(A) > 0 else A.reshape(0, 2)
+    B = B[np.isfinite(B[:, 1])] if len(B) > 0 else B.reshape(0, 2)
+
+    n, m = len(A), len(B)
+    if n == 0 and m == 0:
         return 0.0
-    if len(dgm1) == 0:
-        diag2 = _points_to_diagonal(dgm2)
-        return float(np.max(np.linalg.norm(dgm2 - diag2, axis=1)))
-    if len(dgm2) == 0:
-        diag1 = _points_to_diagonal(dgm1)
-        return float(np.max(np.linalg.norm(dgm1 - diag1, axis=1)))
+    if n == 0:
+        return float(np.max((B[:, 1] - B[:, 0]) / 2.0))
+    if m == 0:
+        return float(np.max((A[:, 1] - A[:, 0]) / 2.0))
 
-    # Distance from each point in dgm1 to nearest in dgm2 or diagonal
-    d_1_to_2 = _pairwise_distances(dgm1, dgm2).min(axis=1)
-    diag2 = _points_to_diagonal(dgm1)
-    d_1_to_diag = np.linalg.norm(dgm1 - diag2, axis=1)
-    min_dist_1 = np.minimum(d_1_to_2, d_1_to_diag)
-
-    # Distance from each point in dgm2 to nearest in dgm1 or diagonal
-    d_2_to_1 = _pairwise_distances(dgm2, dgm1).min(axis=1)
-    diag2_pts = _points_to_diagonal(dgm2)
-    d_2_to_diag = np.linalg.norm(dgm2 - diag2_pts, axis=1)
-    min_dist_2 = np.minimum(d_2_to_1, d_2_to_diag)
-
-    return float(max(min_dist_1.max(), min_dist_2.max()))
+    N = n + m
+    C = np.zeros((N, N))
+    for i in range(n):
+        for j in range(m):
+            C[i, j] = max(abs(A[i, 0] - B[j, 0]), abs(A[i, 1] - B[j, 1]))
+    for i in range(n):
+        for j in range(m, N):
+            C[i, j] = 1e9
+        C[i, m + i] = (A[i, 1] - A[i, 0]) / 2.0
+    for i in range(n, N):
+        for j in range(m):
+            C[i, j] = 1e9
+    for j in range(m):
+        C[n + j, j] = (B[j, 1] - B[j, 0]) / 2.0
+    row, col = linear_sum_assignment(C)
+    return float(C[row, col].max())
 
 
 def betti_numbers(persistence_diagram: np.ndarray) -> Tuple[int, int]:

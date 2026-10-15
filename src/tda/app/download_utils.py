@@ -273,3 +273,35 @@ def write_figs_zip(zf, folder: str, figs: dict) -> list:
                         f"No se pudo exportar {nombre}: {e}")
         escritos.append(destino)
     return escritos
+
+
+def entorno_json(extra: dict | None = None) -> str:
+    """Registro del entorno de ejecución (entregable E5, Cap. IV).
+
+    Incluye Python, plataforma, versiones de paquetes clave y marca
+    temporal. `extra` agrega parámetros de la corrida (malla, semilla...).
+    Retorna el JSON serializado listo para escribir en el ZIP.
+    """
+    import json
+    import platform as _plat
+    from datetime import datetime, timezone
+
+    def _ver(mod: str) -> str:
+        try:
+            m = __import__(mod)
+            return getattr(m, "__version__", "?")
+        except Exception:
+            return "no-instalado"
+
+    registro = {
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "python": _plat.python_version(),
+        "plataforma": _plat.platform(),
+        "paquetes": {m: _ver(m) for m in
+                      ["numpy", "scipy", "ripser", "gudhi", "sklearn",
+                       "plotly", "streamlit", "matplotlib", "pandas"]},
+        "semilla_maestra": 42,
+    }
+    if extra:
+        registro["corrida"] = extra
+    return json.dumps(registro, indent=2, ensure_ascii=False)

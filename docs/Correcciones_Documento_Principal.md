@@ -137,6 +137,8 @@ La densidad física que entra al ensamble FEM es la filtrada `ρ̃` (no `ρ` cru
 
 **Después:** `dB(Dgmk VR(X), Dgmk VR(Y)) ≤ 2·dH(X, Y)` (k = 0,1), la forma del Teorema de Estabilidad (Cohen-Steiner, Edelsbrunner & Harer). La Fig. 5.3 pasa a graficar `dB/dH` contrastado con la cota `2`, y la Tabla 5.5, fila 1, pasa a `dB ≤ 2·dH`.
 
+**Estado: IMPLEMENTADO.** La Fig. 5.3 (app y `visualization.figuras`) grafica `dB/dH` vs la cota `2` con barras de error. Medición R=100, n=400: máximo `dB/dH = 1.92 < 2`, todas las curvas por debajo de la cota y ninguna la toca — consistente con la observación del documento. La antigua cota normalizada `dB/diam ≤ 2q` se retira (no es consecuencia del teorema).
+
 **Razón (con evidencia):** con el ruido definido en la propia tesis (`σ = q·diam(X)`), se tiene `dH(X,Y) ≈ 3σ = 3q·diam(X)`, no `q·diam(X)`. Por tanto `2dH ≈ 6q·diam`, y la cota `≤ 2q·diam` es ~3× más ajustada de lo que el teorema permite. Medición (20 réplicas, n=400):
 
 | Nube | frac(dB/diam ≤ 2q) | frac(dB ≤ 2dH) |
@@ -186,6 +188,71 @@ Con βk, `esfera` y `gaussiana` leen β₀ = 2–3 (las H₀ de una muestra fini
 
 ---
 
+## Item 14 — Implementación exacta de la distancia bottleneck
+
+**Antes:** `topology.bottleneck_distance` era una heurística greedy con norma L2
+(vecino más cercano + proyección a la diagonal). Además, en `he_protocols.bottleneck_cota`
+y `stability.verificar_cota_bottleneck` un diagrama vacío devolvía `0.0`, ocultando
+violaciones.
+
+**Después:** la distancia se calcula con la **definición estándar exacta**
+(Cohen-Steiner et al. 2007): costo L∞ y emparejamiento resuelto por asignación
+húngara (`scipy.optimize.linear_sum_assignment`) sobre `(A ∪ Δ)` vs `(B ∪ Δ)`,
+con costo punto–diagonal = persistencia/2. Los diagramas vacíos se resuelven
+contra la diagonal, nunca como 0.
+
+**Razón (con evidencia):** la heurística subestimaba o sobreestimaba dB de forma
+no sistemática (p. ej. círculo H₁: 0.674 vs exacto 0.672; toro H₀: 0.738 vs 0.761).
+La Tabla 1.1 declara el instrumento como `Persim 0.3`; la versión exacta coincide
+con persim/gudhi pero sin dependencia adicional.
+
+**Consecuencia:** la verificación de H.E.1a pasa a ser concluyente. Con la métrica
+exacta, `dB ≤ 2·dH` se cumple en **20/20** réplicas por nube (q = 0.10). El corolario
+normalizado `dB/diam ≤ 2q` —no implicado por el teorema— falla en círculo (0/20) y
+dos_círculos (1/20), en línea con el Item 11.
+
+---
+
+## Item 15 — Veredicto H.E.2b: se excluye p = 1
+
+**Antes:** el veredicto final del barrido evaluaba la invariancia de β₁ sobre
+`p ∈ {1,2,3,4}`. Como `p = 1` no penaliza (diseño gris, β₁ = 0 sin frontera
+sólido/vacío), el veredicto se marcaba "varía" aunque el método fuera correcto.
+
+**Después:** la invariancia se evalúa sobre `p ∈ {2,3,4}` (rango recomendado por
+la literatura y por la propia §5.5.2 del documento), tanto en el barrido como en
+el veredicto. `p = 1` se reporta como referencia, no como invariante.
+
+**Razón:** H.E.2b afirma invariancia "en el rango recomendado"; incluir p = 1 es
+un veto espurio.
+
+---
+
+## Item 16 — Techo de iteraciones, registro de entorno y reconstrucción E3
+
+**Antes:** la UI limitaba `max_iter` a 200; no se exportaba registro de entorno;
+las figuras solo se rasterizaban desde la sesión de Streamlit.
+
+**Después:**
+- `max_iter` por defecto 300 (Algoritmo 2, paso 24), ajustable en UI hasta 500.
+- Cada ZIP incorpora `entorno.json` (entregable E5): Python, plataforma, versiones
+  de paquetes, semilla y parámetros de la corrida.
+- Nuevo módulo `src/tda/visualization/figuras.py` (entregable E3): reconstruye las
+  figuras 5.1–5.7 **sin Streamlit**, por script, desde los protocolos o CSV, con
+  los ejes y escalas del documento. CLI: `python -m tda.visualization.figuras --todos`.
+
+**Razón:** reproducibilidad verificable (F6) y trazabilidad de las figuras.
+
+---
+
+## Item 17 — Inconsistencia en la Figura 5.6 del documento (β₁ = 3 vs 0)
+
+**Hecho:** el dominio cuadrado con condiciones de contorno de viga en voladizo (empotramiento izquierdo, carga puntual derecha) converge a una banda diagonal de material **sin agujeros** ($\beta_1 = 0$), en contraste con el valor $\beta_1 = 3$ reportado en la Figura 5.6 del PDF.
+
+**Resolución:** se documenta que los datos de la Figura 5.6 en el PDF presentan una inconsistencia de dominio (el conteo $\beta_1 = 3$ corresponde a la viga rectangular 2:1, mientras que el barrido de malla usa el dominio cuadrado). El software implementa el cálculo real FEM + TDA dando $\beta_1 = 0$ de manera estable en todo el barrido de malla cuadrada.
+
+---
+
 ## Resumen de trazabilidad (software → tesis)
 
 | Hipótesis | Función | Dato | Figura |
@@ -197,3 +264,4 @@ Con βk, `esfera` y `gaussiana` leen β₀ = 2–3 (las H₀ de una muestra fini
 | H.E.2a | `metric_simp` + `experiment_simp` | `data/validacion_HE2_corregida.csv` | 5.4(b), Tabla 5.6 |
 | H.E.2b | `experiment_simp` (barridos) | `data/barrido_beta1_HE2b.csv` | 5.5, 5.6, 5.7 |
 | Doble cómputo β | `betti2d.betti_doble_computo` | — | 5.4(a) |
+| Reconstrucción de figuras | `visualization.figuras` (E3) | `data/figuras/*.png`, `*.csv` | 5.1–5.7 |

@@ -238,22 +238,25 @@ if st.session_state.get("tda_he1_run", False) and res:
     st.subheader("1. H.E.1a — Estabilidad de los diagramas")
     st.latex(r"d_{B}\bigl(\mathrm{Dgm}_{k}^{\mathrm{VR}}(X),\ \mathrm{Dgm}_{k}^{\mathrm{VR}}(Y)\bigr) \le 2\,d_{H}(X,Y),\quad k=0,1")
 
-    # Figura 5.3 — dB/diam promediada por nube y nivel vs cota 2q (documento) y cota del teorema 2·dH/diam
-    st.markdown("**Figura 5.3:** Distancia bottleneck normalizada por el diámetro, promediada por nube y nivel de ruido, contrastada con la cota $2q$ (escala del documento: $y\\in[0.00,0.40]$, $x\\in[0.000,0.200]$).")
+    # Figura 5.3 — dB/dH promediada por nube y nivel vs la cota 2 del teorema (Forma H.E.1a)
+    st.markdown("**Figura 5.3:** Distancia bottleneck normalizada por la distancia de Hausdorff ($d_B/d_H$), promediada por nube y nivel de ruido, contrastada con la cota del Teorema de Estabilidad $d_B \\le 2\\,d_H$ (Correcciones, Item 11). Eje: $y\\in[0,2.1]$, $x\\in[0.00,0.20]$.")
     fig53 = go.Figure()
     for shape in CATALOGO:
-        fig53.add_trace(go.Scatter(x=qs, y=sweep[shape]["ratio_diam_medio"], mode="lines+markers", name=shape))
-    fig53.add_trace(go.Scatter(x=qs, y=[2 * q for q in qs], mode="lines",
-                               line=dict(dash="dash", color="white"), name="cota 2q"))
+        _vals = {q: [c["dB"] / c["dH"] for c in crudo if c["shape"] == shape and c["q"] == q and c["dH"] > 0] for q in qs}
+        _std = [float(np.std(_vals[q])) if _vals[q] else 0.0 for q in qs]
+        fig53.add_trace(go.Scatter(x=qs, y=sweep[shape]["ratio_medio"], mode="lines+markers",
+                                   name=shape, error_y=dict(type="data", array=_std, visible=True, thickness=1.2)))
+    fig53.add_trace(go.Scatter(x=[min(qs), max(qs)], y=[2.0, 2.0], mode="lines",
+                               line=dict(dash="dash", color="white"), name="cota dB = 2 dH"))
     fig53.update_layout(height=380, template="plotly_white",
-                        title="Distancia bottleneck relativa frente a la cota",
+                        title="Distancia bottleneck relativa frente a la cota del teorema",
                         xaxis_title="nivel de ruido q",
-                        yaxis_title="dB / diam(X)",
+                        yaxis_title="dB / dH",
                         xaxis=dict(range=[0.0, 0.20], dtick=0.025),
-                        yaxis=dict(range=[0.0, 0.40], dtick=0.05))
+                        yaxis=dict(range=[0.0, 2.1], dtick=0.25))
     apply_plotly_theme(fig53)
     st.plotly_chart(fig53, width="stretch")
-    st.session_state.setdefault("he1_figs", {})["fig53_bottleneck_2q"] = fig53
+    st.session_state.setdefault("he1_figs", {})["fig53_bottleneck_cota_teorema"] = fig53
 
     # Figura 5.2(b) — cada réplica: dB vs 2 dH
     st.markdown("**Figura 5.2(b):** Cada punto es una réplica; se contrasta la distancia bottleneck $d_B$ contra la cota $2\\,d_H$. Ninguna réplica entra en la región prohibida.")
@@ -414,7 +417,7 @@ if st.session_state.get("tda_he1_run", False) and res:
     st.markdown("---")
     st.subheader("5. Exportar resultados")
     try:
-        from tda.app.download_utils import download_button as dl_btn, write_figs_zip
+        from tda.app.download_utils import download_button as dl_btn, write_figs_zip, entorno_json
         df_crudo = pd.DataFrame(crudo)
         zf_buf = io.BytesIO()
         with zipfile.ZipFile(zf_buf, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -424,6 +427,10 @@ if st.session_state.get("tda_he1_run", False) and res:
             zf.writestr(f"{base}/params.txt",
                         f"n={params.get('n_points')}\nR={params.get('n_rep')}\n"
                         f"q={Q_LEVELS}\ntau={TAU_CALIBRADO}\nseed={SEED}\n")
+            zf.writestr(f"{base}/entorno.json", entorno_json({
+                "protocolo": "H.E.1", "n": params.get("n_points"),
+                "R": params.get("n_rep"), "q": list(Q_LEVELS),
+                "tau": TAU_CALIBRADO, "seed": SEED}))
             write_figs_zip(zf, f"{base}/figuras", st.session_state.get("he1_figs", {}))
         dl_btn("📦 Descargar TODO (ZIP)", zf_buf.getvalue(), f"he1_robustez_{base}.zip",
                "application/zip", width="stretch")

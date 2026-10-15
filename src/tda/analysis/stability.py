@@ -159,10 +159,9 @@ def verificar_cota_bottleneck(
             dgmk_X = dgmk_X[np.isfinite(dgmk_X[:, 1])]
         if dgmk_Y.size > 0:
             dgmk_Y = dgmk_Y[np.isfinite(dgmk_Y[:, 1])]
-        if dgmk_X.size > 0 and dgmk_Y.size > 0:
-            bnk = persim_bottleneck(dgmk_X, dgmk_Y)
-        else:
-            bnk = 0.0
+        dgmk_X = np.asarray(dgmk_X, dtype=float).reshape(-1, 2)
+        dgmk_Y = np.asarray(dgmk_Y, dtype=float).reshape(-1, 2)
+        bnk = persim_bottleneck(dgmk_X, dgmk_Y)
         bottlenecks.append(bnk)
 
     dB = max(bottlenecks) if bottlenecks else 0.0

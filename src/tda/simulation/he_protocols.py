@@ -33,7 +33,11 @@ P_RANGO = [1, 2, 3, 4]
 
 
 def bottleneck_cota(dgm_X, dgm_Y, maxdim=1):
-    """dB(Dgm_k^VR(X), Dgm_k^VR(Y)) = máximo sobre k (Algoritmo maestro)."""
+    """dB(Dgm_k^VR(X), Dgm_k^VR(Y)) = máximo sobre k (Algoritmo maestro).
+
+    Usa bottleneck_distance exacta (L_inf + hungara); los diagramas
+    vacios se resuelven contra la diagonal (persistencia/2), nunca 0.
+    """
     bottlenecks = []
     for k in range(maxdim + 1):
         dkX = dgm_X[k] if k < len(dgm_X) else np.empty((0, 2))
@@ -42,7 +46,9 @@ def bottleneck_cota(dgm_X, dgm_Y, maxdim=1):
             dkX = dkX[np.isfinite(dkX[:, 1])]
         if dkY.size > 0:
             dkY = dkY[np.isfinite(dkY[:, 1])]
-        bottlenecks.append(bottleneck_distance(dkX, dkY) if (dkX.size > 0 and dkY.size > 0) else 0.0)
+        dkX = np.asarray(dkX, dtype=float).reshape(-1, 2)
+        dkY = np.asarray(dkY, dtype=float).reshape(-1, 2)
+        bottlenecks.append(bottleneck_distance(dkX, dkY))
     return float(max(bottlenecks)) if bottlenecks else 0.0
 
 
@@ -94,13 +100,18 @@ def protocolo_he1(n_points, q_levels, n_rep, tau=TAU_CALIBRADO, seed=SEED):
 
 
 def calibrar_tau(n_points, seed=SEED, n_tau=20):
-    """Curva de calibración de τ contra el patrón de oro (Fig. 5.1)."""
+    """Curva de calibración de τ contra el patrón de oro (Fig. 5.1).
+
+    Grilla del Algoritmo maestro: τ ∈ {0.05, 0.10, ..., 0.40}.
+    Lectura β₁ (invariante que τ filtra): β₀ de muestras finitas es
+    artefacto de escala y con βk=(β₀,β₁) la meseta 7/7 no existe.
+    """
     np.random.seed(seed)
     dgms = {}
     for shape in CATALOGO:
         X = generate_cloud(shape, n_points)
         dgms[shape] = (ripser(X, maxdim=1), compute_diameter(X))
-    taus = np.linspace(0.01, 0.40, n_tau)
+    taus = np.arange(0.05, 0.401, 0.05)
     aciertos = []
     for tau in taus:
         ok = 0
@@ -114,7 +125,7 @@ def calibrar_tau(n_points, seed=SEED, n_tau=20):
 
 
 def corrida_simp(nelx, nely, p, r_min, E=1.0, Fmag=1.0, fV=FV, t=1.0,
-                 max_iter=200, Lx=None, Ly=None):
+                 max_iter=300, Lx=None, Ly=None):
     """Corre SIMP+TDA para una configuración (elementos unitarios por defecto)."""
     nnx = nelx + 1
     n_dof = 2 * nnx * (nely + 1)
@@ -254,7 +265,7 @@ def persistencia_beta1(umbrales, b1s, beta1):
 
 
 def barrido_he2(dominio, nex, ney, penal, rmin, E=1.0, Fmag=1.0, fV=FV, t=1.0,
-                max_iter=200, progress_cb=None):
+                max_iter=300, progress_cb=None):
     """Barrido multi-configuración de H.E.2b (malla con rmin escalado, p, rmin).
 
     Devuelve una lista de dicts con las métricas por configuración.

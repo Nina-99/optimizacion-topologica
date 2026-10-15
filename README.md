@@ -116,6 +116,7 @@ EstructuraTopologica/
         │   └── pipeline.py          # Pipeline unificado de ejecución secuencial
         └── visualization/           # Visualización científica
             ├── __init__.py
+            ├── figuras.py           # E3: reconstrucción headless de Figs. 5.1–5.7 desde datos/CSV
             ├── plots_tda.py         # Figuras Plotly listas para Streamlit/exportación
             └── visualizer.py        # Graficadores de diagramas de persistencia, barcodes y mallas
 ```
@@ -223,5 +224,21 @@ Una vez ejecutado, abra el navegador web en la direccion indicada por la consola
 2. **H.E.2 — Optimización SIMP:** Optimización topológica 2D con SIMP y evaluación topológica *post hoc* del diseño resultante ($\beta_0$, $\beta_1$), con barrido multi-configuración ($r_{\min}$, $p$, malla). Valida H.E.2a (reducción ≥40% vs uniforme) y H.E.2b ($\beta_1$ invariante). Incluye Figuras 5.4–5.7 con sus datos, Tabla 5.6 dinámica y doble cómputo de Betti (característica de Euler $\chi$ vs GUDHI).
 
 3. **Ejemplo Viga 1D vs 2D:** Laboratorio interactivo con 3 modos de carga (Voladizo-Puntual, Articulado-Central, Voladizo-Distribuida), optimizacion analitica 1D, SIMP 2D con animacion, barrido de penalizacion, comparacion lado a lado y exportacion STL del diseno binario.
+
+### Modo 3: Reconstrucción headless de figuras (entregable E3)
+
+Genera las figuras 5.1–5.7 del Cap. V **sin Streamlit**, por script, desde los
+protocolos o CSV, con los ejes y escalas del documento (salida en `data/figuras/`):
+
+```bash
+# Caso 1 (TDA): calibración, tasa de acierto, cota por réplica y cota 2q
+uv run python -m tda.visualization.figuras --protocolo he1 --n 400 --R 100
+
+# Caso 2 (SIMP): diseño, historial, penalización, malla y umbral
+uv run python -m tda.visualization.figuras --protocolo he2 --malla 60x30
+
+# Ambos casos
+uv run python -m tda.visualization.figuras --todos
+```
 
 > **Citación:** Si utilizás este framework en publicaciones académicas, por favor referenciá el repositorio y el proyecto de investigación asociado, disponible en la documentación del repositorio.

@@ -48,10 +48,15 @@ st.markdown(responsive_style(), unsafe_allow_html=True)
 
 
 def plot_material_distribution(density_2d, title: str):
-    """Heatmap Plotly de la distribución de material."""
+    """Heatmap Plotly de la distribución de material (pixel-perfect tesis)."""
+    ny, nx = np.shape(density_2d)
     fig = go.Figure(data=[go.Heatmap(z=density_2d, colorscale="gray_r", zmin=0, zmax=1,
-                                     colorbar=dict(title="ρ"))])
-    fig.update_layout(title=title)
+                                     zsmooth=False, colorbar=dict(title="ρ"),
+                                     xgap=0, ygap=0)])
+    fig.update_layout(title=title,
+                      xaxis=dict(title="elementos x", range=[-0.5, nx - 0.5], dtick=max(1, nx // 6)),
+                      yaxis=dict(title="elementos y", range=[-0.5, ny - 0.5], dtick=max(1, ny // 6),
+                                 scaleanchor="x", scaleratio=1, autorange="reversed"))
     apply_plotly_theme(fig)
     return fig
 
@@ -105,7 +110,7 @@ rmin = st.sidebar.number_input("Radio de filtro (rmin, elementos)", value=RMIN_D
                                help="Variable interviniente. Rango del documento [1.5, 4.0].")
 
 with st.sidebar.expander("⚙️ Parámetros de ejecución", expanded=False):
-    max_iter = st.slider("Iteraciones máximas", 100, 500, 200, key="simp_max_iter")
+    max_iter = st.slider("Iteraciones máximas", 100, 500, 300, key="simp_max_iter")
     st.caption("Config canónica fija del Cap. V — no editable, para preservar la reproducibilidad: "
                "E₀ = 1, F = 1, espesor = 1, elementos unitarios (Lx = nex, Ly = ney).")
 E_acero, F_carga, espesor = 1.0, 1.0, 1.0
@@ -144,8 +149,19 @@ if ejecutar_simp:
     c_base = float(m.c_hist[0])
     reduccion = (c_base - m.c_final) / c_base * 100
 
+    # Referente bloque solido: 1 solve FEM real con rho=1 (no escalado analitico).
+    try:
+        from tda.core.fem import ensamblar_K_global, resolver_FEM
+        _rho_s = np.ones(m.N_e)
+        _K_s = ensamblar_K_global(_rho_s, m.DOFS, m.n_dof, m.K0, m.p)
+        _U_s = resolver_FEM(_K_s, m.F, m.fixed, m.n_dof)
+        c_solido_real = float(m.F @ _U_s)
+    except Exception:
+        c_solido_real = float(c_base * (volfrac ** penal))
+
     st.session_state.simp_optimized = True
     st.session_state.simp_c_base = c_base
+    st.session_state.simp_c_solido = c_solido_real
     st.session_state.simp_c_final = m.c_final
     st.session_state.simp_reduccion = reduccion
     st.session_state.simp_beta0 = m.beta0
@@ -200,13 +216,15 @@ if st.session_state.get("simp_optimized", False):
     st.subheader("1. H.E.2a — Eficiencia estructural")
     st.latex(r"\frac{c(f_V\cdot\mathbf{1})-c(\rho^{\star})}{c(f_V\cdot\mathbf{1})}\ge 0.40")
 
-    # Tabla 5.6 del documento
-    c_solido = c_base * (volfrac ** penal_val)   # c(ρ=1) = c(fV)·fV^p  → 39.54 con fV=0.5, p=3
+    # Tabla 5.6 del documento (c_solido = FEM real con rho=1, con fallback analitico)
+    c_solido = float(st.session_state.get("simp_c_solido", c_base * (volfrac ** penal_val)))
+    _var = lambda c_ref: (c_ref - c_final) / c_ref * 100 if c_ref else 0.0
     st.markdown("**Tabla 5.6 — Compliance del diseño convergido frente a referentes:**")
     st.dataframe(pd.DataFrame({
         "Configuración": ["Bloque sólido (ρ ≡ 1)", "Diseño uniforme (ρ ≡ fV)", "Diseño SIMP (ρ*)"],
         "Volumen": ["100 %", f"{volfrac*100:.0f} %", f"{volfrac*100:.0f} %"],
         "c(ρ)": [f"{c_solido:.2f}", f"{c_base:.2f}", f"{c_final:.2f}"],
+        "Variación vs SIMP": [f"{_var(c_solido):+.2f} %", f"{_var(c_base):+.2f} %", "—"],
     }), width="stretch", hide_index=True)
 
     # Figura 5.4(a) — distribución de material
@@ -219,8 +237,12 @@ if st.session_state.get("simp_optimized", False):
     with col_m2:
         binaria = (rho_tilde_final.reshape(ney_, nex_) >= 0.5).astype(float)
         fig_bin = go.Figure(data=[go.Heatmap(z=binaria, colorscale="gray_r", zmin=0, zmax=1,
-                                             colorbar=dict(title="Ω"))])
-        fig_bin.update_layout(title=f"Ω(sólido) | β₀={beta0} | β₁={beta1}", height=400)
+                                             zsmooth=False, colorbar=dict(title="Ω"),
+                                             xgap=0, ygap=0)])
+        fig_bin.update_layout(title=f"Ω(sólido) | β₀={beta0} | β₁={beta1}", height=400,
+                              xaxis=dict(title="elementos x", range=[-0.5, nex_ - 0.5], dtick=max(1, nex_ // 6)),
+                              yaxis=dict(title="elementos y", range=[-0.5, ney_ - 0.5], dtick=max(1, ney_ // 6),
+                                         scaleanchor="x", scaleratio=1, autorange="reversed"))
         apply_plotly_theme(fig_bin)
         st.plotly_chart(fig_bin, width="stretch")
         st.session_state.setdefault("he2_figs", {})["fig54a_diseno_binarizado"] = fig_bin
@@ -236,10 +258,12 @@ if st.session_state.get("simp_optimized", False):
                                   line=dict(color="gray", dash="dot"), name=f"c(fV) = {c_base:.1f}"))
     fig_conv.add_trace(go.Scatter(x=kx, y=[c_final, c_final], mode="lines",
                                   line=dict(color="green", dash="dash"), name=f"c* = {c_final:.1f}"))
-    fig_conv.update_layout(title="Figura 5.4(b) — Historial de compliance",
+    fig_conv.update_layout(title=f"Figura 5.4(b) — Historial de compliance (reducción {reduccion:.1f} %)",
                            xaxis_title="Iteración k", yaxis_title="Compliance c(ρ) (escala log)",
                            yaxis_type="log", height=380,
-                           xaxis=dict(range=[1, max(len(c_hist), 2)]),
+                           xaxis=dict(range=[1, max(len(c_hist), 2)], dtick=max(1, len(c_hist) // 8),
+                                      showgrid=True, gridcolor="rgba(0,0,0,0.08)"),
+                           yaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.10)"),
                            legend=dict(x=0.6, y=0.95),
                            margin=dict(l=0, r=0, b=0, t=40))
     apply_plotly_theme(fig_conv)
@@ -304,24 +328,31 @@ if st.session_state.get("simp_optimized", False):
                                      showarrow=True, arrowhead=1, yshift=12)
             fig55.update_layout(height=400, template="plotly_white",
                                 xaxis_title="Factor de penalización (p)", yaxis_title="Compliance c(ρ*)",
-                                xaxis=dict(dtick=1), legend=dict(x=0.02, y=0.98))
-            fig55.update_yaxes(title_text="Grisura", secondary_y=True)
+                                xaxis=dict(dtick=1, range=[0.8, 4.2]), legend=dict(x=0.02, y=0.98))
+            fig55.update_yaxes(title_text="Grisura", secondary_y=True, range=[0.0, 0.7])
             apply_plotly_theme(fig55)
             st.plotly_chart(fig55, width="stretch")
             st.session_state.setdefault("he2_figs", {})["fig55_barrido_penalizacion"] = fig55
 
-        # Figura 5.6 — compliance y β₁ vs número de elementos
+        # Figura 5.6 — compliance y β₁ vs malla (eje X categórico: Ne lineal aplasta 1600)
         if len(df_mesh) > 0:
             st.markdown("**Figura 5.6:** Compliance (eje izquierdo) y β₁ (eje derecho) frente al número de elementos, con $r_{\\min}$ escalado para mantener constante su longitud física.")
+            _cat = df_mesh["Malla"].tolist()
+            _b1 = df_mesh["beta1"].tolist()
+            _b1_lo, _b1_hi = min(_b1 + [0]) - 1.5, max(_b1 + [4]) + 1.5
             fig56 = make_subplots(specs=[[{"secondary_y": True}]])
-            fig56.add_trace(go.Scatter(x=df_mesh["Ne"], y=df_mesh["c(rho*)"], mode="lines+markers", name="Compliance"), secondary_y=False)
-            fig56.add_trace(go.Scatter(x=df_mesh["Ne"], y=df_mesh["beta1"], mode="lines+markers", name="β₁"), secondary_y=True)
+            fig56.add_trace(go.Scatter(x=_cat, y=df_mesh["c(rho*)"], mode="lines+markers", name="Compliance"), secondary_y=False)
+            fig56.add_trace(go.Scatter(x=_cat, y=df_mesh["beta1"], mode="lines+markers", name="β₁",
+                                       line=dict(color="green", width=3)), secondary_y=True)
             for _, row in df_mesh.iterrows():
-                fig56.add_annotation(x=row["Ne"], y=row["c(rho*)"], text=f"rmin={row['rmin']}",
+                fig56.add_annotation(x=row["Malla"], y=row["c(rho*)"], text=f"rmin={row['rmin']}",
                                      showarrow=True, arrowhead=1, yshift=12)
             fig56.update_layout(height=400, template="plotly_white",
-                                xaxis_title="Número de elementos (Ne)", yaxis_title="Compliance c(ρ*)")
-            fig56.update_yaxes(title_text="β₁", secondary_y=True)
+                                xaxis_title="Malla (Ne entre paréntesis)",
+                                xaxis=dict(type="category"),
+                                yaxis_title="Compliance c(ρ*)")
+            fig56.update_yaxes(title_text="β₁", secondary_y=True,
+                               range=[_b1_lo, _b1_hi], dtick=1)
             apply_plotly_theme(fig56)
             st.plotly_chart(fig56, width="stretch")
             st.session_state.setdefault("he2_figs", {})["fig56_barrido_malla"] = fig56
@@ -349,36 +380,48 @@ if st.session_state.get("simp_optimized", False):
     st.markdown("**Figura 5.7:** Números de Betti del diseño en función del umbral $u$ con que se binariza el campo de densidades. La línea punteada gris es la fracción de volumen resultante; la línea roja punteada marca el umbral adoptado $u = 0.5$.")
     with st.spinner("Barriendo el umbral de binarización..."):
         umbrales = np.linspace(0.05, 0.90, 18)
-        b0s, b1s, vfs = [], [], []
-        from tda.core.betti2d import betti_euler
+        b0s, b1s, vfs, concs = [], [], [], []
+        from tda.core.betti2d import betti_euler, betti_gudhi
         for u in umbrales:
             S = (rho_tilde_final.reshape(ney_, nex_) >= u)
             vfs.append(float(S.mean()))
             b0u, b1u = betti_euler(S)
+            try:
+                b0g, b1g = betti_gudhi(S)
+                concs.append((b0u == b0g) and (b1u == b1g))
+            except Exception:
+                concs.append(None)
             b0s.append(b0u)
             b1s.append(b1u)
         from tda.simulation.he_protocols import persistencia_beta1
         u_lo, u_hi, persist = persistencia_beta1(umbrales, b1s, beta1)
 
+        _ymax = max(b0s + b1s + [3]) + 1
         fig57 = make_subplots(specs=[[{"secondary_y": True}]])
         fig57.add_trace(go.Scatter(x=umbrales, y=b1s, mode="lines", name="β₁",
                                    line=dict(color="green", width=3)), secondary_y=False)
         fig57.add_trace(go.Scatter(x=umbrales, y=b0s, mode="lines", name="β₀",
                                    line=dict(color="royalblue", dash="dash")), secondary_y=False)
         fig57.add_trace(go.Scatter(x=umbrales, y=vfs, mode="lines", name="Fracción de volumen",
-                                   line=dict(color="gray", dash="dashdot")), secondary_y=True)
-        fig57.add_trace(go.Scatter(x=[0.5, 0.5], y=[0, max(b1s + [3])], mode="lines",
+                                   line=dict(color="gray", dash="dot")), secondary_y=True)
+        fig57.add_trace(go.Scatter(x=[0.5, 0.5], y=[0, _ymax], mode="lines",
                                    name="umbral adoptado", line=dict(color="red", dash="dot")),
                         secondary_y=False)
         fig57.update_layout(title="Persistencia de β₁ frente al umbral de binarización",
                             height=420, template="plotly_white", legend=dict(x=0.02, y=0.98))
-        fig57.update_xaxes(title_text="umbral de binarización u", range=[0.0, 0.9])
-        fig57.update_yaxes(title_text="número de Betti", secondary_y=False, range=[0.8, 3.2], dtick=1)
+        fig57.update_xaxes(title_text="umbral de binarización u", range=[0.0, 0.95])
+        fig57.update_yaxes(title_text="número de Betti", secondary_y=False, range=[0, _ymax], dtick=1)
         fig57.update_yaxes(title_text="fracción de volumen umbralizada", secondary_y=True,
-                           range=[0.3, 0.7])
+                           range=[0.0, 1.0])
         apply_plotly_theme(fig57)
         st.plotly_chart(fig57, width="stretch")
         st.session_state.setdefault("he2_figs", {})["fig57_betti_umbral"] = fig57
+        _conc_ok = [c for c in concs if c is not None]
+        if _conc_ok and all(_conc_ok):
+            st.caption(f"Doble cómputo Euler≡GUDHI en los {len(_conc_ok)} umbrales del barrido.")
+        elif _conc_ok:
+            _bad = [f"u={u:.2f}" for u, c in zip(umbrales, concs) if c is False]
+            st.warning(f"⚠️ Discrepancia Euler–GUDHI en: {', '.join(_bad)} — indicador no válido ahí.")
         if len(set(b1s[int(0.05 * len(umbrales)):int(0.85 * len(umbrales))])) == 1:
             st.success(f"✅ β₁ = {beta1} constante en u ∈ [{u_lo:.2f}, {u_hi:.2f}] — "
                        f"persistencia ≈ {persist:.2f} (unidades de umbral): rasgo estructural, no artefacto. "
@@ -410,7 +453,8 @@ if st.session_state.get("simp_optimized", False):
     st.subheader("3. Veredicto H.E.2")
     he2b_done = df_sweep is not None and len(df_sweep) > 0
     if he2b_done:
-        he2b_ok_v = (len(set(df_mesh["beta1"])) <= 1 and len(set(df_p["beta1"])) <= 1
+        df_p_inv_v = df_p[df_p["p"] >= 2]
+        he2b_ok_v = (len(set(df_mesh["beta1"])) <= 1 and len(set(df_p_inv_v["beta1"])) <= 1
                      and len(set(df_rmin["beta1"])) <= 1
                      and bool((df_sweep["Concordancia"] == "Si").all()))
     else:
@@ -432,6 +476,7 @@ if st.session_state.get("simp_optimized", False):
     st.markdown("---")
     st.subheader("4. Exportar resultados")
     try:
+        from tda.app.download_utils import entorno_json as _entorno_json
         df_metrics = pd.DataFrame({
             "Métrica": ["c(uniforme ρ=fV)", "c(SIMP ρ*)", "Reducción vs uniforme",
                         "β₀", "β₁", "Grisura 4ρ(1−ρ)", "Concordancia Euler–GUDHI",
@@ -451,6 +496,11 @@ if st.session_state.get("simp_optimized", False):
                        pd.DataFrame({"Iteracion": range(1, len(c_hist) + 1), "Compliance": c_hist}).to_csv(index=False))
             if df_sweep is not None and len(df_sweep) > 0:
                 z.writestr(f"{base}/barrido_HE2b.csv", df_sweep.to_csv(index=False))
+            z.writestr(f"{base}/entorno.json", _entorno_json({
+                "protocolo": "H.E.2", "malla": f"{nex_}x{ney_}",
+                "fV": volfrac, "p": penal_val, "rmin": rmin_val,
+                "max_iter": max_iter, "E": E_acero, "F": F_carga,
+                "convergencia": bool(converged), "n_iter": int(n_iter)}))
             write_figs_zip(z, f"{base}/figuras", st.session_state.get("he2_figs", {}))
         download_button("📦 Descargar TODO (ZIP)", zf.getvalue(), f"{base}.zip",
                         "application/zip", width="stretch")
