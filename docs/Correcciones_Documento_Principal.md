@@ -305,6 +305,35 @@ $q \ge 0.15$, $q^* \in [0.05, 0.10]$— coincide, ningún veredicto cambia.
 
 ---
 
+## Item 20 — Fig. 5.3: forma del teorema (`dB/dH ≤ 2`) con estilo del PDF
+
+**Decisión del autor:** se mantiene la forma del Teorema de Estabilidad
+(`dB ≤ 2·dH`, Item 11) y se alinea **solo el estilo** al del PDF.
+
+**Evidencia de que la forma del PDF (`dB/diam ≤ 2q`) no es reproducible con la
+métrica exacta** (datos $R = 100$, semilla 42):
+
+| nube | `dB/diam` @ $q = 0.10$ | cota $2q = 0.20$ | fracción que cumple |
+|---|---|---|---|
+| círculo | **0.390** | 0.20 | **0.20** |
+| dos_círculos | 0.233 | 0.20 | 0.61 |
+| anillo | 0.167 | 0.20 | 0.91 |
+| disco | 0.086 | 0.20 | 1.00 |
+
+El círculo **duplica** la cota; la Fig. 5.3 del PDF (todas las curvas bajo la
+recta `2q`) se dibujó con la heurística greedy+L2 que subestimaba `dB` (Item 11).
+Con el teorema en su forma exacta (`dB/dH ≤ 2`) todas las curvas quedan por
+debajo de la cota ($\max dB/dH = 1.92$).
+
+**Estilo alineado al PDF:** título "Distancia bottleneck relativa frente a la
+cota"; leyenda arriba-izquierda en 2 columnas con "cota dB = 2 dH" como última
+entrada; ticks de $q$ cada 0.025; **convención de colores y marcadores por nube**
+idéntica a la Fig. 5.2(a) (anillo/círculo/disco/dos_círculos/esfera/gaussiana/toro
+en orden `tab10`), aplicada también a la 5.2(a). El eje Y queda en `dB/dH` (forma
+del teorema), no en `dB/diam` como el PDF.
+
+---
+
 ## Resumen de trazabilidad (software → tesis)
 
 | Hipótesis | Función | Dato | Figura |

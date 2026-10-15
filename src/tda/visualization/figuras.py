@@ -50,6 +50,19 @@ _VERDE = "#1e8449"
 _GRIS = "#7f8c8d"
 _NARANJA = "#d35400"
 
+# Convención de nubes del PDF (mismo orden y color en las Figs. 5.2(a) y 5.3):
+# leyenda en 2 columnas: anillo/circulo/disco/dos_circulos + esfera/gaussiana/toro
+_ORDEN_NUBES = ["anillo", "circulo", "disco", "dos_circulos", "esfera", "gaussiana", "toro"]
+_COLORES_NUBES = {
+    "anillo": "#1f77b4", "circulo": "#ff7f0e", "disco": "#2ca02c",
+    "dos_circulos": "#d62728", "esfera": "#9467bd", "gaussiana": "#8c564b",
+    "toro": "#e377c2",
+}
+_MARCADORES_NUBES = {
+    "anillo": "o", "circulo": "s", "disco": "^", "dos_circulos": "v",
+    "esfera": "D", "gaussiana": "P", "toro": "X",
+}
+
 
 # ═══════════════════════════════════════════════════════════════════
 # CASO 1 — TDA (Figuras 5.1, 5.2, 5.3)
@@ -83,10 +96,6 @@ def fig_51_calibracion(taus, aciertos, n_nubes: int, tau_adoptado: float = 0.15)
 
 
 # Marcadores por nube (como el PDF: cada curva con su símbolo)
-_MARCADORES_52A = {
-    "anillo": "o", "circulo": "s", "disco": "^", "dos_circulos": "v",
-    "esfera": "D", "gaussiana": "P", "toro": "X",
-}
 
 
 def fig_52a_tasa_acierto(qs, sweep, catalogo, colores=None):
@@ -101,11 +110,12 @@ def fig_52a_tasa_acierto(qs, sweep, catalogo, colores=None):
     ax.axvspan(0.15, qs.max(), color="red", alpha=0.10)
     ax.text(0.025, 0.93, "fiable", color=_VERDE, fontsize=9, ha="center")
     ax.text(0.175, 0.93, "no fiable", color=_ROJO, fontsize=9, ha="center")
-    cmap = plt.get_cmap("tab10")
-    for i, shape in enumerate(catalogo):
+    for shape in _ORDEN_NUBES:
+        if shape not in sweep:
+            continue
         ax.plot(qs, sweep[shape]["acierto"], "-",
-                marker=_MARCADORES_52A.get(shape, "o"), ms=5,
-                color=(colores or {}).get(shape, cmap(i % 10)), label=shape)
+                marker=_MARCADORES_NUBES.get(shape, "o"), ms=5,
+                color=(colores or _COLORES_NUBES).get(shape, _AZUL), label=shape)
     ax.set_xlabel("nivel de ruido q = σₙ/diam(X)")
     ax.set_ylabel("tasa de acierto de βk")
     ax.set_title("(a) Colapso de la lectura de βk")
@@ -153,23 +163,31 @@ def fig_53_cota(qs, crudo, catalogo, colores=None):
     """
     qs = np.asarray(qs)
     fig, ax = plt.subplots(figsize=(7, 4.2))
-    cmap = plt.get_cmap("tab10")
-    for i, shape in enumerate(catalogo):
+    for shape in _ORDEN_NUBES:
+        if shape not in catalogo:
+            continue
         y, e = [], []
         for q in qs:
             vals = [c["dB"] / c["dH"] for c in crudo
                     if c["shape"] == shape and c["q"] == q and c["dH"] > 0]
             y.append(float(np.mean(vals)) if vals else np.nan)
             e.append(float(np.std(vals)) if vals else 0.0)
-        ax.errorbar(qs, y, yerr=e, fmt="-o", ms=4, capsize=3, lw=1.3,
-                    color=(colores or {}).get(shape, cmap(i % 10)), label=shape)
+        ax.errorbar(qs, y, yerr=e, fmt="-" + _MARCADORES_NUBES.get(shape, "o"), ms=4,
+                    capsize=3, lw=1.3,
+                    color=(colores or _COLORES_NUBES).get(shape, _AZUL), label=shape)
     ax.axhline(2.0, ls="--", color=_ROJO, lw=1.5, label="cota dB = 2 dH")
     ax.set_xlabel("nivel de ruido q")
     ax.set_ylabel("dB / dH")
-    ax.set_title("Figura 5.3 — Distancia bottleneck relativa frente a la cota del teorema")
+    ax.set_title("Distancia bottleneck relativa frente a la cota")
     ax.set_xlim(0.0, float(qs.max()))
-    ax.set_ylim(0.0, 2.1)
-    ax.legend(fontsize=7, ncol=2, loc="lower right")
+    ax.set_xticks([0.0, 0.025, 0.05, 0.075, 0.10, 0.125, 0.15, 0.175, 0.20])
+    ax.set_ylim(0.0, 2.15)
+    # leyenda del PDF: primero las nubes (en orden), la cota al final
+    h, l = ax.get_legend_handles_labels()
+    orden = {n: i for i, n in enumerate(list(_ORDEN_NUBES) + ["cota dB = 2 dH"])}
+    pares = sorted(zip(l, h), key=lambda p: orden.get(p[0], 99))
+    ax.legend([x[1] for x in pares], [x[0] for x in pares],
+              fontsize=7, ncol=2, loc="upper left", framealpha=0.95)
     fig.tight_layout()
     return fig
 
