@@ -283,6 +283,28 @@ métodos). Solo la cola $u \ge 0.90$ de la Fig. 5.7.
 
 ---
 
+## Item 19 — Fig. 5.2: estilo de paneles según el PDF (sin líneas guía 95/50)
+
+**Hecho:** la Fig. 5.2 del PDF no trae líneas guía en 95 %/50 % (solo grilla tenue),
+usa un marcador distinto por nube, bandas con texto dentro ("fiable"/"no fiable")
+sin entradas de leyenda, ticks en $\{0, 0.05, \dots, 0.20\}$, y títulos de panel
+"(a) Colapso de la lectura de $\beta_k$" / "(b) Verificación empírica de la cota
+de estabilidad". El panel (b) lleva ejes $d_H(X,Y)$ / $d_B(\mathrm{Dgm}(X),
+\mathrm{Dgm}(Y))$, diagonal a todo el eje, texto en dos líneas ("región
+prohibida / por el teorema") sin sombreado, y leyenda con el $n$ real.
+
+**Después:** `fig_52a_tasa_acierto` / `fig_52b_cota_estabilidad` (app y
+`visualization.figuras`) replican ese estilo; la leyenda de (b) reporta el $n$
+real ($n = 3500$ con $R = 100$, frente a $n = 800$ del PDF).
+
+**Observaciones de datos (no se falsifican, se reportan):** (i) esfera en $q = 0$
+da 1.0 en el software vs 0.0 en el PDF — punto determinista ($Y \equiv X_0$), la
+diferencia viene de la muestra (semilla); (ii) anillo en $q = 0.10$ colapsa más
+abajo ($\approx 0.02$ vs $\approx 0.35$); (iii) el patrón general —colapso total en
+$q \ge 0.15$, $q^* \in [0.05, 0.10]$— coincide, ningún veredicto cambia.
+
+---
+
 ## Resumen de trazabilidad (software → tesis)
 
 | Hipótesis | Función | Dato | Figura |

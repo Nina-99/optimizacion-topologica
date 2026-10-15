@@ -264,22 +264,21 @@ if st.session_state.get("tda_he1_run", False) and res:
     fig52b.add_trace(go.Scatter(
         x=[c["dH"] for c in crudo], y=[c["dB"] for c in crudo],
         mode="markers", marker=dict(size=6, color="royalblue", opacity=0.5),
-        name="Réplicas",
+        name=f"réplicas (n = {len(crudo)})",
     ))
-    max_dh = max([c["dH"] for c in crudo] + [1e-9])
-    fig52b.add_trace(go.Scatter(x=[0, max_dh * 1.1], y=[0, 2 * max_dh * 1.1],
+    max_dh = max([c["dH"] for c in crudo] + [1e-9]) * 1.05
+    fig52b.add_trace(go.Scatter(x=[0, max_dh], y=[0, 2 * max_dh],
                                 mode="lines", line=dict(dash="dash", color="white"),
-                                name="Cota dB = 2 dH"))
-    fig52b.add_shape(type="rect", x0=0, x1=max_dh * 1.1, y0=2 * max_dh * 1.1,
-                     y1=2.6 * max_dh * 1.1, fillcolor="red", opacity=0.10, line_width=0)
-    fig52b.add_trace(go.Scatter(x=[None], y=[None], mode="markers",
-                                marker=dict(color="red", opacity=0.3, symbol="square", size=12),
-                                name="Región prohibida (dB > 2 dH)"))
-    fig52b.add_annotation(x=max_dh * 0.55, y=2.3 * max_dh * 1.1,
-                          text="Región prohibida", showarrow=False, font=dict(color="red"))
+                                name="cota teórica dB = 2 dH"))
+    fig52b.add_annotation(x=max_dh * 0.62, y=2 * max_dh * 0.86,
+                          text="región prohibida<br>por el teorema", showarrow=False,
+                          font=dict(color="red"))
     fig52b.update_layout(height=380, template="plotly_white",
-                         xaxis_title="Distancia Hausdorff dH",
-                         yaxis_title="Distancia Bottleneck dB")
+                         title="(b) Verificación empírica de la cota de estabilidad",
+                         xaxis_title="dH(X,Y)",
+                         yaxis_title="dB(Dgm(X), Dgm(Y))",
+                         xaxis=dict(range=[0, max_dh]),
+                         yaxis=dict(range=[0, 2 * max_dh]))
     apply_plotly_theme(fig52b)
     st.plotly_chart(fig52b, width="stretch")
     st.session_state.setdefault("he1_figs", {})["fig52b_cota_estabilidad"] = fig52b
@@ -339,20 +338,19 @@ if st.session_state.get("tda_he1_run", False) and res:
     # zonas de fiabilidad (según el PDF: fiable q ≤ 0.05, no fiable q ≥ 0.15)
     fig52a.add_vrect(x0=min(qs), x1=0.05, fillcolor="green", opacity=0.12, line_width=0)
     fig52a.add_vrect(x0=0.15, x1=max(qs), fillcolor="red", opacity=0.10, line_width=0)
-    fig52a.add_trace(go.Scatter(x=[None], y=[None], mode="markers",
-                                marker=dict(color="green", opacity=0.4, symbol="square", size=12),
-                                name="Fiable (q ≤ 0.05)"))
-    fig52a.add_trace(go.Scatter(x=[None], y=[None], mode="markers",
-                                marker=dict(color="red", opacity=0.4, symbol="square", size=12),
-                                name="No fiable (q ≥ 0.15)"))
+    fig52a.add_annotation(x=0.025, y=0.93, text="fiable", showarrow=False,
+                          font=dict(color="green", size=11))
+    fig52a.add_annotation(x=0.175, y=0.93, text="no fiable", showarrow=False,
+                          font=dict(color="red", size=11))
+    _sym52a = {"anillo": "circle", "circulo": "square", "disco": "triangle-up",
+               "dos_circulos": "triangle-down", "esfera": "diamond",
+               "gaussiana": "cross", "toro": "x"}
     for shape in CATALOGO:
-        fig52a.add_trace(go.Scatter(x=qs, y=sweep[shape]["acierto"], mode="lines+markers", name=shape))
-    fig52a.add_hline(y=ACC_BAJO, line=dict(dash="dot", color="green"),
-                     annotation_text="95 %")
-    fig52a.add_hline(y=ACC_ALTO, line=dict(dash="dot", color="red"),
-                     annotation_text="50 %")
+        fig52a.add_trace(go.Scatter(x=qs, y=sweep[shape]["acierto"], mode="lines+markers",
+                                    marker=dict(symbol=_sym52a.get(shape, "circle"), size=8),
+                                    name=shape))
     fig52a.update_layout(height=380, template="plotly_white",
-                         title="Colapso de la lectura de βk",
+                         title="(a) Colapso de la lectura de βk",
                          xaxis_title="nivel de ruido q = σₙ/diam(X)",
                          yaxis_title="tasa de acierto de βk",
                          xaxis=dict(range=[0.0, 0.20], dtick=0.05),

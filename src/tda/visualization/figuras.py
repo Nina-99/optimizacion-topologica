@@ -82,45 +82,63 @@ def fig_51_calibracion(taus, aciertos, n_nubes: int, tau_adoptado: float = 0.15)
     return fig
 
 
+# Marcadores por nube (como el PDF: cada curva con su símbolo)
+_MARCADORES_52A = {
+    "anillo": "o", "circulo": "s", "disco": "^", "dos_circulos": "v",
+    "esfera": "D", "gaussiana": "P", "toro": "X",
+}
+
+
 def fig_52a_tasa_acierto(qs, sweep, catalogo, colores=None):
     """Figura 5.2(a) — Tasa de acierto de βk frente al ruido q, por nube.
 
-    Franja verde q ≤ 0.05 (fiable), franja roja q ≥ 0.15 (no fiable),
-    líneas guía 95 % y 50 %.
+    Estilo del PDF: franjas con texto dentro ("fiable"/"no fiable"), un
+    marcador por nube, ticks en {0, 0.05, ..., 0.20}, sin líneas guía 95/50.
     """
     qs = np.asarray(qs)
     fig, ax = plt.subplots(figsize=(7, 4.2))
-    ax.axvspan(qs.min(), 0.05, color="green", alpha=0.10, label="Fiable (q ≤ 0.05)")
-    ax.axvspan(0.15, qs.max(), color="red", alpha=0.10, label="No fiable (q ≥ 0.15)")
-    ax.axhline(0.95, color=_VERDE, ls=":", lw=1.2)
-    ax.axhline(0.50, color=_ROJO, ls=":", lw=1.2)
+    ax.axvspan(qs.min(), 0.05, color="green", alpha=0.10)
+    ax.axvspan(0.15, qs.max(), color="red", alpha=0.10)
+    ax.text(0.025, 0.93, "fiable", color=_VERDE, fontsize=9, ha="center")
+    ax.text(0.175, 0.93, "no fiable", color=_ROJO, fontsize=9, ha="center")
     cmap = plt.get_cmap("tab10")
     for i, shape in enumerate(catalogo):
-        ax.plot(qs, sweep[shape]["acierto"], "-o", ms=4,
+        ax.plot(qs, sweep[shape]["acierto"], "-",
+                marker=_MARCADORES_52A.get(shape, "o"), ms=5,
                 color=(colores or {}).get(shape, cmap(i % 10)), label=shape)
     ax.set_xlabel("nivel de ruido q = σₙ/diam(X)")
     ax.set_ylabel("tasa de acierto de βk")
-    ax.set_title("Figura 5.2(a) — Colapso de la lectura de βk con el ruido")
+    ax.set_title("(a) Colapso de la lectura de βk")
     ax.set_xlim(0.0, float(qs.max()))
+    ax.set_xticks([0.0, 0.05, 0.10, 0.15, 0.20])
     ax.set_ylim(0.0, 1.0)
-    ax.legend(fontsize=7, ncol=2, loc="upper right")
+    ax.legend(fontsize=7, ncol=2, loc="center right")
     fig.tight_layout()
     return fig
 
 
 def fig_52b_cota_estabilidad(crudo):
-    """Figura 5.2(b) — Cada réplica: dB vs 2·dH, con región prohibida."""
+    """Figura 5.2(b) — Cada réplica: dB vs 2·dH, con región prohibida.
+
+    Estilo del PDF: ejes dH(X,Y) / dB(Dgm(X), Dgm(Y)), diagonal a todo el
+    eje, texto "región prohibida / por el teorema" sin sombreado, leyenda
+    con el n real de réplicas.
+    """
     fig, ax = plt.subplots(figsize=(6.5, 5))
     dB = np.array([c["dB"] for c in crudo])
     dH = np.array([c["dH"] for c in crudo])
-    ax.scatter(dH, dB, s=10, alpha=0.45, color=_AZUL, label="Réplicas")
-    x = np.array([0.0, max(dH.max(), 1e-9) * 1.1])
-    ax.plot(x, 2 * x, "--", color=_ROJO, lw=1.5, label="Cota dB = 2 dH")
-    ax.fill_between(x, 2 * x, 2.4 * x.max(), color="red", alpha=0.08)
-    ax.text(x.max() * 0.45, 2.05 * x.max(), "Región prohibida", color=_ROJO, fontsize=9)
-    ax.set_xlabel("distancia Hausdorff dH")
-    ax.set_ylabel("distancia Bottleneck dB")
-    ax.set_title("Figura 5.2(b) — Verificación réplica por réplica de la cota")
+    ax.scatter(dH, dB, s=10, alpha=0.45, color=_AZUL,
+               label=f"réplicas (n = {len(crudo)})")
+    xmax = max(float(dH.max()), 1e-9) * 1.05
+    ax.set_xlim(0.0, xmax)
+    ax.set_ylim(0.0, 2.0 * xmax)
+    ax.plot([0.0, xmax], [0.0, 2.0 * xmax], "--", color=_ROJO, lw=1.5,
+            label="cota teórica dB = 2 dH")
+    ax.text(0.62 * xmax, 0.86 * 2.0 * xmax, "región prohibida\npor el teorema",
+            color=_ROJO, fontsize=9, style="italic", ha="center")
+    ax.set_xlabel("dH(X,Y)")
+    ax.set_ylabel("dB(Dgm(X), Dgm(Y))")
+    ax.set_title("(b) Verificación empírica de la cota de estabilidad")
     ax.legend(fontsize=8, loc="upper left")
     fig.tight_layout()
     return fig
