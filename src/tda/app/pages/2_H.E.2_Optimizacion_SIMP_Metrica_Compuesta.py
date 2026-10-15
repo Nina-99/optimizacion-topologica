@@ -385,12 +385,16 @@ if st.session_state.get("simp_optimized", False):
         for u in umbrales:
             S = (rho_tilde_final.reshape(ney_, nex_) >= u)
             vfs.append(float(S.mean()))
-            b0u, b1u = betti_euler(S)
+            # Curvas con Metodo B (GUDHI): Euler crea agujeros fantasma al
+            # fragmentarse el solido (4-conectividad vs union geometrica, Item 18)
             try:
-                b0g, b1g = betti_gudhi(S)
-                concs.append((b0u == b0g) and (b1u == b1g))
+                b0u, b1u = betti_gudhi(S)
+                _gudhi_ok = True
             except Exception:
-                concs.append(None)
+                b0u, b1u = betti_euler(S)
+                _gudhi_ok = False
+            b0e, b1e = betti_euler(S)
+            concs.append(((b0u == b0e) and (b1u == b1e)) if _gudhi_ok else None)
             b0s.append(b0u)
             b1s.append(b1u)
         from tda.simulation.he_protocols import persistencia_beta1
@@ -403,10 +407,14 @@ if st.session_state.get("simp_optimized", False):
         fig57.add_trace(go.Scatter(x=umbrales, y=b0s, mode="lines", name="β₀",
                                    line=dict(color="royalblue", dash="dash")), secondary_y=False)
         fig57.add_trace(go.Scatter(x=umbrales, y=vfs, mode="lines", name="Fracción de volumen",
-                                   line=dict(color="gray", dash="dot")), secondary_y=True)
+                                   line=dict(color="gray", dash="dashdot")), secondary_y=True)
         fig57.add_trace(go.Scatter(x=[0.5, 0.5], y=[0, _ymax], mode="lines",
-                                   name="umbral adoptado", line=dict(color="red", dash="dot")),
+                                   name="umbral adoptado", line=dict(color="red", dash="dot"),
+                                   showlegend=False),
                         secondary_y=False)
+        fig57.add_annotation(x=0.52, y=_ymax * 0.72, text="umbral<br>adoptado",
+                             showarrow=False, font=dict(color="red", size=11),
+                             xref="x", yref="y")
         fig57.update_layout(title="Persistencia de β₁ frente al umbral de binarización",
                             height=420, template="plotly_white", legend=dict(x=0.02, y=0.98))
         fig57.update_xaxes(title_text="umbral de binarización u", range=[0.0, 0.95])
@@ -432,9 +440,12 @@ if st.session_state.get("simp_optimized", False):
     # ── 🎚️ Umbral interactivo (persistencia en vivo) ─────────────────
     st.markdown("**🎚️ Umbral interactivo — persistencia en vivo:** mové el umbral y mirá cómo cambia el sólido y la lectura β₀/β₁.")
     u_live = st.slider("Umbral de binarización u", 0.05, 0.95, 0.50, 0.05, key="u_live")
-    from tda.core.betti2d import betti_euler as _betti_euler
+    from tda.core.betti2d import betti_euler as _betti_euler, betti_gudhi as _betti_gudhi
     S_live = (rho_tilde_final.reshape(ney_, nex_) >= u_live)
-    b0l, b1l = _betti_euler(S_live)
+    try:
+        b0l, b1l = _betti_gudhi(S_live)
+    except Exception:
+        b0l, b1l = _betti_euler(S_live)
     colA, colB = st.columns([3, 1])
     with colA:
         fig_live = go.Figure(data=[go.Heatmap(z=S_live.astype(float), colorscale="gray_r",

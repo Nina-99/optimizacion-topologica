@@ -253,6 +253,36 @@ las figuras solo se rasterizaban desde la sesión de Streamlit.
 
 ---
 
+## Item 18 — Fig. 5.7: el barrido de umbral debe usar el Método B (GUDHI)
+
+**Hecho (con evidencia):** el barrido de binarización sobre la viga 60×30 da resultados
+opuestos según el método para $u \ge 0.90$:
+
+| $u$ | Euler (A) $\beta_0/\beta_1$ | GUDHI (B) $\beta_0/\beta_1$ |
+|---|---|---|
+| 0.05–0.85 | 1 / 3 | 1 / 3 |
+| 0.90 | **5 / 7** | **1 / 3** |
+| 0.95 | 3 / 3 | **1 / 1** |
+
+**Causa:** `betti_euler` cuenta $\beta_0$ con 4-conectividad pero $\chi = V - E + F$
+sobre la unión geométrica, donde píxeles que se tocan en diagonal **sí** están
+conectados. Al fragmentarse el sólido ($u$ alto), cada contacto diagonal genera un
+agujero fantasma ($\beta_1 = \beta_0 - \chi$ deja de ser válida). La homología
+cúbica de GUDHI es autoconsistente y no sufre este artefacto.
+
+**Después:** las curvas de la Fig. 5.7 (app y `visualization.figuras`) se calculan
+con el Método B (GUDHI), con fallback a Euler si GUDHI no está instalado. El doble
+cómputo se conserva como **chequeo de concordancia** (la app advierte los umbrales
+donde difieren en vez de ocultarlo). El barrido se extiende a
+$u \in [0.05, 0.95]$ (19 puntos) para cubrir el rango del PDF, donde $\beta_1$
+cae 3→1. Con GUDHI la figura reproduce al PDF: meseta $\beta_1 = 3$, $\beta_0 = 1$,
+volumen en dash-dot gris con eje ajustado a los datos, y texto "umbral adoptado".
+
+**Consecuencia:** ningún veredicto cambia ($\beta_1 = 3$ en $u = 0.5$ lo dan ambos
+métodos). Solo la cola $u \ge 0.90$ de la Fig. 5.7.
+
+---
+
 ## Resumen de trazabilidad (software → tesis)
 
 | Hipótesis | Función | Dato | Figura |

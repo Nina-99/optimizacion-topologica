@@ -257,28 +257,31 @@ def fig_56_malla(df_mesh):
 def fig_57_umbral(umbrales, b0s, b1s, vfs, u_umbral=0.5):
     """Figura 5.7 — β₀, β₁ vs umbral de binarización; fracción de volumen.
 
-    El PDF describe meseta β₁=3 en u∈[0.05, 0.85] y DISPARO de los Betti
-    para u>0.85 (fragmentación): el eje Y es dinámico para mostrarlo.
-    La fracción de volumen es línea punteada gris (como la nombra el PDF).
+    Estilo del PDF: volumen en dash-dot gris con eje derecho ajustado a los
+    datos (NO [0,1]); línea roja punteada en u=0.5 con texto dentro del
+    gráfico; leyenda solo con β₁/β₀. El eje Y de Betti encuadra todos los
+    datos (si coinciden con el PDF queda [1,3] como en el documento).
     """
     fig, ax1 = plt.subplots(figsize=(7, 4.4))
     ax2 = ax1.twinx()
     ax1.plot(umbrales, b1s, "-", color=_VERDE, lw=2.5, label="β₁")
     ax1.plot(umbrales, b0s, "--", color=_AZUL, label="β₀")
-    ax2.plot(umbrales, vfs, ":", color=_GRIS, lw=1.8, label="fracción de volumen")
-    ax1.axvline(u_umbral, color=_ROJO, ls=":", lw=1.5, label=f"u adoptado = {u_umbral}")
-    ymax = max(list(b0s) + list(b1s) + [3]) + 1
+    ax2.plot(umbrales, vfs, "-.", color=_GRIS, lw=1.5, label="fracción de volumen")
+    ax1.axvline(u_umbral, color=_ROJO, ls=":", lw=1.5)
+    bmax = max(list(b0s) + list(b1s) + [3])
+    y_lo, y_hi = 0.9, bmax + 0.6
     ax1.set_xlim(0.0, 0.95)
-    ax1.set_ylim(0, ymax)
-    ax1.set_yticks(range(0, int(ymax) + 1))
-    ax2.set_ylim(0.0, 1.0)
+    ax1.set_xticks([0.0, 0.2, 0.4, 0.6, 0.8])
+    ax1.set_ylim(y_lo, y_hi)
+    ax1.set_yticks(range(1, int(bmax) + 1))
+    ax2.set_ylim(min(vfs) - 0.03, max(vfs) + 0.03)
     ax1.set_xlabel("umbral de binarización u")
     ax1.set_ylabel("número de Betti")
     ax2.set_ylabel("fracción de volumen umbralizada")
     ax1.set_title("Figura 5.7 — Persistencia de β₁ frente al umbral")
-    h1, l1 = ax1.get_legend_handles_labels()
-    h2, l2 = ax2.get_legend_handles_labels()
-    ax1.legend(h1 + h2, l1 + l2, fontsize=8, loc="upper left", framealpha=0.95)
+    ax1.text(u_umbral + 0.02, y_lo + 0.62 * (y_hi - y_lo), "umbral\nadoptado",
+             color=_ROJO, fontsize=8, va="center")
+    ax1.legend(fontsize=8, loc="center left", bbox_to_anchor=(0.01, 0.52))
     fig.tight_layout()
     return fig
 
@@ -309,14 +312,19 @@ def _run_he2(nex: int, ney: int):
     m = corrida_simp(nex, ney, P_DEFECTO, RMIN_DEFECTO, fV=FV)
     sweep = barrido_he2("Rectangular" if nex != ney else "Cuadrado",
                         nex, ney, P_DEFECTO, RMIN_DEFECTO, fV=FV)
-    from tda.core.betti2d import betti_euler
-    umbrales = np.linspace(0.05, 0.90, 18)
+    from tda.core.betti2d import betti_gudhi, betti_euler
+    umbrales = np.linspace(0.05, 0.95, 19)
     rho2d = m.rho_tilde_final.reshape(ney, nex)
     b0s, b1s, vfs = [], [], []
     for u in umbrales:
         S = rho2d >= u
         vfs.append(float(S.mean()))
-        b0, b1 = betti_euler(S)
+        try:
+            # Método B (GUDHI): el conteo Euler mezcla 4-conectividad con la
+            # unión geométrica y crea agujeros fantasma al fragmentarse (Item 18)
+            b0, b1 = betti_gudhi(S)
+        except Exception:
+            b0, b1 = betti_euler(S)
         b0s.append(b0); b1s.append(b1)
     return m, pd.DataFrame(sweep), umbrales, b0s, b1s, vfs
 
