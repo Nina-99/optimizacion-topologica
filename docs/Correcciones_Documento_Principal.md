@@ -139,6 +139,8 @@ La densidad física que entra al ensamble FEM es la filtrada `ρ̃` (no `ρ` cru
 
 **Estado: IMPLEMENTADO.** La Fig. 5.3 (app y `visualization.figuras`) grafica `dB/dH` vs la cota `2` con barras de error. Medición R=100, n=400: máximo `dB/dH = 1.92 < 2`, todas las curvas por debajo de la cota y ninguna la toca — consistente con la observación del documento. La antigua cota normalizada `dB/diam ≤ 2q` se retira (no es consecuencia del teorema).
 
+> **Actualización (Item 25):** por decisión posterior del autor, la Fig. 5.3 **vuelve a la forma literal del PDF** (`dB/diam(X)` vs `2q`). Este Item queda **superado** por el Item 25 en lo que respecta a la figura; el análisis matemático (la cota `dB/diam ≤ 2q` no es consecuencia del teorema y no se sostiene con la métrica exacta) sigue siendo válido y se conserva como nota.
+
 **Razón (con evidencia):** con el ruido definido en la propia tesis (`σ = q·diam(X)`), se tiene `dH(X,Y) ≈ 3σ = 3q·diam(X)`, no `q·diam(X)`. Por tanto `2dH ≈ 6q·diam`, y la cota `≤ 2q·diam` es ~3× más ajustada de lo que el teorema permite. Medición (20 réplicas, n=400):
 
 | Nube | frac(dB/diam ≤ 2q) | frac(dB ≤ 2dH) |
@@ -430,6 +432,24 @@ El PDF crece +12 % entre extremos; el software +4 %. $\beta_1 = 0$ coincide en a
 (Item 17). No se pudo determinar la causa (¿dominio, escalado de $r_{\min}$, tolerancia
 o número de iteraciones distintos?); se reporta el valor propio del software sin
 forzarlo.
+
+---
+
+## Item 25 — Fig. 5.3: retorno a la forma literal del PDF (`dB/diam` vs `2q`)
+
+**Decisión del autor:** la Fig. 5.3 vuelve a la forma del PDF — eje Y
+$d_B/\mathrm{diam}(X)$, cota **diagonal** $2q$, rango Y `[0, ~0.45]` — en lugar de
+la forma del teorema ($dB/dH$ vs 2) que había fijado el Item 11. Esto **supera al
+Item 20** en lo relativo a la forma.
+
+**Consecuencia (con la métrica bottleneck exacta del Item 14):** en la figura las
+curvas de **círculo** y **dos_círculos** **cruzan** la cota $2q$ (el círculo la
+duplica en $q \approx 0.10$), a diferencia del PDF, donde todas quedan por debajo.
+El PDF dibujó su figura con la heurística greedy+L2 que subestimaba $d_B$. El
+software reporta el valor exacto y **no** lo atenúa para forzar el parecido.
+
+**Estilo:** se conserva el del PDF (título, leyenda 2 columnas con la cota al final,
+colores/marcadores `tab10` por nube, ticks cada 0.025).
 
 ---
 

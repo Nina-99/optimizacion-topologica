@@ -159,11 +159,12 @@ def fig_52b_cota_estabilidad(crudo):
 
 
 def fig_53_cota(qs, crudo, catalogo, colores=None):
-    """Figura 5.3 — dB/dH promediada por nube y nivel vs la cota 2 (teorema).
+    """Figura 5.3 — dB/diam(X) promediada por nube y nivel vs la cota 2q.
 
-    Forma del Teorema de Estabilidad: dB ≤ 2·dH. Todas las curvas quedan
-    por debajo de la recta dB/dH = 2; la cota 2q (no implicada por el
-    teorema) se omite a propósito (ver Correcciones, Item 11).
+    Forma del PDF (Item 25): eje Y ``dB/diam(X)``, cota diagonal ``2q``,
+    rango Y [0, 0.45]. NOTA: con la métrica bottleneck exacta, círculo y
+    dos_círculos superan la cota (el PDF la dibujó con una heurística que
+    subestimaba ``dB``); ver Correcciones, Item 25.
     """
     qs = np.asarray(qs)
     fig, ax = plt.subplots(figsize=(7, 4.2))
@@ -172,23 +173,25 @@ def fig_53_cota(qs, crudo, catalogo, colores=None):
             continue
         y, e = [], []
         for q in qs:
-            vals = [c["dB"] / c["dH"] for c in crudo
-                    if c["shape"] == shape and c["q"] == q and c["dH"] > 0]
+            vals = [c["dB_diam"] for c in crudo
+                    if c["shape"] == shape and c["q"] == q]
             y.append(float(np.mean(vals)) if vals else np.nan)
             e.append(float(np.std(vals)) if vals else 0.0)
         ax.errorbar(qs, y, yerr=e, fmt="-" + _MARCADORES_NUBES.get(shape, "o"), ms=4,
                     capsize=3, lw=1.3,
                     color=(colores or _COLORES_NUBES).get(shape, _AZUL), label=shape)
-    ax.axhline(2.0, ls="--", color=_ROJO, lw=1.5, label="cota dB = 2 dH")
-    ax.set_xlabel("nivel de ruido q")
-    ax.set_ylabel("dB / dH")
+    qmax = float(qs.max())
+    ax.plot([0.0, qmax], [0.0, 2.0 * qmax], "--", color=_ROJO, lw=1.5, label="cota $2q$")
+    ax.set_xlabel("nivel de ruido $q$")
+    ax.set_ylabel("$d_{B}/\\mathrm{diam}(X)$")
     ax.set_title("Distancia bottleneck relativa frente a la cota")
-    ax.set_xlim(0.0, float(qs.max()))
+    ax.set_xlim(0.0, qmax)
     ax.set_xticks([0.0, 0.025, 0.05, 0.075, 0.10, 0.125, 0.15, 0.175, 0.20])
-    ax.set_ylim(0.0, 2.15)
+    cmax = float(np.max([c["dB_diam"] for c in crudo])) if crudo else 0.0
+    ax.set_ylim(0.0, max(cmax * 1.05, 0.42))
     # leyenda del PDF: primero las nubes (en orden), la cota al final
     h, l = ax.get_legend_handles_labels()
-    orden = {n: i for i, n in enumerate(list(_ORDEN_NUBES) + ["cota dB = 2 dH"])}
+    orden = {n: i for i, n in enumerate(list(_ORDEN_NUBES) + ["cota $2q$"])}
     pares = sorted(zip(l, h), key=lambda p: orden.get(p[0], 99))
     ax.legend([x[1] for x in pares], [x[0] for x in pares],
               fontsize=7, ncol=2, loc="upper left", framealpha=0.95)

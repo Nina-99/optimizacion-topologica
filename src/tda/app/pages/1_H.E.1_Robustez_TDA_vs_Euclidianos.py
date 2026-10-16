@@ -238,28 +238,29 @@ if st.session_state.get("tda_he1_run", False) and res:
     st.subheader("1. H.E.1a — Estabilidad de los diagramas")
     st.latex(r"d_{B}\bigl(\mathrm{Dgm}_{k}^{\mathrm{VR}}(X),\ \mathrm{Dgm}_{k}^{\mathrm{VR}}(Y)\bigr) \le 2\,d_{H}(X,Y),\quad k=0,1")
 
-    # Figura 5.3 — dB/dH promediada por nube y nivel vs la cota 2 del teorema (Forma H.E.1a)
-    st.markdown("**Figura 5.3:** Distancia bottleneck normalizada por la distancia de Hausdorff ($d_B/d_H$), promediada por nube y nivel de ruido, contrastada con la cota del Teorema de Estabilidad $d_B \\le 2\\,d_H$ (Correcciones, Item 11). Eje: $y\\in[0,2.1]$, $x\\in[0.00,0.20]$.")
+    # Figura 5.3 — dB/diam(X) promediada por nube y nivel vs la cota 2q (forma del PDF, Item 25)
+    st.markdown("**Figura 5.3:** Distancia bottleneck normalizada por el diámetro ($d_B/\\mathrm{diam}(X)$), promediada por nube y nivel de ruido, contrastada con la cota $2q$ (forma del documento). Con la métrica bottleneck exacta, círculo y dos_círculos superan la cota —el PDF la dibujó con una heurística que subestimaba $d_B$— (Correcciones, Item 25).")
     _orden = ["anillo", "circulo", "disco", "dos_circulos", "esfera", "gaussiana", "toro"]
     _col = {"anillo": "#1f77b4", "circulo": "#ff7f0e", "disco": "#2ca02c",
             "dos_circulos": "#d62728", "esfera": "#9467bd", "gaussiana": "#8c564b", "toro": "#e377c2"}
     _sym = {"anillo": "circle", "circulo": "square", "disco": "triangle-up",
             "dos_circulos": "triangle-down", "esfera": "diamond", "gaussiana": "cross", "toro": "x"}
+    _dmax = max([c["dB_diam"] for c in crudo] + [0.40]) * 1.05
     fig53 = go.Figure()
     for shape in _orden:
-        _vals = {q: [c["dB"] / c["dH"] for c in crudo if c["shape"] == shape and c["q"] == q and c["dH"] > 0] for q in qs}
+        _vals = {q: [c["dB_diam"] for c in crudo if c["shape"] == shape and c["q"] == q] for q in qs}
         _std = [float(np.std(_vals[q])) if _vals[q] else 0.0 for q in qs]
-        fig53.add_trace(go.Scatter(x=qs, y=sweep[shape]["ratio_medio"], mode="lines+markers",
+        fig53.add_trace(go.Scatter(x=qs, y=sweep[shape]["ratio_diam_medio"], mode="lines+markers",
                                    name=shape, marker=dict(color=_col[shape], symbol=_sym[shape]),
                                    error_y=dict(type="data", array=_std, visible=True, thickness=1.2)))
-    fig53.add_trace(go.Scatter(x=[min(qs), max(qs)], y=[2.0, 2.0], mode="lines",
-                               line=dict(dash="dash", color="white"), name="cota dB = 2 dH"))
+    fig53.add_trace(go.Scatter(x=[min(qs), max(qs)], y=[0.0, 2.0 * max(qs)], mode="lines",
+                               line=dict(dash="dash", color="white"), name="cota 2q"))
     fig53.update_layout(height=380, template="plotly_white",
                         title="Distancia bottleneck relativa frente a la cota",
                         xaxis_title="nivel de ruido q",
-                        yaxis_title="dB / dH",
+                        yaxis_title="d_B / diam(X)",
                         xaxis=dict(range=[0.0, 0.20], dtick=0.025),
-                        yaxis=dict(range=[0.0, 2.1], dtick=0.25))
+                        yaxis=dict(range=[0.0, _dmax], dtick=0.05))
     apply_plotly_theme(fig53)
     st.plotly_chart(fig53, width="stretch")
     st.session_state.setdefault("he1_figs", {})["fig53_bottleneck_cota_teorema"] = fig53
