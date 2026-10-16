@@ -352,7 +352,22 @@ al `75.6` (−76.1 %) del PDF — diferencia ya documentada en el Item 10.
 **Pendiente de decisión:** el **panel (a)** del PDF es una **única** imagen de
 la densidad continua ρ* (con anotación "Diseño convergido p=3, fV=0.5, rmin=2.4
 / β₀=1, β₁=3" y sin ejes); la nuestra muestra **dos** imágenes (ρ* + Ω binario).
-Se aguarda decisión del autor (ver Item 22).
+Ver Item 22.
+
+---
+
+## Item 22 — Fig. 5.4(a): se conservan los dos paneles (decisión del autor)
+
+**Decisión:** a diferencia del PDF —que muestra una sola imagen de ρ*—, la
+Fig. 5.4(a) **conserva los dos paneles** (densidad continua ρ* y sólido binario
+Ω). Motivo: son más informativos, pues muestran de dónde proviene el conteo
+$\beta_1$ (el binario es el que se cuenta topológicamente, no ρ*).
+
+**Ajuste:** se incorpora la línea de parámetros del PDF en el título
+("p = 3, fV = 0.5, rmin = 2.4 | β₀ = 1, β₁ = 3"), de modo que la figura
+transporta la misma información que el documento aunque con dos imágenes.
+
+**Consecuencia:** ninguna numérica; el conteo $\beta_1 = 3$ es idéntico.
 
 ---
 

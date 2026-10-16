@@ -196,8 +196,13 @@ def fig_53_cota(qs, crudo, catalogo, colores=None):
 # CASO 2 — SIMP (Figuras 5.4, 5.5, 5.6, 5.7)
 # ═══════════════════════════════════════════════════════════════════
 
-def fig_54a_diseno(rho_2d, binaria_2d, beta0, beta1, nx, ny):
-    """Figura 5.4(a) — Densidad continua (izq) y diseño binarizado (der)."""
+def fig_54a_diseno(rho_2d, binaria_2d, beta0, beta1, nx, ny, p=None, fv=None, rmin=None):
+    """Figura 5.4(a) — Densidad continua (izq) y diseño binarizado (der).
+
+    Decisión del autor (Item 22): se conservan los DOS paneles (a diferencia del
+    PDF, que muestra solo ρ*), por ser más informativos — se ve de dónde sale β₁.
+    Se añade la línea de parámetros del PDF (p, fV, rmin, β₀, β₁).
+    """
     fig, axes = plt.subplots(1, 2, figsize=(9, 3.6))
     im0 = axes[0].imshow(rho_2d, cmap="gray_r", vmin=0, vmax=1, origin="lower",
                          extent=[0, nx, 0, ny], aspect="equal", interpolation="nearest")
@@ -209,7 +214,11 @@ def fig_54a_diseno(rho_2d, binaria_2d, beta0, beta1, nx, ny):
     for ax in axes:
         ax.set_xlabel("elementos x")
         ax.set_ylabel("elementos y")
-    fig.suptitle("Figura 5.4(a) — Distribución de material del diseño convergido")
+    if p is not None and fv is not None and rmin is not None:
+        sub = f"p = {p:g}, fV = {fv:g}, rmin = {rmin:g}   |   β₀ = {beta0}, β₁ = {beta1}"
+    else:
+        sub = f"β₀ = {beta0}, β₁ = {beta1}"
+    fig.suptitle("Figura 5.4(a) — Distribución de material del diseño convergido\n" + sub)
     fig.tight_layout()
     return fig
 
@@ -417,7 +426,9 @@ def main():
         c_unif = float(m.c_hist[0]); c_fin = float(m.c_final)
         df_p = df_sweep[df_sweep["Config"].str.startswith("p=")]
         df_mesh = df_sweep[df_sweep["Config"].str.startswith("malla")]
-        fig_54a_diseno(m.rho_tilde_final.reshape(ney, nex), binaria, m.beta0, m.beta1, nex, ney).savefig(OUT_DIR / "fig54a_diseno.png", dpi=300)
+        fig_54a_diseno(m.rho_tilde_final.reshape(ney, nex), binaria, m.beta0, m.beta1,
+                       nex, ney, p=P_DEFECTO, fv=FV, rmin=RMIN_DEFECTO
+                       ).savefig(OUT_DIR / "fig54a_diseno.png", dpi=300)
         fig_54b_historial(m.c_hist, c_unif, c_fin,
                           n_iter_max=300, converged=bool(m.converged)
                           ).savefig(OUT_DIR / "fig54b_historial.png", dpi=300)
