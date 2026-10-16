@@ -94,7 +94,6 @@ st.sidebar.caption(
 
 # ── Header + objetivo (fórmulas del documento) ───────────────────────
 st.markdown(page_header("H.E.1 — Robustez TDA vs Euclidianos"), unsafe_allow_html=True)
-st.header("H.E.1 — Robustez Topológica vs Descriptores Euclidianos")
 
 st.markdown("---")
 st.markdown("### 🎯 Hipótesis H.E.1")
