@@ -249,22 +249,28 @@ if st.session_state.get("simp_optimized", False):
     st.caption("El sólido forma una sola pieza (β₀ = 1). El conteo automático de agujeros coincide con la inspección visual.")
 
     # Figura 5.4(b) — historial de compliance (log)
-    st.markdown("**Figura 5.4(b):** Historial de compliance en escala logarítmica, con los referentes marcados (diseño uniforme y diseño SIMP).")
+    st.markdown("**Figura 5.4(b):** Historial de *compliance* en escala logarítmica, con los referentes marcados (diseño uniforme y diseño SIMP).")
     fig_conv = go.Figure()
-    kx = [1, max(len(c_hist), 2)]
+    xmax_conv = max(300, len(c_hist))
     fig_conv.add_trace(go.Scatter(x=list(range(1, len(c_hist) + 1)), y=c_hist,
-                                  mode="lines+markers", line=dict(color="royalblue", width=2), name="c(k)"))
-    fig_conv.add_trace(go.Scatter(x=kx, y=[c_base, c_base], mode="lines",
-                                  line=dict(color="gray", dash="dot"), name=f"c(fV) = {c_base:.1f}"))
-    fig_conv.add_trace(go.Scatter(x=kx, y=[c_final, c_final], mode="lines",
-                                  line=dict(color="green", dash="dash"), name=f"c* = {c_final:.1f}"))
-    fig_conv.update_layout(title=f"Figura 5.4(b) — Historial de compliance (reducción {reduccion:.1f} %)",
-                           xaxis_title="Iteración k", yaxis_title="Compliance c(ρ) (escala log)",
+                                  mode="lines", line=dict(color="royalblue", width=2),
+                                  showlegend=False))
+    fig_conv.add_trace(go.Scatter(x=[0, xmax_conv], y=[c_base, c_base], mode="lines",
+                                  line=dict(color="gray", dash="dot"), showlegend=False))
+    fig_conv.add_trace(go.Scatter(x=[0, xmax_conv], y=[c_final, c_final], mode="lines",
+                                  line=dict(color="green", dash="dash"), showlegend=False))
+    fig_conv.add_annotation(x=0.02, y=0.905, xref="paper", yref="paper",
+                            text=f"uniforme c = {c_base:.1f}", showarrow=False,
+                            font=dict(color="gray", size=11), xanchor="left")
+    fig_conv.add_annotation(x=0.34, y=0.135, xref="paper", yref="paper",
+                            text=f"SIMP c = {c_final:.1f} (\u2212{reduccion:.1f}%)", showarrow=False,
+                            font=dict(color="green", size=11), xanchor="left")
+    fig_conv.update_layout(title="(b) Convergencia",
+                           xaxis_title="iteración", yaxis_title="compliance c(\u03c1)",
                            yaxis_type="log", height=380,
-                           xaxis=dict(range=[1, max(len(c_hist), 2)], dtick=max(1, len(c_hist) // 8),
+                           xaxis=dict(range=[0, xmax_conv], dtick=50,
                                       showgrid=True, gridcolor="rgba(0,0,0,0.08)"),
                            yaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.10)"),
-                           legend=dict(x=0.6, y=0.95),
                            margin=dict(l=0, r=0, b=0, t=40))
     apply_plotly_theme(fig_conv)
     st.plotly_chart(fig_conv, width="stretch")

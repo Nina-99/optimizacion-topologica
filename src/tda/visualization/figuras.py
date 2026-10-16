@@ -214,17 +214,36 @@ def fig_54a_diseno(rho_2d, binaria_2d, beta0, beta1, nx, ny):
     return fig
 
 
-def fig_54b_historial(c_hist, c_uniforme, c_final):
-    """Figura 5.4(b) — Historial de compliance en escala logarítmica."""
+def fig_54b_historial(c_hist, c_uniforme, c_final, n_iter_max=300, converged=True):
+    """Figura 5.4(b) — Historial de compliance en escala logarítmica.
+
+    Estilo del PDF: título "(b) Convergencia", eje X "iteración" hasta 300,
+    referentes como texto en línea ("uniforme c = …", "SIMP c = … (−x%)"),
+    sin leyenda ni marcadores. Si la corrida convergió, el tramo plano se
+    extiende hasta n_iter_max (c constante tras converger, Δρ < tol).
+    """
     fig, ax = plt.subplots(figsize=(7, 4.2))
+    c_hist = np.asarray(c_hist, dtype=float)
     k = np.arange(1, len(c_hist) + 1)
-    ax.semilogy(k, c_hist, "-o", ms=3, color=_AZUL, label="c(k)")
-    ax.axhline(c_uniforme, color=_GRIS, ls=":", lw=1.5, label=f"c(fV) = {c_uniforme:.1f}")
-    ax.axhline(c_final, color=_VERDE, ls="--", lw=1.5, label=f"c* = {c_final:.1f}")
-    ax.set_xlabel("iteración k")
-    ax.set_ylabel("compliance c(ρ) (escala log)")
-    ax.set_title("Figura 5.4(b) — Historial de compliance")
-    ax.legend(fontsize=8)
+    ax.semilogy(k, c_hist, "-", color=_AZUL, lw=1.8)
+    xmax = max(int(n_iter_max), len(c_hist))
+    if converged and len(c_hist) < xmax:
+        kk = np.arange(len(c_hist), xmax + 1)
+        ax.semilogy(kk, np.full_like(kk, c_hist[-1], dtype=float),
+                    "-", color=_AZUL, lw=1.8)
+    ax.axhline(c_uniforme, color=_GRIS, ls=":", lw=1.5)
+    ax.axhline(c_final, color=_VERDE, ls="--", lw=1.5)
+    red = (c_uniforme - c_final) / c_uniforme * 100 if c_uniforme else 0.0
+    ax.set_xlim(0, xmax)
+    ax.set_ylim(c_final * 0.80, c_uniforme * 1.30)
+    ax.set_xticks(np.arange(0, xmax + 1, 50))
+    ax.text(0.02, 0.905, f"uniforme c = {c_uniforme:.1f}", transform=ax.transAxes,
+            color=_GRIS, fontsize=9)
+    ax.text(0.34, 0.135, f"SIMP c = {c_final:.1f} (−{red:.1f}%)", transform=ax.transAxes,
+            color=_VERDE, fontsize=9)
+    ax.set_xlabel("iteración")
+    ax.set_ylabel("compliance c(ρ)")
+    ax.set_title("(b) Convergencia")
     fig.tight_layout()
     return fig
 
@@ -399,7 +418,9 @@ def main():
         df_p = df_sweep[df_sweep["Config"].str.startswith("p=")]
         df_mesh = df_sweep[df_sweep["Config"].str.startswith("malla")]
         fig_54a_diseno(m.rho_tilde_final.reshape(ney, nex), binaria, m.beta0, m.beta1, nex, ney).savefig(OUT_DIR / "fig54a_diseno.png", dpi=300)
-        fig_54b_historial(m.c_hist, c_unif, c_fin).savefig(OUT_DIR / "fig54b_historial.png", dpi=300)
+        fig_54b_historial(m.c_hist, c_unif, c_fin,
+                          n_iter_max=300, converged=bool(m.converged)
+                          ).savefig(OUT_DIR / "fig54b_historial.png", dpi=300)
         if len(df_p):
             fig_55_penalizacion(df_p).savefig(OUT_DIR / "fig55_penalizacion.png", dpi=300)
         if len(df_mesh):

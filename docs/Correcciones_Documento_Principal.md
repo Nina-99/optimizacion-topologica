@@ -334,6 +334,28 @@ del teorema), no en `dB/diam` como el PDF.
 
 ---
 
+## Item 21 — Fig. 5.4(b): estilo del PDF (título, ejes, referentes en línea)
+
+**Hecho:** la Fig. 5.4(b) del PDF usa título "(b) Convergencia", eje X
+"iteración" con rango `[0, 300]`, eje Y "compliance c(ρ)" en escala log, y los
+referentes como **texto en línea** ("uniforme c = 316.3" arriba, "SIMP c =
+75.6 (−76.1 %)" abajo) en vez de una caja de leyenda; la curva es una línea
+lisa sin marcadores. Nuestra corrida **converge en la iteración 92**
+(Δρ < 10⁻², Item 4), por lo que el historial tiene 92 puntos y el eje X llegaba
+solo hasta 92.
+
+**Después:** `fig_54b_historial` (headless y app) replica el estilo del PDF;
+si la corrida convergió, el tramo plano se extiende hasta `n_iter_max = 300`
+(c constante tras converger). El valor propio es `c* = 74.72` (−76.4 %) frente
+al `75.6` (−76.1 %) del PDF — diferencia ya documentada en el Item 10.
+
+**Pendiente de decisión:** el **panel (a)** del PDF es una **única** imagen de
+la densidad continua ρ* (con anotación "Diseño convergido p=3, fV=0.5, rmin=2.4
+/ β₀=1, β₁=3" y sin ejes); la nuestra muestra **dos** imágenes (ρ* + Ω binario).
+Se aguarda decisión del autor (ver Item 22).
+
+---
+
 ## Resumen de trazabilidad (software → tesis)
 
 | Hipótesis | Función | Dato | Figura |
