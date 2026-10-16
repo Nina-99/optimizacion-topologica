@@ -371,6 +371,34 @@ transporta la misma información que el documento aunque con dos imágenes.
 
 ---
 
+## Item 23 — Fig. 5.5: estilo del PDF y etiqueta de la grisura
+
+**Estilo alineado al PDF** (`fig_55_penalizacion`, headless y app): título
+"Efecto de la penalización: compliance, binariedad y topología"; compliance en
+marrón (`#8c564b`) con círculos, grisura en azul (`#4b759a`) discontinua con
+cuadrados (colores muestreados del PDF); eje derecho "grisura (0 = diseño
+binario)"; anotaciones $\beta_1$ en verde (`#2e7d32`) bajo cada punto; leyenda
+en el centro-derecha.
+
+**Etiqueta de la grisura — evidencia.** El PDF rotula la grisura como
+$4\rho(1-\rho)$ (ρ cruda), pero sus valores corresponden a la densidad
+**filtrada** $\tilde\rho$:
+
+| $p$ | $4\rho(1-\rho)$ (cruda) | $4\tilde\rho(1-\tilde\rho)$ (código) | PDF |
+|---|---|---|---|
+| 1 | 0.551 | **0.616** | 0.590 |
+| 2 | 0.026 | **0.286** | 0.282 |
+| 3 | 0.021 | **0.284** | 0.274 |
+| 4 | 0.017 | **0.283** | 0.274 |
+
+Con ρ cruda los valores son absurdos (≈0.02; el diseño ya es casi binario); con
+$\tilde\rho$ reproducen al PDF. La etiqueta del PDF es una imprecisión
+notacional. **Pendiente de decisión:** dejar la leyenda como el PDF literal
+($4\rho(1-\rho)$) o rotularla de forma exacta ($4\tilde\rho(1-\tilde\rho)$). El
+cálculo se mantiene con $\tilde\rho$ en ambos casos (coincide con el PDF).
+
+---
+
 ## Resumen de trazabilidad (software → tesis)
 
 | Hipótesis | Función | Dato | Figura |

@@ -326,16 +326,31 @@ if st.session_state.get("simp_optimized", False):
         # Figura 5.5 — compliance y grisura vs p
         if len(df_p) > 0:
             st.markdown("**Figura 5.5:** Compliance (eje izquierdo) y grisura (eje derecho) en función del factor de penalización $p$; el valor de β₁ se anota junto a cada punto. Con $p=1$ no hay penalización (β₁=0: sin frontera sólido/vacío); la invariancia de H.E.2b se evalúa para $p\\in\\{2,3,4\\}$.")
+            gmin, gmax = float(df_p["grisura"].min()), float(df_p["grisura"].max())
             fig55 = make_subplots(specs=[[{"secondary_y": True}]])
-            fig55.add_trace(go.Scatter(x=df_p["p"], y=df_p["c(rho*)"], mode="lines+markers", name="Compliance"), secondary_y=False)
-            fig55.add_trace(go.Scatter(x=df_p["p"], y=df_p["grisura"], mode="lines+markers", name="Grisura"), secondary_y=True)
+            fig55.add_trace(go.Scatter(x=df_p["p"], y=df_p["c(rho*)"], mode="lines+markers",
+                                       name="compliance c(ρ*)",
+                                       line=dict(color="#8c564b", width=2),
+                                       marker=dict(symbol="circle", size=9, color="#8c564b")),
+                            secondary_y=False)
+            fig55.add_trace(go.Scatter(x=df_p["p"], y=df_p["grisura"], mode="lines+markers",
+                                       name="grisura 4ρ(1−ρ)",
+                                       line=dict(color="#4b759a", width=2, dash="dash"),
+                                       marker=dict(symbol="square", size=9, color="#4b759a")),
+                            secondary_y=True)
             for _, row in df_p.iterrows():
-                fig55.add_annotation(x=row["p"], y=row["c(rho*)"], text=f"β₁={row['beta1']}",
-                                     showarrow=True, arrowhead=1, yshift=12)
+                fig55.add_annotation(x=row["p"], y=row["c(rho*)"], text=f"β₁ = {row['beta1']}",
+                                     showarrow=False, yshift=-18, font=dict(color="#2e7d32", size=11))
             fig55.update_layout(height=400, template="plotly_white",
-                                xaxis_title="Factor de penalización (p)", yaxis_title="Compliance c(ρ*)",
-                                xaxis=dict(dtick=1, range=[0.8, 4.2]), legend=dict(x=0.02, y=0.98))
-            fig55.update_yaxes(title_text="Grisura", secondary_y=True, range=[0.0, 0.7])
+                                title="Efecto de la penalización: compliance, binariedad y topología",
+                                xaxis_title="factor de penalización p",
+                                xaxis=dict(dtick=1, range=[0.8, 4.2]),
+                                legend=dict(x=0.5, y=0.62))
+            fig55.update_yaxes(title_text="compliance c(ρ*)", secondary_y=False,
+                               title_font=dict(color="#8c564b"), tickfont=dict(color="#8c564b"))
+            fig55.update_yaxes(title_text="grisura (0 = diseño binario)", secondary_y=True,
+                               title_font=dict(color="#4b759a"), tickfont=dict(color="#4b759a"),
+                               range=[gmin - 0.03, gmax + 0.04])
             apply_plotly_theme(fig55)
             st.plotly_chart(fig55, width="stretch")
             st.session_state.setdefault("he2_figs", {})["fig55_barrido_penalizacion"] = fig55

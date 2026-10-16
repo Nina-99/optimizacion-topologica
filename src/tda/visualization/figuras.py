@@ -49,6 +49,10 @@ _ROJO = "#c0392b"
 _VERDE = "#1e8449"
 _GRIS = "#7f8c8d"
 _NARANJA = "#d35400"
+# Colores de la Fig. 5.5 (muestreados del PDF)
+_MARRON = "#8c564b"
+_AZUL_TEAL = "#4b759a"
+_VERDE_ANOT = "#2e7d32"
 
 # Convención de nubes del PDF (mismo orden y color en las Figs. 5.2(a) y 5.3):
 # leyenda en 2 columnas: anillo/circulo/disco/dos_circulos + esfera/gaussiana/toro
@@ -258,27 +262,36 @@ def fig_54b_historial(c_hist, c_uniforme, c_final, n_iter_max=300, converged=Tru
 
 
 def fig_55_penalizacion(df_p):
-    """Figura 5.5 — Compliance (izq) y grisura (der) vs p; anota β₁."""
+    """Figura 5.5 — Compliance (izq) y grisura (der) vs p; anota β₁.
+
+    Estilo del PDF: título "Efecto de la penalización: compliance, binariedad y
+    topología"; compliance marrón con círculos, grisura azul discontinua con
+    cuadrados; eje derecho "grisura (0 = diseño binario)"; β₁ en verde junto a
+    cada punto; leyenda en el centro-derecha. (Colores muestreados del PDF.)
+    """
     fig, ax1 = plt.subplots(figsize=(7, 4.2))
     ax2 = ax1.twinx()
     p = df_p["p"].to_numpy()
-    ax1.plot(p, df_p["c(rho*)"], "-o", color=_AZUL, label="compliance")
-    ax2.plot(p, df_p["grisura"], "-s", color=_NARANJA, label="grisura")
+    l1, = ax1.plot(p, df_p["c(rho*)"], "-o", color=_MARRON, lw=1.9, ms=7,
+                   label="compliance $c(\\rho^*)$")
+    l2, = ax2.plot(p, df_p["grisura"], "--s", color=_AZUL_TEAL, lw=1.9, ms=7,
+                   label="grisura $4\\rho(1-\\rho)$")
     for _, row in df_p.iterrows():
-        ax1.annotate(f"β₁={row['beta1']}", (row["p"], row["c(rho*)"]),
-                     textcoords="offset points", xytext=(0, 10), ha="center", fontsize=8)
-    ax1.set_xlabel("factor de penalización p")
-    ax1.set_ylabel("compliance c(ρ*)", color=_AZUL)
-    ax2.set_ylabel("grisura 4ρ̃(1−ρ̃)", color=_NARANJA)
+        ax1.annotate(f"$\\beta_1 = {int(row['beta1'])}$", (row["p"], row["c(rho*)"]),
+                     textcoords="offset points", xytext=(0, -16), ha="center",
+                     fontsize=9, color=_VERDE_ANOT)
+    ax1.set_xlabel("factor de penalización $p$")
+    ax1.set_ylabel("compliance $c(\\rho^*)$", color=_MARRON)
+    ax2.set_ylabel("grisura (0 = diseño binario)", color=_AZUL_TEAL)
     ax1.set_xticks(p)
     ax1.set_xlim(0.8, 4.2)
-    ax1.set_title("Figura 5.5 — Efecto del factor de penalización")
-    # margen superior para que la anotación β₁ no se recorte
+    ax1.set_title("Efecto de la penalización: compliance, binariedad y topología")
     y0, y1 = ax1.get_ylim()
-    ax1.set_ylim(y0 - 0.05 * (y1 - y0), y1 + 0.12 * (y1 - y0))
-    h1, l1 = ax1.get_legend_handles_labels()
-    h2, l2 = ax2.get_legend_handles_labels()
-    ax1.legend(h1 + h2, l1 + l2, fontsize=8, loc="best")
+    ax1.set_ylim(y0 - 0.07 * (y1 - y0), y1 + 0.04 * (y1 - y0))
+    g0, g1 = ax2.get_ylim()
+    ax2.set_ylim(min(df_p["grisura"]) - 0.03, max(df_p["grisura"]) + 0.04)
+    ax1.legend([l1, l2], [l1.get_label(), l2.get_label()], fontsize=8,
+               loc="center right")
     fig.tight_layout()
     return fig
 
