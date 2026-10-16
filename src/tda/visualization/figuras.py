@@ -275,7 +275,7 @@ def fig_55_penalizacion(df_p):
     l1, = ax1.plot(p, df_p["c(rho*)"], "-o", color=_MARRON, lw=1.9, ms=7,
                    label="compliance $c(\\rho^*)$")
     l2, = ax2.plot(p, df_p["grisura"], "--s", color=_AZUL_TEAL, lw=1.9, ms=7,
-                   label="grisura $4\\rho(1-\\rho)$")
+                   label="grisura $4\\tilde{\\rho}(1-\\tilde{\\rho})$")
     for _, row in df_p.iterrows():
         ax1.annotate(f"$\\beta_1 = {int(row['beta1'])}$", (row["p"], row["c(rho*)"]),
                      textcoords="offset points", xytext=(0, -16), ha="center",

@@ -393,9 +393,9 @@ $4\rho(1-\rho)$ (ρ cruda), pero sus valores corresponden a la densidad
 
 Con ρ cruda los valores son absurdos (≈0.02; el diseño ya es casi binario); con
 $\tilde\rho$ reproducen al PDF. La etiqueta del PDF es una imprecisión
-notacional. **Pendiente de decisión:** dejar la leyenda como el PDF literal
-($4\rho(1-\rho)$) o rotularla de forma exacta ($4\tilde\rho(1-\tilde\rho)$). El
-cálculo se mantiene con $\tilde\rho$ en ambos casos (coincide con el PDF).
+notacional. **Decisión del autor:** la leyenda se rotula de forma exacta,
+$4\tilde\rho(1-\tilde\rho)$. El cálculo se mantiene con $\tilde\rho$ (coincide
+con el PDF).
 
 ---
 

@@ -334,7 +334,7 @@ if st.session_state.get("simp_optimized", False):
                                        marker=dict(symbol="circle", size=9, color="#8c564b")),
                             secondary_y=False)
             fig55.add_trace(go.Scatter(x=df_p["p"], y=df_p["grisura"], mode="lines+markers",
-                                       name="grisura 4ρ(1−ρ)",
+                                       name="grisura 4ρ̃(1−ρ̃)",
                                        line=dict(color="#4b759a", width=2, dash="dash"),
                                        marker=dict(symbol="square", size=9, color="#4b759a")),
                             secondary_y=True)
