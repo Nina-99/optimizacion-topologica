@@ -453,6 +453,30 @@ colores/marcadores `tab10` por nube, ticks cada 0.025).
 
 ---
 
+## Item 26 — Fig. 5.3: selector de forma (documento ↔ teorema)
+
+**Decisión del autor:** en lugar de fijar una sola forma, la Fig. 5.3 ofrece un
+**selector** entre las dos, para *exhibir la inconsistencia del documento* en vez de
+ocultarla:
+
+- **Forma del documento:** eje Y $d_B/\mathrm{diam}(X)$, cota diagonal $2q$.
+- **Forma del teorema:** eje Y $d_B/d_H$, cota horizontal $2$ (Cohen-Steiner,
+  Edelsbrunner & Harer).
+
+**Implementación:** `fig_53_cota(..., forma="documento"|"teorema")` con presets de
+estilo (eje Y, cota, rango) sobre el mismo esqueleto de datos. En la app, un `radio`
+"Forma de la cota" + un aviso fijo que explica el contraste. En el headless se generan
+**ambos** PNG para trazabilidad (`fig53a_forma_documento.png`,
+`fig53b_forma_teorema.png`); el antiguo `fig53_bottleneck_2q.png` se retira.
+
+**Mensaje pedagógico (caption fijo):** en la forma del documento, con la métrica
+bottleneck **exacta**, círculo y dos_círculos **cruzan** la cota — luego
+$d_B/\mathrm{diam}(X) \leq 2q$ **no** es consecuencia del Teorema de Estabilidad. En
+la forma del teorema, todas las curvas quedan por debajo. El selector convierte la
+inconsistencia del PDF en un hallazgo documentado y verificable.
+
+---
+
 ## Resumen de trazabilidad (software → tesis)
 
 | Hipótesis | Función | Dato | Figura |

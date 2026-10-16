@@ -158,40 +158,66 @@ def fig_52b_cota_estabilidad(crudo):
     return fig
 
 
-def fig_53_cota(qs, crudo, catalogo, colores=None):
-    """Figura 5.3 — dB/diam(X) promediada por nube y nivel vs la cota 2q.
+def fig_53_cota(qs, crudo, catalogo, forma="documento", colores=None):
+    """Figura 5.3 — distancia bottleneck relativa frente a la cota.
 
-    Forma del PDF (Item 25): eje Y ``dB/diam(X)``, cota diagonal ``2q``,
-    rango Y [0, 0.45]. NOTA: con la métrica bottleneck exacta, círculo y
-    dos_círculos superan la cota (el PDF la dibujó con una heurística que
-    subestimaba ``dB``); ver Correcciones, Item 25.
+    ``forma="documento"`` (literal del PDF): eje Y ``dB/diam(X)``, cota diagonal
+    ``2q``, rango [0, ~0.45]. Con la métrica exacta, círculo y dos_círculos cruzan
+    la cota — es la inconsistencia del documento (Item 11/25).
+
+    ``forma="teorema"`` (correcta, Cohen-Steiner): eje Y ``dB/dH``, cota horizontal
+    ``2``; todas las curvas quedan por debajo.
+
+    Mismo esqueleto de datos, dos presets. Ver Correcciones, Item 26.
     """
     qs = np.asarray(qs)
+    qmax = float(qs.max())
+
+    def _val(c):
+        if forma == "documento":
+            return c["dB_diam"]
+        return c["dB"] / c["dH"] if c["dH"] > 0 else np.nan
+
+    if forma == "documento":
+        cota_x, cota_y = [0.0, qmax], [0.0, 2.0 * qmax]
+        cota_label = "cota $2q$"
+        ylabel = "$d_{B}\\,/\\,\\mathrm{diam}(X)$"
+        title = ("Distancia bottleneck relativa frente a la cota\n"
+                 "forma del documento:  $d_{B}/\\mathrm{diam}(X) \\leq 2q$")
+        yfloor = 0.42
+    else:
+        cota_x, cota_y = [0.0, qmax], [2.0, 2.0]
+        cota_label = "cota $2$"
+        ylabel = "$d_{B}\\,/\\,d_{H}$"
+        title = ("Distancia bottleneck relativa frente a la cota\n"
+                 "forma del teorema:  $d_{B} \\leq 2\\,d_{H}$")
+        yfloor = 2.1
+
     fig, ax = plt.subplots(figsize=(7, 4.2))
     for shape in _ORDEN_NUBES:
         if shape not in catalogo:
             continue
         y, e = [], []
         for q in qs:
-            vals = [c["dB_diam"] for c in crudo
-                    if c["shape"] == shape and c["q"] == q]
+            vals = [_val(c) for c in crudo if c["shape"] == shape and c["q"] == q]
+            vals = [v for v in vals if v == v]
             y.append(float(np.mean(vals)) if vals else np.nan)
             e.append(float(np.std(vals)) if vals else 0.0)
         ax.errorbar(qs, y, yerr=e, fmt="-" + _MARCADORES_NUBES.get(shape, "o"), ms=4,
                     capsize=3, lw=1.3,
                     color=(colores or _COLORES_NUBES).get(shape, _AZUL), label=shape)
-    qmax = float(qs.max())
-    ax.plot([0.0, qmax], [0.0, 2.0 * qmax], "--", color=_ROJO, lw=1.5, label="cota $2q$")
+    ax.plot(cota_x, cota_y, "--", color=_ROJO, lw=1.5, label=cota_label)
     ax.set_xlabel("nivel de ruido $q$")
-    ax.set_ylabel("$d_{B}/\\mathrm{diam}(X)$")
-    ax.set_title("Distancia bottleneck relativa frente a la cota")
+    ax.set_ylabel(ylabel)
+    ax.set_title(title, fontsize=10)
     ax.set_xlim(0.0, qmax)
     ax.set_xticks([0.0, 0.025, 0.05, 0.075, 0.10, 0.125, 0.15, 0.175, 0.20])
-    cmax = float(np.max([c["dB_diam"] for c in crudo])) if crudo else 0.0
-    ax.set_ylim(0.0, max(cmax * 1.05, 0.42))
+    vals_all = [v for v in (_val(c) for c in crudo) if v == v]
+    vtop = max(vals_all + [0.0]) * 1.05
+    ax.set_ylim(0.0, max(vtop, yfloor))
     # leyenda del PDF: primero las nubes (en orden), la cota al final
     h, l = ax.get_legend_handles_labels()
-    orden = {n: i for i, n in enumerate(list(_ORDEN_NUBES) + ["cota $2q$"])}
+    orden = {n: i for i, n in enumerate(list(_ORDEN_NUBES) + [cota_label])}
     pares = sorted(zip(l, h), key=lambda p: orden.get(p[0], 99))
     ax.legend([x[1] for x in pares], [x[0] for x in pares],
               fontsize=7, ncol=2, loc="upper left", framealpha=0.95)
@@ -431,7 +457,8 @@ def main():
         fig_51_calibracion(taus, aciertos, len(CATALOGO)).savefig(OUT_DIR / "fig51_calibracion_tau.png", dpi=300)
         fig_52a_tasa_acierto(qs, sweep, CATALOGO).savefig(OUT_DIR / "fig52a_tasa_acierto.png", dpi=300)
         fig_52b_cota_estabilidad(crudo).savefig(OUT_DIR / "fig52b_cota_estabilidad.png", dpi=300)
-        fig_53_cota(qs, crudo, CATALOGO).savefig(OUT_DIR / "fig53_bottleneck_2q.png", dpi=300)
+        fig_53_cota(qs, crudo, CATALOGO, forma="documento").savefig(OUT_DIR / "fig53a_forma_documento.png", dpi=300)
+        fig_53_cota(qs, crudo, CATALOGO, forma="teorema").savefig(OUT_DIR / "fig53b_forma_teorema.png", dpi=300)
         import pandas as pd
         pd.DataFrame(crudo).to_csv(OUT_DIR / "he1_replicas_dB_dH.csv", index=False)
         hechos += ["51", "52a", "52b", "53"]
