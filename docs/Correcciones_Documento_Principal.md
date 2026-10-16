@@ -245,11 +245,17 @@ las figuras solo se rasterizaban desde la sesión de Streamlit.
 
 ---
 
-## Item 17 — Inconsistencia en la Figura 5.6 del documento (β₁ = 3 vs 0)
+## Item 17 — Fig. 5.6: β₁ = 0 en el PDF (RETRACTA una lectura previa)
 
-**Hecho:** el dominio cuadrado con condiciones de contorno de viga en voladizo (empotramiento izquierdo, carga puntual derecha) converge a una banda diagonal de material **sin agujeros** ($\beta_1 = 0$), en contraste con el valor $\beta_1 = 3$ reportado en la Figura 5.6 del PDF.
+**Corrección:** una versión anterior de este documento afirmó que la Fig. 5.6 del PDF
+mostraba $\beta_1 = 3$. La inspección directa de la imagen del PDF (pág. 48, render a
+300 dpi) muestra que la línea verde de $\beta_1$ está **en 0** (alineada con el `0` del
+eje derecho). Por lo tanto **coincide con el software** ($\beta_1 = 0$, estable en todo
+el barrido de malla cuadrada). No hay inconsistencia de $\beta_1$; la afirmación previa
+queda **retirada**.
 
-**Resolución:** se documenta que los datos de la Figura 5.6 en el PDF presentan una inconsistencia de dominio (el conteo $\beta_1 = 3$ corresponde a la viga rectangular 2:1, mientras que el barrido de malla usa el dominio cuadrado). El software implementa el cálculo real FEM + TDA dando $\beta_1 = 0$ de manera estable en todo el barrido de malla cuadrada.
+**Razón del error:** se tomó el $\beta_1 = 3$ del caso base (viga 60×30, Figs. 5.4–5.5)
+y se atribuyó por error a la Fig. 5.6 (dominio cuadrado).
 
 ---
 
@@ -396,6 +402,34 @@ $\tilde\rho$ reproducen al PDF. La etiqueta del PDF es una imprecisión
 notacional. **Decisión del autor:** la leyenda se rotula de forma exacta,
 $4\tilde\rho(1-\tilde\rho)$. El cálculo se mantiene con $\tilde\rho$ (coincide
 con el PDF).
+
+---
+
+## Item 24 — Fig. 5.6: estilo del PDF, eje X logarítmico y discrepancia de compliance
+
+**Estilo alineado al PDF:** título "Independencia de malla: β₁ constante, c estable";
+compliance marrón (`#8c564b`) con círculos, $\beta_1$ verde con cuadrados; eje derecho
+"$\beta_1(\Omega_{\text{sólido}})$"; anotaciones $r_{\min}$ junto a cada punto; sin
+leyenda.
+
+**Eje X logarítmico (verificado):** el PDF coloca los tres puntos a 0.000 / 0.631 /
+1.000 del ancho del eje (medido por la posición de los marcadores, en píxeles). El
+valor 0.631 = $\log(4)/\log(9)$ es exactamente la predicción de una escala
+**logarítmica** en $N_e$ (la lineal daría 0.375; la categórica, 0.500). El software
+pasa a eje X logarítmico con ticks $\{1{,}600;\ 6{,}400;\ 14{,}400\}$.
+
+**Discrepancia de datos (compliance) — no resuelta:**
+
+| $N_e$ | PDF | software |
+|---|---|---|
+| 1 600 | 15.51 | 15.28 |
+| 6 400 | 16.62 | 15.67 |
+| 14 400 | 17.43 | 15.94 |
+
+El PDF crece +12 % entre extremos; el software +4 %. $\beta_1 = 0$ coincide en ambos
+(Item 17). No se pudo determinar la causa (¿dominio, escalado de $r_{\min}$, tolerancia
+o número de iteraciones distintos?); se reporta el valor propio del software sin
+forzarlo.
 
 ---
 

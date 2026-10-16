@@ -358,22 +358,32 @@ if st.session_state.get("simp_optimized", False):
         # Figura 5.6 — compliance y β₁ vs malla (eje X categórico: Ne lineal aplasta 1600)
         if len(df_mesh) > 0:
             st.markdown("**Figura 5.6:** Compliance (eje izquierdo) y β₁ (eje derecho) frente al número de elementos, con $r_{\\min}$ escalado para mantener constante su longitud física.")
-            _cat = df_mesh["Malla"].tolist()
-            _b1 = df_mesh["beta1"].tolist()
-            _b1_lo, _b1_hi = min(_b1 + [0]) - 1.5, max(_b1 + [4]) + 1.5
+            _ne = df_mesh["Ne"].tolist()
+            _c = df_mesh["c(rho*)"].tolist()
+            _cmin, _cmax = min(_c), max(_c)
             fig56 = make_subplots(specs=[[{"secondary_y": True}]])
-            fig56.add_trace(go.Scatter(x=_cat, y=df_mesh["c(rho*)"], mode="lines+markers", name="Compliance"), secondary_y=False)
-            fig56.add_trace(go.Scatter(x=_cat, y=df_mesh["beta1"], mode="lines+markers", name="β₁",
-                                       line=dict(color="green", width=3)), secondary_y=True)
+            fig56.add_trace(go.Scatter(x=_ne, y=_c, mode="lines+markers",
+                                       line=dict(color="#8c564b", width=2),
+                                       marker=dict(symbol="circle", size=9, color="#8c564b"),
+                                       showlegend=False), secondary_y=False)
+            fig56.add_trace(go.Scatter(x=_ne, y=df_mesh["beta1"], mode="lines+markers",
+                                       line=dict(color="green", width=2),
+                                       marker=dict(symbol="square", size=9, color="green"),
+                                       showlegend=False), secondary_y=True)
             for _, row in df_mesh.iterrows():
-                fig56.add_annotation(x=row["Malla"], y=row["c(rho*)"], text=f"rmin={row['rmin']}",
-                                     showarrow=True, arrowhead=1, yshift=12)
+                fig56.add_annotation(x=row["Ne"], y=row["c(rho*)"], text=f"r_min = {row['rmin']}",
+                                     showarrow=False, yshift=-16, font=dict(color="gray", size=11))
             fig56.update_layout(height=400, template="plotly_white",
-                                xaxis_title="Malla (Ne entre paréntesis)",
-                                xaxis=dict(type="category"),
-                                yaxis_title="Compliance c(ρ*)")
-            fig56.update_yaxes(title_text="β₁", secondary_y=True,
-                               range=[_b1_lo, _b1_hi], dtick=1)
+                                title="Independencia de malla: β₁ constante, c estable",
+                                xaxis_title="número de elementos Nₑ",
+                                xaxis=dict(type="log", tickvals=_ne,
+                                           ticktext=[f"{int(n):,}" for n in _ne]))
+            fig56.update_yaxes(title_text="compliance c(ρ*)", secondary_y=False,
+                               title_font=dict(color="#8c564b"), tickfont=dict(color="#8c564b"),
+                               range=[_cmin - 0.15 * (_cmax - _cmin), _cmax + 0.15 * (_cmax - _cmin)])
+            fig56.update_yaxes(title_text="β₁(Ωsólido)", secondary_y=True,
+                               title_font=dict(color="green"), tickfont=dict(color="green"),
+                               range=[-0.4, 3.4], dtick=1)
             apply_plotly_theme(fig56)
             st.plotly_chart(fig56, width="stretch")
             st.session_state.setdefault("he2_figs", {})["fig56_barrido_malla"] = fig56

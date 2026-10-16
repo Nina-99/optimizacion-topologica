@@ -297,36 +297,38 @@ def fig_55_penalizacion(df_p):
 
 
 def fig_56_malla(df_mesh):
-    """Figura 5.6 — Compliance (izq) y β₁ (der) vs malla.
+    """Figura 5.6 — Compliance (izq) y β₁ (der) vs malla; eje X logarítmico (Ne).
 
-    Eje X categórico (las mallas no son equidistantes en Ne): cada tick
-    muestra la malla y su Ne. Márgenes para que las anotaciones rmin
-    no se recorten, y leyenda combinada de ambos ejes.
+    Estilo del PDF: título "Independencia de malla: β₁ constante, c estable";
+    compliance marrón con círculos (eje izq), β₁ verde con cuadrados (eje der
+    "β₁(Ω_sólido)"); anotaciones r_min junto a cada punto; sin leyenda. El eje X
+    del PDF es logarítmico en Ne (verificado por posición de marcadores: 0.631).
     """
     fig, ax1 = plt.subplots(figsize=(7, 4.2))
     ax2 = ax1.twinx()
-    labels = df_mesh["Malla"].tolist()
-    ne = df_mesh["Ne"].tolist()
-    x = np.arange(len(labels))
-    l1, = ax1.plot(x, df_mesh["c(rho*)"], "-o", color=_AZUL, label="compliance c(ρ*)")
-    l2, = ax2.plot(x, df_mesh["beta1"], "-s", color=_VERDE, lw=2.5, label="β₁")
+    ne = df_mesh["Ne"].to_numpy()
+    ax1.set_xscale("log")
+    ax1.plot(ne, df_mesh["c(rho*)"], "-o", color=_MARRON, lw=1.9, ms=7)
+    ax2.plot(ne, df_mesh["beta1"], "-s", color=_VERDE, lw=1.9, ms=7)
+    n = len(df_mesh)
     for i, (_, row) in enumerate(df_mesh.iterrows()):
-        ax1.annotate(f"rmin={row['rmin']}", (x[i], row["c(rho*)"]),
-                     textcoords="offset points", xytext=(0, 12), ha="center", fontsize=8)
-    ax1.set_xticks(x)
-    ax1.set_xticklabels([f"{l}\nNe={n}" for l, n in zip(labels, ne)])
-    ax1.set_ylabel("compliance c(ρ*)", color=_AZUL)
-    ax2.set_ylabel("β₁", color=_VERDE)
-    b1 = df_mesh["beta1"].to_numpy()
-    ax2.set_ylim(min(b1 + [0]) - 1.5, max(b1 + [4]) + 1.5)
-    ax2.set_yticks(range(int(min(b1 + [0])), int(max(b1 + [4])) + 1))
-    # margen vertical para que las anotaciones rmin no se recorten
-    y0, y1 = ax1.get_ylim()
-    ax1.set_ylim(y0 - 0.15 * (y1 - y0), y1 + 0.20 * (y1 - y0))
-    ax1.set_xlim(-0.3, len(labels) - 0.7)
-    ax1.set_xlabel("malla (Ne entre paréntesis)")
-    ax1.set_title("Figura 5.6 — Independencia de malla (rmin escalado)")
-    ax1.legend([l1, l2], [l1.get_label(), l2.get_label()], fontsize=8, loc="best")
+        off = (-44, -4) if i == n - 1 else (-6, -16)
+        ax1.annotate(f"$r_{{min}} = {row['rmin']:g}$", (row["Ne"], row["c(rho*)"]),
+                     textcoords="offset points", xytext=off,
+                     ha="right" if i == n - 1 else "center",
+                     fontsize=8, color=_GRIS)
+    ax1.set_xlabel("número de elementos $N_e$")
+    ax1.set_xticks(ne)
+    ax1.set_xticklabels([f"{int(n):,}" for n in ne])
+    ax1.minorticks_off()
+    ax1.set_xlim(ne.min() / 1.35, ne.max() * 1.35)
+    cmin, cmax = float(df_mesh["c(rho*)"].min()), float(df_mesh["c(rho*)"].max())
+    ax1.set_ylim(cmin - 0.15 * (cmax - cmin), cmax + 0.15 * (cmax - cmin))
+    ax1.set_ylabel("compliance $c(\\rho^*)$", color=_MARRON)
+    ax2.set_ylabel("β₁(Ωsólido)", color=_VERDE)
+    ax2.set_ylim(-0.4, 3.4)
+    ax2.set_yticks([0, 1, 2, 3])
+    ax1.set_title("Independencia de malla: β₁ constante, c estable")
     fig.tight_layout()
     return fig
 
