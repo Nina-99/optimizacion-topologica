@@ -52,6 +52,28 @@ ACC_ALTO = 0.50               # H.E.1c: umbral inferior
 Q_STAR_RANGO = (0.05, 0.10)   # H.E.1c
 
 
+def _pers_h1_dominante_por_q(shape: str, n_points: int, qs, seed: int):
+    """Persistencia H₁ dominante normalizada por diam(X), por nivel de ruido q.
+
+    Diagnóstico de la Fig. 5.2(a): un agujero se cuenta solo si su persistencia
+    supera τ·diam(X). Si la mayor persistencia H₁ cae por debajo de τ, β₁ deja de
+    leerse bien (p. ej. dos_circulos, cuya nube se rompe con el ruido).
+    """
+    out = []
+    for q in qs:
+        np.random.seed(seed)
+        X0 = generate_cloud(shape, n_points)
+        diam = compute_diameter(X0)
+        np.random.seed(seed + int(1e5 * q))
+        Y = add_gaussian_noise(X0, q)
+        dgm = ripser(Y, maxdim=1)["dgms"]
+        h1 = np.asarray(dgm[1])
+        pers = (h1[:, 1] - h1[:, 0]) if len(h1) else np.array([0.0])
+        pers = pers[np.isfinite(pers)]
+        out.append(float(pers.max() / diam) if len(pers) and diam > 0 else 0.0)
+    return out
+
+
 # ── Configuración de página ──────────────────────────────────────────
 st.set_page_config(page_title="H.E.1 — Robustez TDA", layout="wide", page_icon="📊")
 st.markdown(responsive_style(), unsafe_allow_html=True)
@@ -389,6 +411,33 @@ if st.session_state.get("tda_he1_run", False) and res:
     apply_plotly_theme(fig52a)
     st.plotly_chart(fig52a, width="stretch")
     st.session_state.setdefault("he1_figs", {})["fig52a_tasa_acierto"] = fig52a
+
+    # Diagnóstico: por qué algunas nubes colapsan antes (persistencia H₁ vs τ)
+    with st.expander("🔎 Diagnóstico de la Fig. 5.2(a) — ¿por qué colapsa β₁?", expanded=False):
+        st.caption("Persistencia $H_1$ **dominante** normalizada por $\\mathrm{diam}(X)$, por nube con agujeros, "
+                   "frente al umbral $\\tau$ (línea roja). Una nube se lee correctamente mientras su mayor persistencia "
+                   "$H_1$ supere $\\tau\\cdot\\mathrm{diam}(X)$; cuando el ruido rompe la nube, la persistencia cae "
+                   "por debajo de $\\tau$ y $\\beta_1$ deja de detectarse. Es la causa de que, p. ej., `dos_circulos` "
+                   "colapse antes que en el documento (su nube separa más los centros ⇒ $\\mathrm{diam}$ grande ⇒ "
+                   "$\\tau\\cdot\\mathrm{diam}$ grande frente a agujeros de radio 1) — ver Item 27.")
+        _diag_qs = list(qs)
+        _con_agujero = ["circulo", "anillo", "dos_circulos", "toro"]
+        _col_diag = {"circulo": "#ff7f0e", "anillo": "#1f77b4",
+                     "dos_circulos": "#d62728", "toro": "#e377c2"}
+        fig_diag = go.Figure()
+        for _s in _con_agujero:
+            _pers = _pers_h1_dominante_por_q(_s, n_points, _diag_qs, SEED)
+            fig_diag.add_trace(go.Scatter(x=_diag_qs, y=_pers, mode="lines+markers",
+                                          name=_s, line=dict(color=_col_diag[_s])))
+        fig_diag.add_hline(y=TAU_CALIBRADO, line=dict(dash="dash", color="red"),
+                           annotation_text=f"τ = {TAU_CALIBRADO}", annotation_position="top left")
+        fig_diag.update_layout(height=350, template="plotly_white",
+                               title="Persistencia H₁ / diam(X) frente al umbral τ",
+                               xaxis_title="nivel de ruido q",
+                               yaxis_title="persistencia H₁ / diam(X)",
+                               xaxis=dict(range=[0.0, 0.20], dtick=0.05))
+        apply_plotly_theme(fig_diag)
+        st.plotly_chart(fig_diag, width="stretch")
 
     # q* = máx{q : tasa de acierto ≥ 0.95} sobre el subconjunto validado (Tabla 5.5, nota a)
     acc_bk_all = [float(np.mean([sweep[s]["acierto"][i] for s in CATALOGO])) for i in range(len(qs))]

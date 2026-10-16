@@ -477,6 +477,41 @@ inconsistencia del PDF en un hallazgo documentado y verificable.
 
 ---
 
+## Item 27 — Fig. 5.2(a): por qué `dos_circulos` colapsa antes que en el documento
+
+**Investigación (con evidencia).** El desacuerdo no es de fórmula sino de **geometría
+de la nube**. A $q = 0.05$ el software lee `dos_circulos` = $(\beta_0, \beta_1) = (2, 0)$:
+el $\beta_0$ es correcto, pero el **agujero no se detecta**. Diagnóstico:
+
+| `dos_circulos` | $q = 0$ | $q = 0.05$ |
+|---|---|---|
+| barras $H_1$ | 2 | **84** |
+| mayor persistencia $H_1$ | 1.591 | **0.410** |
+| umbral $\tau\cdot\mathrm{diam}(X)$ | 1.050 | 1.050 |
+| $\beta_1$ leído | 2 ✓ | **0 ✗** |
+
+El ruido ($\sigma = 0.05\cdot\mathrm{diam} = 0.35$) es grande frente al radio de los
+círculos (1.0): la nube se fragmenta, el $H_1$ se reparte en 84 barritas y la
+persistencia del agujero cae por debajo del umbral $\tau\cdot\mathrm{diam}(X)$.
+Nuestro `dos_circulos` usa separación 5.0 ($\mathrm{diam} = 7$), de modo que
+$\tau\cdot\mathrm{diam} = 1.05$ es grande frente a agujeros de radio 1. El documento
+debió usar una separación menor ($\sigma$ menor ⇒ los agujeros sobreviven).
+
+**Consecuencia:** **no** se aplica el patrón de Fig. 5.3 (dos formas). Allí había dos
+formulaciones matemáticas del mismo objeto (una cota vs el teorema); aquí el resultado
+**depende de un parámetro de configuración**, sin una "forma correcta" y otra "del
+documento" que contrastar.
+
+**Acción (A + B):**
+- **(A)** Se documenta como discrepancia de configuración (no de fórmula).
+- **(B)** La app incorpora un **diagnóstico** junto a la Fig. 5.2(a): "Persistencia
+  $H_1$ dominante $/\mathrm{diam}(X)$ frente al umbral $\tau$", por nube con agujeros.
+  Muestra de un vistazo el orden de colapso: `dos_circulos` (0.227→0.059) y `toro`
+  (0.226→0.103) cruzan $\tau = 0.15$ ya en $q = 0.05$; `anillo` en $q = 0.10$;
+  `círculo` aguanta hasta $q = 0.15$. Convierte el dato raro en algo explicado.
+
+---
+
 ## Resumen de trazabilidad (software → tesis)
 
 | Hipótesis | Función | Dato | Figura |
