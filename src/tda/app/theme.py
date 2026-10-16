@@ -94,12 +94,30 @@ def apply_mpl_theme():
         plt.style.use("dark_background")
     else:
         plt.style.use("default")
-def apply_plotly_theme(fig):
-    """Aplica el template de Plotly según el tema actual."""
+def apply_plotly_theme(fig, leyenda="derecha"):
+    """Aplica el template de Plotly según el tema y ubica la leyenda.
+
+    ``leyenda``:
+      - ``"derecha"`` (default): leyenda vertical fuera del área de trazado,
+        a la derecha, para no tapar el gráfico.
+      - ``"secundaria"``: idem pero más desplazada, para gráficos con eje Y a
+        ambos lados (no choca con el eje secundario).
+      - ``None``: no toca leyenda ni márgenes (heatmaps y gráficos sin leyenda).
+    """
     if is_dark():
         fig.update_layout(template="plotly_dark")
     else:
         fig.update_layout(template="plotly_white")
+    if leyenda == "derecha":
+        fig.update_layout(
+            legend=dict(orientation="v", x=1.02, xanchor="left", y=1, yanchor="top"),
+            margin=dict(r=175),
+        )
+    elif leyenda == "secundaria":
+        fig.update_layout(
+            legend=dict(orientation="v", x=1.16, xanchor="left", y=1, yanchor="top"),
+            margin=dict(r=260),
+        )
     return fig
 
 
@@ -509,6 +527,21 @@ hr {
 hr {
     background: linear-gradient(to right, transparent, #FF6B35, transparent) !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   DESCRIPCIÓN ↔ FIGURA — sin huecos que las desvinculen
+   ═══════════════════════════════════════════════════════════════ */
+/* Compacta el aire vertical entre bloques (la figura queda pegada a su rótulo) */
+[data-testid="stVerticalBlock"] { gap: 0.55rem !important; }
+/* Encabezado de figura: sin margen inferior residual */
+[data-testid="stMarkdownContainer"] > p:last-child { margin-bottom: 0.1rem !important; }
+/* La figura arranca inmediatamente debajo de su descripción */
+[data-testid="stPlotlyChart"] { margin-top: -0.15rem !important; }
+/* Si la descripción precede a una figura, se anulan los márgenes entre ambas */
+[data-testid="stMarkdown"]:has(+ [data-testid="element-container"] [data-testid="stPlotlyChart"]) {
+    margin-bottom: -0.55rem !important;
+}
+.element-container:has([data-testid="stPlotlyChart"]) { margin-top: -0.1rem !important; }
 </style>
 """
 

@@ -57,7 +57,7 @@ def plot_material_distribution(density_2d, title: str):
                       xaxis=dict(title="elementos x", range=[-0.5, nx - 0.5], dtick=max(1, nx // 6)),
                       yaxis=dict(title="elementos y", range=[-0.5, ny - 0.5], dtick=max(1, ny // 6),
                                  scaleanchor="x", scaleratio=1, autorange="reversed"))
-    apply_plotly_theme(fig)
+    apply_plotly_theme(fig, leyenda=None)
     return fig
 
 
@@ -243,7 +243,7 @@ if st.session_state.get("simp_optimized", False):
                               xaxis=dict(title="elementos x", range=[-0.5, nex_ - 0.5], dtick=max(1, nex_ // 6)),
                               yaxis=dict(title="elementos y", range=[-0.5, ney_ - 0.5], dtick=max(1, ney_ // 6),
                                          scaleanchor="x", scaleratio=1, autorange="reversed"))
-        apply_plotly_theme(fig_bin)
+        apply_plotly_theme(fig_bin, leyenda=None)
         st.plotly_chart(fig_bin, width="stretch")
         st.session_state.setdefault("he2_figs", {})["fig54a_diseno_binarizado"] = fig_bin
     st.caption("El sólido forma una sola pieza (β₀ = 1). El conteo automático de agujeros coincide con la inspección visual.")
@@ -272,7 +272,7 @@ if st.session_state.get("simp_optimized", False):
                                       showgrid=True, gridcolor="rgba(0,0,0,0.08)"),
                            yaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.10)"),
                            margin=dict(l=0, r=0, b=0, t=40))
-    apply_plotly_theme(fig_conv)
+    apply_plotly_theme(fig_conv, leyenda=None)
     st.plotly_chart(fig_conv, width="stretch")
     st.session_state.setdefault("he2_figs", {})["fig54b_historial_compliance"] = fig_conv
 
@@ -351,7 +351,7 @@ if st.session_state.get("simp_optimized", False):
             fig55.update_yaxes(title_text="grisura (0 = diseño binario)", secondary_y=True,
                                title_font=dict(color="#4b759a"), tickfont=dict(color="#4b759a"),
                                range=[gmin - 0.03, gmax + 0.04])
-            apply_plotly_theme(fig55)
+            apply_plotly_theme(fig55, leyenda="secundaria")
             st.plotly_chart(fig55, width="stretch")
             st.session_state.setdefault("he2_figs", {})["fig55_barrido_penalizacion"] = fig55
 
@@ -384,7 +384,7 @@ if st.session_state.get("simp_optimized", False):
             fig56.update_yaxes(title_text="β₁(Ωsólido)", secondary_y=True,
                                title_font=dict(color="green"), tickfont=dict(color="green"),
                                range=[-0.4, 3.4], dtick=1)
-            apply_plotly_theme(fig56)
+            apply_plotly_theme(fig56, leyenda=None)
             st.plotly_chart(fig56, width="stretch")
             st.session_state.setdefault("he2_figs", {})["fig56_barrido_malla"] = fig56
 
@@ -452,7 +452,7 @@ if st.session_state.get("simp_optimized", False):
         fig57.update_yaxes(title_text="número de Betti", secondary_y=False, range=[0, _ymax], dtick=1)
         fig57.update_yaxes(title_text="fracción de volumen umbralizada", secondary_y=True,
                            range=[0.0, 1.0])
-        apply_plotly_theme(fig57)
+        apply_plotly_theme(fig57, leyenda="secundaria")
         st.plotly_chart(fig57, width="stretch")
         st.session_state.setdefault("he2_figs", {})["fig57_betti_umbral"] = fig57
         _conc_ok = [c for c in concs if c is not None]
@@ -483,7 +483,7 @@ if st.session_state.get("simp_optimized", False):
                                                zmin=0, zmax=1, showscale=False)])
         fig_live.update_layout(height=320, title=f"Ω sólido (u = {u_live:.2f})",
                                margin=dict(l=0, r=0, b=0, t=40))
-        apply_plotly_theme(fig_live)
+        apply_plotly_theme(fig_live, leyenda=None)
         st.plotly_chart(fig_live, width="stretch")
     with colB:
         st.metric("β₀ (componentes)", b0l)

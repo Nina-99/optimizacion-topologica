@@ -512,6 +512,29 @@ documento" que contrastar.
 
 ---
 
+## Item 28 — App: leyendas a la derecha y sin hueco descripción↔figura
+
+**Decisión del autor (solo la app Streamlit, no los PNG del headless):**
+
+1. **Leyendas a la derecha, fuera del área de trazado**, para que no tapen el
+   gráfico. Se centraliza en `theme.apply_plotly_theme(fig, leyenda=…)`:
+   - `"derecha"` (default, un solo eje Y): leyenda a `x=1.02`, margen derecho 175.
+   - `"secundaria"` (eje Y a ambos lados, Figs. 5.5/5.7): a `x=1.16`, margen 260,
+     para no chocar con el eje secundario.
+   - `None` (heatmaps y gráficos sin leyenda): sin cambios.
+   Verificado renderizando a PNG (kaleido): sin solapamiento en ambos casos.
+
+2. **Sin hueco entre la descripción y su figura.** Se agrega CSS en
+   `responsive_style()` que compacta el aire vertical (`gap` del `stVerticalBlock`,
+   márgenes de la descripción previa y de la figura) para que cada figura quede
+   **pegada a su rótulo de arriba** y no dé la impresión de pertenecer al texto de
+   abajo.
+
+**Nota:** los PNG del headless (entregable E3) **mantienen** la posición de leyenda
+del PDF (fidelidad al documento); el ajuste aplica solo a la app.
+
+---
+
 ## Resumen de trazabilidad (software → tesis)
 
 | Hipótesis | Función | Dato | Figura |
