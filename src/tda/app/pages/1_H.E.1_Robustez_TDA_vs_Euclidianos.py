@@ -122,25 +122,6 @@ st.markdown("**H.E.1c — rango de fiabilidad de $\\beta_k$**")
 st.latex(r"\exists\, q^{*}:\ \beta_{k}^{(\tau)}(X)=\beta_{k}^{\mathrm{teo}}\ \text{en} \ge 95\%\ (q<q^{*}),\quad < 50\%\ (q>q^{*})")
 st.markdown("---")
 
-# Botón unificado superior que ejecuta todo el protocolo H.E.1
-if st.button("▶ Ejecutar protocolo H.E.1 completo (Calibración, Figs. 5.2, 5.3 y McNemar)", type="primary"):
-    with st.spinner("Ejecutando protocolo H.E.1 completo..."):
-        # 1. Calibración (por si no la hicieron)
-        st.session_state.he1_calib = resultado_calibracion(n_points=int(n_points))
-        # 2. Fig 5.2 y McNemar
-        res52 = protocolo_fig52(n_points=int(n_points))
-        guardar_resultados(res52)
-        st.session_state.he1_fig52 = res52
-        # 3. Fig 5.3 (truncamiento)
-        _trunc = analisis_truncamiento(n_points=int(n_points))
-        guardar_truncamiento(_trunc)
-        st.session_state.he1_trunc = _trunc
-        # 4. McNemar (H.E.1b)
-        res_mcn = comparar_tda_vs_euclidiano(n_points=int(n_points), n_rep=2 * int(n_mcn),
-                                             tau=TAU_CALIBRADO, apply_affine=True,
-                                             random_seed=SEED)
-        st.session_state.he1_mcnemar = res_mcn
-
 # ── 0. Calibración previa del umbral τ (Figura 5.1) ──────────────────
 st.subheader("Paso previo — Figura 5.1: calibración del umbral relativo de persistencia $\\tau$")
 st.caption(
@@ -169,6 +150,28 @@ if calib:
         f"τ adoptado = {TAU_CALIBRADO} {'cae dentro' if dentro else 'queda FUERA'}."
     )
     st.markdown("---")
+
+# Botón unificado: ejecuta la medición de H.E.1 (Fig. 5.2, Fig. 5.3 y McNemar).
+# La calibración de τ (Fig. 5.1) es un paso ANTERIOR y tiene su propio botón.
+if st.button("▶ Ejecutar protocolo H.E.1 (Figuras 5.2, 5.3 y McNemar)", type="primary"):
+    if st.session_state.get("he1_calib") is None:
+        st.warning("Conviene calibrar τ primero (Figura 5.1): es el paso previo que fija el umbral. "
+                   "Se puede seguir, pero τ* no estará verificado en esta sesión.")
+    with st.spinner("Ejecutando protocolo H.E.1 (Fig. 5.2: 1 680 réplicas, Fig. 5.3 y McNemar)..."):
+        # 1. Fig 5.2
+        res52 = protocolo_fig52(n_points=int(n_points))
+        guardar_resultados(res52)
+        st.session_state.he1_fig52 = res52
+        # 2. Fig 5.3 (truncamiento)
+        _trunc = analisis_truncamiento(n_points=int(n_points))
+        guardar_truncamiento(_trunc)
+        st.session_state.he1_trunc = _trunc
+        # 3. McNemar (H.E.1b)
+        res_mcn = comparar_tda_vs_euclidiano(n_points=int(n_points), n_rep=2 * int(n_mcn),
+                                             tau=TAU_CALIBRADO, apply_affine=True,
+                                             random_seed=SEED)
+        st.session_state.he1_mcnemar = res_mcn
+
 
 # ── Paso previo — Figura 5.2: estabilidad dimensional ────────────────
 st.subheader("Paso previo — Figura 5.2: estabilidad del diagrama y fiabilidad de $\\beta_k$")
