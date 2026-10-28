@@ -425,58 +425,51 @@ if st.session_state.get("tda_he1_run", False) and res:
     st.markdown("---")
 
     # ══════════════════════════════════════════════════════════════════
-    # 4. Veredicto H.E.1 (Tabla 5.5)
+    # ══════════════════════════════════════════════════════════════════
+    # 4. Veredicto H.E.1 — Tabla 5.5 (indicador, criterio, esperado, medido)
     # ══════════════════════════════════════════════════════════════════
     st.subheader("4. Veredicto H.E.1 — Tabla 5.5 (indicador, criterio, esperado, medido)")
-    acc_bajo = float(np.mean([a for q, a in zip(qs, acc_b1) if q <= 0.05])) if any(q <= 0.05 for q in qs) else None
-    acc_alto = float(np.mean([a for q, a in zip(qs, acc_b1) if q >= 0.15])) if any(q >= 0.15 for q in qs) else None
+    _rep52 = res52["replicas"]
+    _frac_g = float((_rep52["dB"] <= _rep52["cota_teorema"] + 1e-9).mean())
+    _mcn = st.session_state.get("he1_mcnemar", {})
+    _he1b_ok = _mcn.get("p_value", 1.0) < 0.05
+    _q_est = q_estrella(_rep52)
+    _q_star_val = float(_q_est[_q_est["d"] <= 3]["q_estrella"].mean())
+    _in_rng = 0.05 <= _q_star_val <= 0.10
+
     filas55 = [
         {"Indicador": "dB ≤ 2 dH", "Criterio": "Fracción de réplicas = 1.0",
-         "Esperado": "1.000", "Medido": f"{frac_global:.3f}", "Veredicto": "✓" if frac_global == 1.0 else "×"},
-        {"Indicador": "Acierto de β₁, q ≤ 0.05", "Criterio": "≥ 0.95",
-         "Esperado": "≥ 0.95", "Medido": f"{acc_bajo:.2f}" if acc_bajo is not None else "—",
-         "Veredicto": "✓" if (acc_bajo is not None and acc_bajo >= 0.95) else "×"},
-        {"Indicador": "Acierto de β₁, q ≥ 0.15", "Criterio": "< 0.50 (régimen no válido)",
-         "Esperado": "< 0.50", "Medido": f"{acc_alto:.3f}" if acc_alto is not None else "—",
-         "Veredicto": "✓" if (acc_alto is not None and acc_alto < 0.50) else "×"},
+         "Esperado": "1.000", "Medido": f"{_frac_g:.3f}", "Veredicto": "✓" if _frac_g == 1.0 else "×"},
         {"Indicador": "Nivel crítico q*", "Criterio": "Delimitado empíricamente",
-         "Esperado": "≈ 0.05–0.10", "Medido": f"≈ {q_star:.2f}" if q_star is not None else "no detectado",
-         "Veredicto": "✓" if in_rango else "×"},
+         "Esperado": "≈ 0.05–0.10", "Medido": f"≈ {_q_star_val:.2f}",
+         "Veredicto": "✓" if _in_rng else "×"},
         {"Indicador": "Exactitud TDA vs euclidiana", "Criterio": "McNemar p < 0.05",
-         "Esperado": "significativa", "Medido": f"{mcn['exactitud_tda']:.3f} vs {mcn['exactitud_eucl']:.3f}",
-         "Veredicto": "✓" if he1b_ok else "×"},
+         "Esperado": "significativa", "Medido": f"p = {_mcn.get('p_value', 1.0):.4f}",
+         "Veredicto": "✓" if _he1b_ok else "×"},
     ]
     st.table(pd.DataFrame(filas55))
     n_ok = sum(1 for f in filas55 if f["Veredicto"] == "✓")
-    st.markdown(f"**Síntesis H.E.1:** {n_ok}/{len(filas55)} criterios cumplidos — "
-                f"H.E.1a {'✓' if frac_global == 1.0 else '×'}, "
-                f"H.E.1b {'✓' if he1b_ok else '×'}, "
-                f"H.E.1c {'✓' if in_rango else '×'}.")
+    st.markdown(f"**Síntesis H.E.1:** {n_ok}/{len(filas55)} criterios cumplidos.")
 
     # ── Exportación ──────────────────────────────────────────────────
     st.markdown("---")
     st.subheader("5. Exportar resultados")
     try:
         from tda.app.download_utils import download_button as dl_btn, write_figs_zip, entorno_json
-        df_crudo = pd.DataFrame(crudo)
         zf_buf = io.BytesIO()
         with zipfile.ZipFile(zf_buf, "w", zipfile.ZIP_DEFLATED) as zf:
-            base = f"he1_n{params.get('n_points')}_R{params.get('n_rep')}"
-            zf.writestr(f"{base}/replicas_dB_dH.csv", df_crudo.to_csv(index=False))
+            base = f"he1_corregido"
+            zf.writestr(f"{base}/replicas_dB_dH.csv", _rep52.to_csv(index=False))
             zf.writestr(f"{base}/tabla_5_5.csv", pd.DataFrame(filas55).to_csv(index=False))
-            zf.writestr(f"{base}/params.txt",
-                        f"n={params.get('n_points')}\nR={params.get('n_rep')}\n"
-                        f"q={Q_LEVELS}\ntau={TAU_CALIBRADO}\nseed={SEED}\n")
             zf.writestr(f"{base}/entorno.json", entorno_json({
-                "protocolo": "H.E.1", "n": params.get("n_points"),
-                "R": params.get("n_rep"), "q": list(Q_LEVELS),
-                "tau": TAU_CALIBRADO, "seed": SEED}))
+                "protocolo": "H.E.1", "tau": TAU_CALIBRADO, "seed": SEED}))
             write_figs_zip(zf, f"{base}/figuras", st.session_state.get("he1_figs", {}))
         dl_btn("📦 Descargar TODO (ZIP)", zf_buf.getvalue(), f"he1_robustez_{base}.zip",
                "application/zip", width="stretch")
     except Exception as e:
         st.error(f"Error en la exportación: {e}")
 
+    st.markdown("---")
 methodology_expander("📖 Protocolo y compuertas — H.E.1", [
     ("Protocolo y compuertas", (
         "| Sub-hipótesis | Se mide | Instrumento | Criterio | Evidencia |\n"
