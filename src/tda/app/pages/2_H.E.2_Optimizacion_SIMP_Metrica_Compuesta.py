@@ -286,15 +286,20 @@ if st.session_state.get("simp_optimized", False):
     # Barrido multi-configuración (malla con rmin escalado, p, rmin)
     st.markdown("**Barrido multi-configuración** — invariancia de β₁ (Figuras 5.5, 5.6) y persistencia frente al umbral (Figura 5.7).")
     if st.button("▶ Ejecutar barrido (H.E.2b)", type="secondary", key="sweep_btn"):
-        bar = st.progress(0)
+        with st.status("🏗️ Ejecutando barrido multi-configuración (H.E.2b)...", expanded=True) as status:
+            st.write("🔄 Evaluando efecto de la penalización (p), mallas y r_min...")
+            bar = st.progress(0)
 
-        def _cb(i, n, label):
-            bar.progress(i / n)
+            def _cb(i, n, label):
+                bar.progress(i / n)
+                st.write(f"⚙️ {label} ({i}/{n})")
 
-        sweep_results = barrido_he2(dominio, nex_, ney_, penal_val, rmin_val,
-                                    E=E_acero, Fmag=F_carga, fV=volfrac, t=espesor,
-                                    max_iter=max_iter, progress_cb=_cb)
-        bar.progress(1.0)
+            sweep_results = barrido_he2(dominio, nex_, ney_, penal_val, rmin_val,
+                                        E=E_acero, Fmag=F_carga, fV=volfrac, t=espesor,
+                                        max_iter=max_iter, progress_cb=_cb)
+            bar.progress(1.0)
+            status.update(label="✅ Barrido completado con éxito", state="complete", expanded=False)
+
         st.session_state.sweep_results = sweep_results
         st.session_state.sweep_done = True
 
