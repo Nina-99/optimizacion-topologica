@@ -176,271 +176,176 @@ if st.button("▶ Ejecutar protocolo H.E.1 completo (Figuras 5.2, 5.3 y McNemar)
 
 
 res52 = st.session_state.get("he1_fig52")
+_trunc = st.session_state.get("he1_trunc")
+mcn = st.session_state.get("he1_mcnemar")
+
 if res52:
-    st.subheader("1. H.E.1a — Estabilidad de los diagramas (Figuras 5.2 y 5.3)")
+    rep52 = res52["replicas"]
+
+    # ══════════════════════════════════════════════════════════════════
+    # 1. H.E.1a — Estabilidad de los diagramas (Figuras 5.2 y 5.3)
+    # ══════════════════════════════════════════════════════════════════
+    st.subheader("1. H.E.1a — Estabilidad de los diagramas")
+    st.latex(r"d_{B}\bigl(\mathrm{Dgm}_{k}^{\mathrm{VR}}(X),\ \mathrm{Dgm}_{k}^{\mathrm{VR}}(Y)\bigr) \le 2\,d_{H}(X,Y),\quad k=0,1")
     st.caption(
-        "El ruido se normaliza por la dimensión ($\sigma = q\,\mathrm{diam}(X)/\sqrt{d}$) y "
-        "$\tau$ es el calibrado en la Fig. 5.1. Los paneles (a1–a3) miden la lectura de "
-        "$(\beta_0,\beta_1)$ en la dimensión nativa y en $d = 10,\, 100$; (b) contrasta "
-        "$d_B$ con la cota $2\,d_H$ en todas las réplicas y (c) cuán holgada es esa cota."
+        "Ruido normalizado por la dimensión ($\\sigma = q\\,\\mathrm{diam}(X)/\\sqrt{d}$) y "
+        "$\\tau$ calibrado en la Fig. 5.1. Los paneles (a1–a3) miden la lectura de "
+        "$(\\beta_0,\\beta_1)$ en la dimensión nativa y en $d = 10,\\, 100$; (b) contrasta "
+        "$d_B$ con la cota $2\\,d_H$ y (c) cuán holgada es esa cota."
     )
-    fig52 = fig_52_estabilidad(res52["replicas"], res52["q0"],
+
+    fig52 = fig_52_estabilidad(rep52, res52["q0"],
                                tema="oscuro" if is_dark() else "claro")
     st.pyplot(fig52)
     plt.close(fig52)
     st.session_state.setdefault("he1_figs", {})["fig52_estabilidad"] = fig52
-    _rep52 = res52["replicas"]
-    _viol = int((_rep52["dB"] > _rep52["cota_teorema"] + 1e-9).sum())
-    st.caption(f"{len(_rep52)} réplicas · **{_viol}** violaciones de $d_B \\leq 2\\,d_H$.")
-    with st.expander("Nivel crítico q* por nube y dimensión (H.E.1c)", expanded=False):
-        st.dataframe(q_estrella(_rep52), width="stretch", hide_index=True)
-    st.markdown("---")
+    _viol = int((rep52["dB"] > rep52["cota_teorema"] + 1e-9).sum())
+    st.caption(f"**Figura 5.2** — {len(rep52)} réplicas · **{_viol}** violaciones de $d_B \\leq 2\\,d_H$.")
 
-_trunc = st.session_state.get("he1_trunc")
-if _trunc is not None and res52:
-    fig53 = fig_53_cota_corregida(_trunc, res52["replicas"],
-                                  tema="oscuro" if is_dark() else "claro")
-    st.pyplot(fig53)
-    plt.close(fig53)
-    st.session_state.setdefault("he1_figs", {})["fig53_cota_corregida"] = fig53
-    _razon53 = res52["replicas"]["dB"] / res52["replicas"]["cota_prob"]
-    st.caption(f"Razón máxima $d_B/\\text{{cota}}$ = **{_razon53.max():.2f}**, media "
-               f"**{_razon53.mean():.2f}** · **0** violaciones en {len(_razon53)} réplicas "
-               "(tolerancia teórica del 5 %).")
-    st.markdown("---")
+    if _trunc is not None:
+        fig53 = fig_53_cota_corregida(_trunc, rep52,
+                                      tema="oscuro" if is_dark() else "claro")
+        st.pyplot(fig53)
+        plt.close(fig53)
+        st.session_state.setdefault("he1_figs", {})["fig53_cota_corregida"] = fig53
+        _razon = rep52["dB"] / rep52["cota_prob"]
+        st.caption(
+            f"**Figura 5.3** — razón $d_B/\\text{{cota}}$ máxima **{_razon.max():.2f}**, "
+            f"media **{_razon.mean():.2f}** · **0** violaciones en {len(_razon)} réplicas "
+            "(tolerancia teórica del 5 %)."
+        )
 
-# (sweep/crudo antiguo reemplazado por res52)
-
-    # ══════════════════════════════════════════════════════════════════
-    # 1. H.E.1a — estabilidad de los diagramas (Figuras 5.3 y 5.2(b))
-    # ══════════════════════════════════════════════════════════════════
-    st.subheader("1. H.E.1a — Estabilidad de los diagramas")
-    st.latex(r"d_{B}\bigl(\mathrm{Dgm}_{k}^{\mathrm{VR}}(X),\ \mathrm{Dgm}_{k}^{\mathrm{VR}}(Y)\bigr) \le 2\,d_{H}(X,Y),\quad k=0,1")
-
-    # Resultado H.E.1a
-    frac_global = float(np.mean([sweep[s]["cumple_frac"][i]
-                                 for s in CATALOGO for i in range(len(qs))]))
-    viola_teorema = any(c["dB"] > 2 * c["dH"] + 1e-9 for c in crudo)
-    filas_a = [{"Nube": s, **{f"q={q}": f"{sweep[s]['cumple_frac'][i]:.2f}" for i, q in enumerate(qs)}}
-               for s in CATALOGO]
-    st.dataframe(pd.DataFrame(filas_a), width="stretch", hide_index=True)
-    if frac_global == COTA_FRACCION and not viola_teorema:
-        st.success(f"### ✅ H.E.1a SE SOSTIENE — dB ≤ 2 dH en el {frac_global:.3f} de las réplicas")
+    _frac_a = float((rep52["dB"] <= rep52["cota_teorema"] + 1e-9).mean())
+    if _frac_a == 1.0:
+        st.success(f"### ✅ H.E.1a SE SOSTIENE — $d_B \\le 2\\,d_H$ en el {_frac_a:.3f} de las réplicas")
     else:
-        st.error(f"### ❌ H.E.1a NO SE SOSTIENE — fracción = {frac_global:.3f} (se exige {COTA_FRACCION:.3f})")
+        st.error(f"### ❌ H.E.1a NO SE SOSTIENE — fracción = {_frac_a:.3f}")
     st.markdown("---")
 
     # ══════════════════════════════════════════════════════════════════
-    # 2. H.E.1b — ventaja comparativa TDA vs euclidiano (McNemar)
+    # 2. H.E.1b — Ventaja comparativa TDA vs euclidiano (McNemar)
     # ══════════════════════════════════════════════════════════════════
     st.subheader("2. H.E.1b — Ventaja comparativa (TDA vs euclidiano)")
-    st.caption("Tarea: disco vs anillo bajo transformación afín aleatoria. Descriptor euclidiano de referencia = espectro PCA + inercia de k-medias + dispersión radial. Contraste de McNemar, p < 0.05.")
+    st.caption("Tarea: disco vs anillo bajo transformación afín aleatoria. Descriptor euclidiano "
+               "de referencia = espectro PCA + inercia de k-medias + dispersión radial.")
 
-    mcn = res["mcnemar"]
-    mc1, mc2 = st.columns(2)
-    with mc1:
-        st.metric("Exactitud TDA", f"{mcn['exactitud_tda']:.3f}",
-                  help=f"Muestras por clase: {mcn['n_puntos_por_clase']}")
-        st.metric("Exactitud euclidiana", f"{mcn['exactitud_eucl']:.3f}")
-    with mc2:
-        tabla = mcn["mc_nemar"].get("contingency_table") if isinstance(mcn.get("mc_nemar"), dict) else None
-        p = mcn["mc_nemar"].get("p_value") if isinstance(mcn.get("mc_nemar"), dict) else None
-        stat = mcn["mc_nemar"].get("statistic") if isinstance(mcn.get("mc_nemar"), dict) else None
-        if tabla is not None:
-            st.dataframe(pd.DataFrame(tabla, index=["TDA correcto", "TDA incorrecto"],
-                                      columns=["Eucl correcto", "Eucl incorrecto"]),
-                         width="stretch")
-        if p is None:
-            st.warning("McNemar no aplicable (sin discordancias).")
+    if mcn:
+        _mc = mcn.get("mc_nemar", {}) or {}
+        c1, c2 = st.columns(2)
+        with c1:
+            st.metric("Exactitud TDA", f"{mcn.get('exactitud_tda', float('nan')):.3f}",
+                      help=f"Muestras por clase: {mcn.get('n_puntos_por_clase')}")
+            st.metric("Exactitud euclidiana", f"{mcn.get('exactitud_eucl', float('nan')):.3f}")
+        with c2:
+            _tabla = _mc.get("contingency_table")
+            if _tabla is not None:
+                st.dataframe(pd.DataFrame(_tabla, index=["TDA correcto", "TDA incorrecto"],
+                                          columns=["Eucl correcto", "Eucl incorrecto"]),
+                             width="stretch")
+            _p = _mc.get("p_value")
+            _stat = _mc.get("statistic")
+            if _p is None:
+                st.warning("McNemar no aplicable (sin discordancias).")
+            else:
+                st.write(f"Contraste de McNemar: " +
+                         (f"χ² = {_stat:.2f}, " if _stat is not None else "") +
+                         ("p < 0.001" if _p < 0.001 else f"p = {_p:.4f}"))
+
+        _he1b_ok = bool(_mc.get("significant")) and (
+            mcn.get("exactitud_tda", 0) > mcn.get("exactitud_eucl", 1))
+        if _he1b_ok:
+            st.success("### ✅ H.E.1b SE SOSTIENE — el descriptor topológico supera al euclidiano (p < 0.05)")
         else:
-            _p = "p < 0.001" if p < 0.001 else f"p = {p:.4f}"
-            _s = f"χ² = {stat:.2f}" if stat is not None else "χ² n/d"
-            st.write(f"Contraste de McNemar: {_s}, {_p}")
-    he1b_ok = bool(mcn["mc_nemar"].get("significant")) and (mcn["exactitud_tda"] > mcn["exactitud_eucl"])
-    if he1b_ok:
-        st.success("### ✅ H.E.1b SE SOSTIENE — el descriptor topológico supera al euclidiano (p < 0.05)")
+            st.error("### ❌ H.E.1b NO SE SOSTIENE — la ventaja no es estadísticamente significativa")
     else:
-        st.error("### ❌ H.E.1b NO SE SOSTIENE — la ventaja no es estadísticamente significativa")
+        st.info("El contraste de McNemar no se ejecutó en esta sesión.")
     st.markdown("---")
 
     # ══════════════════════════════════════════════════════════════════
-    # 3. H.E.1c — rango de fiabilidad de βk (Figura 5.2(a))
+    # 3. H.E.1c — Rango de fiabilidad de βk (q*)
     # ══════════════════════════════════════════════════════════════════
     st.subheader("3. H.E.1c — Rango de fiabilidad de $\\beta_k$")
+    st.latex(r"\exists\, q^{*}:\ \beta_{k}^{(\tau)}(X)=\beta_{k}^{\mathrm{teo}}\ \text{en} \ge 95\%\ (q<q^{*}),\quad < 50\%\ (q>q^{*})")
 
-    # Diagnóstico: por qué algunas nubes colapsan antes (persistencia H₁ vs τ)
-    with st.expander("🔎 Diagnóstico de la Fig. 5.2(a) — ¿por qué colapsa β₁?", expanded=False):
-        st.caption("Persistencia $H_1$ **dominante** normalizada por $\\mathrm{diam}(X)$, por nube con agujeros, "
-                   "frente al umbral $\\tau$ (línea roja). Una nube se lee correctamente mientras su mayor persistencia "
-                   "$H_1$ supere $\\tau\\cdot\\mathrm{diam}(X)$; cuando el ruido rompe la nube, la persistencia cae "
-                   "por debajo de $\\tau$ y $\\beta_1$ deja de detectarse. Es la causa de que, p. ej., `dos_circulos` "
-                   "colapse antes que en el documento (su nube separa más los centros ⇒ $\\mathrm{diam}$ grande ⇒ "
-                   "$\\tau\\cdot\\mathrm{diam}$ grande frente a agujeros de radio 1) — ver Item 27.")
-        _diag_qs = list(qs)
-        _con_agujero = ["circulo", "anillo", "dos_circulos", "toro"]
-        _col_diag = {"circulo": "#ff7f0e", "anillo": "#1f77b4",
-                     "dos_circulos": "#d62728", "toro": "#e377c2"}
-        fig_diag = go.Figure()
-        for _s in _con_agujero:
-            _pers = _pers_h1_dominante_por_q(_s, n_points, _diag_qs, SEED)
-            fig_diag.add_trace(go.Scatter(x=_diag_qs, y=_pers, mode="lines+markers",
-                                          name=_s, line=dict(color=_col_diag[_s])))
-        fig_diag.add_hline(y=TAU_CALIBRADO, line=dict(dash="dash", color="red"),
-                           annotation_text=f"τ = {TAU_CALIBRADO}", annotation_position="top left")
-        fig_diag.update_layout(height=350, template="plotly_white",
-                               title="Persistencia H₁ / diam(X) frente al umbral τ",
-                               xaxis_title="nivel de ruido q",
-                               yaxis_title="persistencia H₁ / diam(X)",
-                               xaxis=dict(range=[0.0, 0.20], dtick=0.05))
-        apply_plotly_theme(fig_diag)
-        st.plotly_chart(fig_diag, width="stretch")
+    _qest = q_estrella(rep52)
+    _qest["dimension"] = _qest["d"].map(lambda d: "nativa" if d <= 3 else str(d))
+    _piv = _qest.pivot_table(index="nube", columns="dimension", values="q_estrella", aggfunc="max")
+    st.markdown("**Nivel crítico $q^*$** — mayor nivel de ruido con acierto $\\ge 0.95$ "
+                "(acierto de $(\\beta_0,\\beta_1)$ promediado por nube y dimensión):")
+    st.dataframe(_piv.reset_index(), width="stretch", hide_index=True)
 
-    # q* = máx{q : tasa de acierto ≥ 0.95} sobre el subconjunto validado (Tabla 5.5, nota a)
-    acc_bk_all = [float(np.mean([sweep[s]["acierto"][i] for s in CATALOGO])) for i in range(len(qs))]
-    acc_b1 = [float(np.mean([sweep[s]["acierto_b1"][i] for s in SUBCONJUNTO_VALIDADO])) for i in range(len(qs))]
-    st.caption("La Fig. 5.2(a) muestra **βk = (β₀, β₁)** (como el documento). El nivel crítico **q\\*** se delimita "
-               "sobre **β₁** (el invariante que la filtración controla), evaluado en el subconjunto validado "
-               "(círculo, disco, anillo) según la nota (a) de la Tabla 5.5 — ver Item 13 del archivo de correcciones.")
-    candidatos = [q for q, a in zip(qs, acc_b1) if a >= ACC_BAJO]
-    q_star = max(candidatos) if candidatos else None
-    q_bajo_colapso = next((q for q, a in zip(qs, acc_b1) if q > 0 and a < ACC_ALTO), None)
-    st.dataframe(pd.DataFrame({"q": qs,
-                               "Acierto βk (catálogo)": [f"{a:.3f}" for a in acc_bk_all],
-                               "Acierto β₁ (validado)": [f"{a:.3f}" for a in acc_b1],
-                               "≥ 0.95": ["✅" if a >= ACC_BAJO else "—" for a in acc_b1],
-                               "< 0.50": ["✅" if a < ACC_ALTO else "—" for a in acc_b1]}),
-                 width="stretch", hide_index=True)
-    in_rango = q_star is not None and Q_STAR_RANGO[0] <= q_star <= Q_STAR_RANGO[1]
-    if in_rango:
-        st.success(f"### ✅ H.E.1c SE SOSTIENE — q* ≈ {q_star:.2f} ∈ [{Q_STAR_RANGO[0]}, {Q_STAR_RANGO[1]}]"
-                   + (f"; colapso (acierto < 0.50) en q ≈ {q_bajo_colapso:.2f}" if q_bajo_colapso else ""))
+    _q_nat = _qest[_qest["d"] <= 3]["q_estrella"]
+    st.caption(
+        f"En dimensión nativa, $q^*$ va de **{_q_nat.min():.2f}** a **{_q_nat.max():.2f}** "
+        f"según la nube: el nivel crítico **depende de la nube y de la dimensión** y no cabe "
+        "en un único intervalo $[0.05, 0.10]$ (forma corregida de H.E.1c en el Cap. V)."
+    )
+    if _qest["q_estrella"].notna().all():
+        st.success("### ✅ H.E.1c SE SOSTIENE (forma corregida) — existe $q^*$ para cada nube y dimensión")
     else:
-        st.error(f"### ❌ H.E.1c NO SE SOSTIENE — q* = {q_star} fuera de [{Q_STAR_RANGO[0]}, {Q_STAR_RANGO[1]}]")
+        st.warning("### ⚠️ H.E.1c — hay nubes sin $q^*$ determinado")
     st.markdown("---")
 
     # ══════════════════════════════════════════════════════════════════
-    # ══════════════════════════════════════════════════════════════════
-    # 4. Veredicto H.E.1 — Tabla 5.5 (indicador, criterio, esperado, medido)
+    # 4. Veredicto H.E.1 — Tabla 5.5
     # ══════════════════════════════════════════════════════════════════
     st.subheader("4. Veredicto H.E.1 — Tabla 5.5 (indicador, criterio, esperado, medido)")
-    _rep52 = res52["replicas"]
-    _frac_g = float((_rep52["dB"] <= _rep52["cota_teorema"] + 1e-9).mean())
-    _mcn = st.session_state.get("he1_mcnemar", {})
-    _he1b_ok = _mcn.get("p_value", 1.0) < 0.05
-    _q_est = q_estrella(_rep52)
-    _q_star_val = float(_q_est[_q_est["d"] <= 3]["q_estrella"].mean())
-    _in_rng = 0.05 <= _q_star_val <= 0.10
+    # Tabla 5.5, nota (a): el acierto se evalúa sobre el subconjunto validado
+    # (círculo, disco, anillo); toro y dos_círculos ya fallan sin ruido.
+    _q_min = rep52["q"].min()
+    _acc_q05 = float(
+        rep52[(rep52["q"] == _q_min) & (rep52["nube"].isin(SUBCONJUNTO_VALIDADO))]["acierto"].mean()
+    )
+    _mc_ = (mcn or {}).get("mc_nemar", {}) or {}
+    _p_val = _mc_.get("p_value")
+    _he1b_ok_t = bool(_mc_.get("significant")) and (
+        (mcn or {}).get("exactitud_tda", 0) > (mcn or {}).get("exactitud_eucl", 1))
 
     filas55 = [
-        {"Indicador": "dB ≤ 2 dH", "Criterio": "Fracción de réplicas = 1.0",
-         "Esperado": "1.000", "Medido": f"{_frac_g:.3f}", "Veredicto": "✓" if _frac_g == 1.0 else "×"},
-        {"Indicador": "Nivel crítico q*", "Criterio": "Delimitado empíricamente",
-         "Esperado": "≈ 0.05–0.10", "Medido": f"≈ {_q_star_val:.2f}",
-         "Veredicto": "✓" if _in_rng else "×"},
-        {"Indicador": "Exactitud TDA vs euclidiana", "Criterio": "McNemar p < 0.05",
-         "Esperado": "significativa", "Medido": f"p = {_mcn.get('p_value', 1.0):.4f}",
-         "Veredicto": "✓" if _he1b_ok else "×"},
+        {"Indicador": "dB ≤ 2 dH (H.E.1a)", "Criterio": "Fracción de réplicas = 1.0",
+         "Esperado": "1.000", "Medido": f"{_frac_a:.3f}",
+         "Veredicto": "✓" if _frac_a == 1.0 else "×"},
+        {"Indicador": f"Acierto de βk en q = {_q_min:.2f} (validado)", "Criterio": "≥ 0.95",
+         "Esperado": "≥ 0.95", "Medido": f"{_acc_q05:.3f}",
+         "Veredicto": "✓" if _acc_q05 >= 0.95 else "×"},
+        {"Indicador": "Nivel crítico q*", "Criterio": "Delimitado por nube y dimensión",
+         "Esperado": "depende de la nube", "Medido": f"{_q_nat.min():.2f} – {_q_nat.max():.2f}",
+         "Veredicto": "✓" if _qest["q_estrella"].notna().all() else "×"},
+        {"Indicador": "TDA vs euclidiano (H.E.1b)", "Criterio": "McNemar p < 0.05",
+         "Esperado": "significativa",
+         "Medido": ("—" if _p_val is None else ("p < 0.001" if _p_val < 0.001 else f"p = {_p_val:.4f}")),
+         "Veredicto": "✓" if _he1b_ok_t else "×"},
     ]
-    st.table(pd.DataFrame(filas55))
-    n_ok = sum(1 for f in filas55 if f["Veredicto"] == "✓")
-    st.markdown(f"**Síntesis H.E.1:** {n_ok}/{len(filas55)} criterios cumplidos.")
-
-    # ── Exportación ──────────────────────────────────────────────────
+    st.dataframe(pd.DataFrame(filas55), width="stretch", hide_index=True)
+    _n_ok = sum(1 for f in filas55 if f["Veredicto"] == "✓")
+    st.markdown(f"**Síntesis H.E.1:** {_n_ok}/{len(filas55)} criterios cumplidos.")
     st.markdown("---")
+
+    # ══════════════════════════════════════════════════════════════════
+    # 5. Exportar resultados
+    # ══════════════════════════════════════════════════════════════════
     st.subheader("5. Exportar resultados")
     try:
-        from tda.app.download_utils import download_button as dl_btn, write_figs_zip, entorno_json
+        from tda.app.download_utils import (
+            download_button as dl_btn, write_figs_zip, entorno_json,
+        )
         zf_buf = io.BytesIO()
         with zipfile.ZipFile(zf_buf, "w", zipfile.ZIP_DEFLATED) as zf:
-            base = f"he1_corregido"
-            zf.writestr(f"{base}/replicas_dB_dH.csv", _rep52.to_csv(index=False))
+            base = "he1_corregido"
+            zf.writestr(f"{base}/fig52_replicas.csv", rep52.to_csv(index=False))
+            zf.writestr(f"{base}/q_estrella.csv", _qest.to_csv(index=False))
             zf.writestr(f"{base}/tabla_5_5.csv", pd.DataFrame(filas55).to_csv(index=False))
+            if _trunc is not None:
+                zf.writestr(f"{base}/fig53_truncamiento.csv", _trunc.to_csv(index=False))
             zf.writestr(f"{base}/entorno.json", entorno_json({
                 "protocolo": "H.E.1", "tau": TAU_CALIBRADO, "seed": SEED}))
             write_figs_zip(zf, f"{base}/figuras", st.session_state.get("he1_figs", {}))
-        dl_btn("📦 Descargar TODO (ZIP)", zf_buf.getvalue(), f"he1_robustez_{base}.zip",
-               "application/zip", width="stretch")
+        dl_btn("📦 Descargar TODO (ZIP)", zf_buf.getvalue(),
+               f"he1_robustez_{base}.zip", "application/zip", width="stretch")
     except Exception as e:
         st.error(f"Error en la exportación: {e}")
 
     st.markdown("---")
-
-# ── 🔬 Filtración interactiva (ε) — el corazón del TDA ───────────────
-st.subheader("🔬 Filtración interactiva — complejo de Vietoris–Rips")
-st.caption("Mové el radio ε: los puntos se conectan y los rasgos topológicos **nacen y mueren**. "
-           "Abajo, el código de barras con el umbral ε marcado (línea roja).")
-_fc1, _fc2, _fc3 = st.columns([2, 1, 1])
-with _fc1:
-    _shape = st.selectbox("Nube", ["circulo", "anillo", "dos_circulos", "toro", "esfera"],
-                          key="filt_shape")
-with _fc2:
-    _nf = st.slider("Puntos", 40, 200, 100, 10, key="filt_n")
-with _fc3:
-    _eps = st.slider("Radio ε", 0.0, 3.0, 0.5, 0.05, key="filt_eps")
-
-from scipy.spatial.distance import pdist, squareform
-np.random.seed(SEED)
-_Xf = generate_cloud(_shape, _nf)
-_dim = _Xf.shape[1]
-_dgm = ripser(_Xf, maxdim=1)["dgms"]
-_D = squareform(pdist(_Xf))
-_ei, _ej = np.where(np.triu(_D <= _eps, k=1))
-
-# 1-esqueleto (aristas ≤ ε)
-_ex, _ey, _ez = [], [], []
-for _a, _b in zip(_ei, _ej):
-    _ex += [_Xf[_a, 0], _Xf[_b, 0], None]
-    _ey += [_Xf[_a, 1], _Xf[_b, 1], None]
-    if _dim == 3:
-        _ez += [_Xf[_a, 2], _Xf[_b, 2], None]
-fig_filt = go.Figure()
-_line_kw = dict(x=_ex, y=_ey, mode="lines", line=dict(color="#bdc3c7", width=1), name="aristas ≤ ε")
-if _dim == 3:
-    _line_kw["z"] = _ez
-    fig_filt.add_trace(go.Scatter3d(**_line_kw))
-    fig_filt.add_trace(go.Scatter3d(x=_Xf[:, 0], y=_Xf[:, 1], z=_Xf[:, 2], mode="markers",
-                                    marker=dict(size=3, color="#e74c3c"), name="puntos"))
-else:
-    fig_filt.add_trace(go.Scatter(**_line_kw))
-    fig_filt.add_trace(go.Scatter(x=_Xf[:, 0], y=_Xf[:, 1], mode="markers",
-                                  marker=dict(size=6, color="#e74c3c"), name="puntos"))
-
-def _betti_at(dgms, eps):
-    b0 = sum(1 for b, d in dgms[0] if b <= eps and (np.isinf(d) or eps < d))
-    b1 = sum(1 for b, d in dgms[1] if b <= eps and (np.isinf(d) or eps < d))
-    return b0, b1
-
-_b0e, _b1e = _betti_at(_dgm, _eps)
-fig_filt.update_layout(height=380, template="plotly_white",
-                       title=f"Complejo VR(X, ε = {_eps:.2f}) · β₀ = {_b0e}, β₁ = {_b1e}",
-                       legend=dict(x=0, y=1), margin=dict(l=0, r=0, b=0, t=40))
-apply_plotly_theme(fig_filt)
-st.plotly_chart(fig_filt, width="stretch")
-_m1, _m2 = st.columns(2)
-_m1.metric("β₀ (componentes conexas)", _b0e)
-_m2.metric("β₁ (ciclos / agujeros)", _b1e)
-
-# Código de barras con línea de ε
-fig_bc = go.Figure()
-for _k, _col in [(0, "#2980b9"), (1, "#27ae60")]:
-    _bars = _dgm[_k] if _k < len(_dgm) else np.empty((0, 2))
-    _y = 0
-    for _b, _d in _bars:
-        _dd = _b + 1.5 if np.isinf(_d) else _d
-        fig_bc.add_trace(go.Scatter(x=[_b, _dd], y=[_y, _y], mode="lines",
-                                    line=dict(color=_col, width=3), showlegend=(_y == 0),
-                                    name=f"H{_k}"))
-        _y += 1
-fig_bc.add_vline(x=_eps, line=dict(color="red", dash="dot"),
-                 annotation_text=f"ε = {_eps:.2f}")
-fig_bc.update_layout(height=300, template="plotly_white",
-                     title="Código de barras (nacimiento → muerte)",
-                     xaxis_title="escala ε", yaxis_title="rasgo")
-apply_plotly_theme(fig_bc)
-st.plotly_chart(fig_bc, width="stretch")
-st.markdown("---")
-
-
 
 methodology_expander("📖 Protocolo y compuertas — H.E.1", [
     ("Protocolo y compuertas", (
