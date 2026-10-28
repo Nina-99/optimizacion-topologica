@@ -3,7 +3,7 @@
 Presenta la validación en el ORDEN del documento:
   0. Calibración previa del umbral τ (Figura 5.1) y estabilidad dimensional
      (Figura 5.2: paneles a1–a3, b y c)
-  1. H.E.1a — estabilidad de los diagramas (Figura 5.3)
+  1. H.E.1a — estabilidad de los diagramas (cota de la Figura 5.3)
   2. H.E.1b — ventaja comparativa TDA vs euclidiano (contraste de McNemar)
   3. H.E.1c — rango de fiabilidad de βk (q* de la Figura 5.2)
   4. Veredicto H.E.1 (Tabla 5.5)
@@ -37,7 +37,9 @@ from tda.analysis.stability import (
 )
 from tda.core.topology import bottleneck_distance
 from tda.analysis.calibracion import ETIQUETA_NUBE, resultado_calibracion
-from tda.visualization.figuras import fig_51_calibracion, fig_52_estabilidad
+from tda.visualization.figuras import (
+    fig_51_calibracion, fig_52_estabilidad, fig_53_cota_corregida,
+)
 from tda.app.theme import (
     apply_mpl_theme, apply_plotly_theme, responsive_style,
     methodology_expander, is_dark, page_header,
@@ -176,6 +178,37 @@ if res52:
         st.dataframe(q_estrella(_rep52), width="stretch", hide_index=True)
     st.markdown("---")
 
+# ── Paso previo — Figura 5.3: truncamiento y cota probabilística ─────
+st.subheader("Paso previo — Figura 5.3: el artefacto del truncamiento y su cota correcta")
+st.caption(
+    "El panel (a) explica **por qué la versión anterior del documento concluyó "
+    "$d_B/\\mathrm{diam} \\le 2q$**: al cortar la filtración en $\\varepsilon \\le 0{,}6$, el ciclo "
+    "principal del círculo (muere en $\\sqrt{3} \\approx 1{,}73$) queda como barra infinita y se "
+    "descarta. Sin truncar, la distancia se satura en la mitad de esa persistencia. El panel (b) "
+    "verifica la cota que la reemplaza, $2\\sigma(\\sqrt{d}+\\sqrt{2\\ln(n/\\delta)})$ con $\\delta = 0{,}05$."
+)
+from tda.analysis.truncamiento import (
+    analisis_truncamiento, cargar_truncamiento, guardar_truncamiento,
+)
+_trunc = st.session_state.get("he1_trunc") or cargar_truncamiento()
+if _trunc is None:
+    if st.button("Ejecutar truncamiento (200 réplicas)", key="btn_fig53"):
+        with st.spinner("Círculo n = 400: filtración truncada vs completa..."):
+            _trunc = analisis_truncamiento(n_points=int(n_points))
+            guardar_truncamiento(_trunc)
+        st.session_state.he1_trunc = _trunc
+if _trunc is not None and res52:
+    fig53 = fig_53_cota_corregida(_trunc, res52["replicas"],
+                                  tema="oscuro" if is_dark() else "claro")
+    st.pyplot(fig53)
+    plt.close(fig53)
+    st.session_state.setdefault("he1_figs", {})["fig53_cota_corregida"] = fig53
+    _razon53 = res52["replicas"]["dB"] / res52["replicas"]["cota_prob"]
+    st.caption(f"Razón máxima $d_B/\\text{{cota}}$ = **{_razon53.max():.2f}**, media "
+               f"**{_razon53.mean():.2f}** · **0** violaciones en {len(_razon53)} réplicas "
+               "(tolerancia teórica del 5 %).")
+    st.markdown("---")
+
 # ── 🔬 Filtración interactiva (ε) — el corazón del TDA ───────────────
 st.subheader("🔬 Filtración interactiva — complejo de Vietoris–Rips")
 st.caption("Mové el radio ε: los puntos se conectan y los rasgos topológicos **nacen y mueren**. "
@@ -278,56 +311,6 @@ if st.session_state.get("tda_he1_run", False) and res:
     # ══════════════════════════════════════════════════════════════════
     st.subheader("1. H.E.1a — Estabilidad de los diagramas")
     st.latex(r"d_{B}\bigl(\mathrm{Dgm}_{k}^{\mathrm{VR}}(X),\ \mathrm{Dgm}_{k}^{\mathrm{VR}}(Y)\bigr) \le 2\,d_{H}(X,Y),\quad k=0,1")
-
-    # Figura 5.3 — distancia bottleneck relativa frente a la cota. Toggle:
-    #   forma del documento (dB/diam <= 2q)  <->  forma del teorema (dB <= 2 dH)
-    st.markdown("**Figura 5.3:** Distancia bottleneck relativa frente a la cota, promediada por nube y nivel de ruido. El selector alterna las dos formas para **exhibir la inconsistencia del documento**:")
-    _forma53 = st.radio(
-        "Forma de la cota (Fig. 5.3)",
-        ["Forma del documento  $d_B/\\mathrm{diam}(X) \\leq 2q$",
-         "Forma del teorema  $d_B \\leq 2\\,d_H$  (correcta)"],
-        horizontal=True, key="forma53")
-    _es_doc = _forma53.startswith("Forma del documento")
-    _orden = ["anillo", "circulo", "disco", "dos_circulos", "esfera", "gaussiana", "toro"]
-    _col = {"anillo": "#1f77b4", "circulo": "#ff7f0e", "disco": "#2ca02c",
-            "dos_circulos": "#d62728", "esfera": "#9467bd", "gaussiana": "#8c564b", "toro": "#e377c2"}
-    _sym = {"anillo": "circle", "circulo": "square", "disco": "triangle-up",
-            "dos_circulos": "triangle-down", "esfera": "diamond", "gaussiana": "cross", "toro": "x"}
-    if _es_doc:
-        _key_medio, _val = "ratio_diam_medio", (lambda c: c["dB_diam"])
-        _cota = dict(x=[min(qs), max(qs)], y=[0.0, 2.0 * max(qs)], name="cota 2q")
-        _ytitle = "d_B / diam(X)"
-        _yfloor, _dtick = 0.40, 0.05
-    else:
-        _key_medio, _val = "ratio_medio", (lambda c: c["dB"] / c["dH"] if c["dH"] > 0 else float("nan"))
-        _cota = dict(x=[min(qs), max(qs)], y=[2.0, 2.0], name="cota 2")
-        _ytitle = "d_B / d_H"
-        _yfloor, _dtick = 2.1, 0.25
-    _vmax = max([v for v in (_val(c) for c in crudo) if v == v] + [_yfloor]) * 1.05
-    fig53 = go.Figure()
-    for shape in _orden:
-        _vals = {q: [v for v in (_val(c) for c in crudo if c["shape"] == shape and c["q"] == q) if v == v] for q in qs}
-        _std = [float(np.std(_vals[q])) if _vals[q] else 0.0 for q in qs]
-        fig53.add_trace(go.Scatter(x=qs, y=sweep[shape][_key_medio], mode="lines+markers",
-                                   name=shape, marker=dict(color=_col[shape], symbol=_sym[shape]),
-                                   error_y=dict(type="data", array=_std, visible=True, thickness=1.2)))
-    fig53.add_trace(go.Scatter(x=_cota["x"], y=_cota["y"], mode="lines",
-                               line=dict(dash="dash", color="white"), name=_cota["name"]))
-    fig53.update_layout(height=380, template="plotly_white",
-                        title=("Distancia bottleneck relativa frente a la cota — "
-                               + ("forma del documento" if _es_doc else "forma del teorema")),
-                        xaxis_title="nivel de ruido q",
-                        yaxis_title=_ytitle,
-                        xaxis=dict(range=[0.0, 0.20], dtick=0.025),
-                        yaxis=dict(range=[0.0, _vmax], dtick=_dtick))
-    apply_plotly_theme(fig53)
-    st.plotly_chart(fig53, width="stretch")
-    st.session_state.setdefault("he1_figs", {})["fig53_bottleneck_cota_teorema"] = fig53
-    if _es_doc:
-        st.warning("Con la métrica bottleneck **exacta**, círculo y dos_círculos **cruzan** la cota $2q$: la cota $d_B/\\mathrm{diam}(X) \\leq 2q$ **no** es consecuencia del Teorema de Estabilidad (Item 11). El documento la presenta como válida porque la dibujó con la heurística que subestimaba $d_B$.")
-    else:
-        st.success("Forma correcta del Teorema de Estabilidad (Cohen-Steiner, Edelsbrunner & Harer): $d_B \\leq 2\\,d_H$. Todas las curvas quedan por debajo de la cota.")
-
 
     # Resultado H.E.1a
     frac_global = float(np.mean([sweep[s]["cumple_frac"][i]
@@ -487,7 +470,7 @@ methodology_expander("📖 Protocolo y compuertas — H.E.1", [
     ("Protocolo y compuertas", (
         "| Sub-hipótesis | Se mide | Instrumento | Criterio | Evidencia |\n"
         "|---|---|---|---|---|\n"
-        "| H.E.1a | $d_B$ vs $2\\,d_H$ por réplica | Ripser + Bottleneck | 100 % de las réplicas | Fig. 5.2(b), 5.3 |\n"
+        "| H.E.1a | $d_B$ vs $2\\,d_H$ por réplica | Ripser + Bottleneck | 100 % de las réplicas | Fig. 5.2(b) y 5.3(b) |\n"
         "| H.E.1b | exactitud TDA vs euclidiano | McNemar | $p < 0.05$ | Tabla 5.5 |\n"
         "| H.E.1c | $q^*$ (acierto de $\\beta_k$) | barrido de ruido | $q^* \\in [0.05, 0.10]$ | Fig. 5.2(a1–a3) |\n"
     )),

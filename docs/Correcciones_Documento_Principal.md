@@ -466,6 +466,12 @@ forzarlo.
 
 ## Item 25 — Fig. 5.3: retorno a la forma literal del PDF (`dB/diam` vs `2q`)
 
+> **SUPERADO por el Item 32.** El Cap. V corregido **elimina** esta figura: la
+> cota `dB/diam ≤ 2q` se retira y se reemplaza por la figura de dos paneles
+> (artefacto del truncamiento + cota probabilística). Lo que este item
+> documentaba —que la cota se rompe con la métrica exacta— queda explicado en el
+> panel (a) del Item 32: la cota solo se sostenía **truncando la filtración**.
+
 **Decisión del autor:** la Fig. 5.3 vuelve a la forma del PDF — eje Y
 $d_B/\mathrm{diam}(X)$, cota **diagonal** $2q$, rango Y `[0, ~0.45]` — en lugar de
 la forma del teorema ($dB/dH$ vs 2) que había fijado el Item 11. Esto **supera al
@@ -483,6 +489,10 @@ colores/marcadores `tab10` por nube, ticks cada 0.025).
 ---
 
 ## Item 26 — Fig. 5.3: selector de forma (documento ↔ teorema)
+
+> **SUPERADO por el Item 32.** El selector se retira: ya no hay dos formas que
+> contrastar porque el documento corregido abandona la cota `2q`. Queda una sola
+> figura, con el artefacto y la cota que lo sustituye.
 
 **Decisión del autor:** en lugar de fijar una sola forma, la Fig. 5.3 ofrece un
 **selector** entre las dos, para *exhibir la inconsistencia del documento* en vez de
@@ -678,11 +688,52 @@ Fig. 5.1(c): las nubes con margen grande resisten más.
 
 ---
 
+## Item 32 — Fig. 5.3 corregida replicada (truncamiento + cota probabilística)
+
+**Qué se hizo:** `analysis/truncamiento.py` reproduce el experimento del panel (a)
+y `visualization.figuras.fig_53_cota_corregida` dibuja los dos paneles. La app
+lee la corrida cacheada (`data/figuras/fig53_truncamiento.csv`) y el panel (b) de
+las 1 680 réplicas de la Fig. 5.2.
+
+**Panel (a) — protocolo (idéntico al documento):** círculo, n = 400, **definición
+de ruido anterior** (`σ = q·diam X`, sin normalizar), q ∈ {0; 0,05; 0,10; 0,15;
+0,20} × R = 20 × dos filtraciones (truncada en ε ≤ 0,6 y completa) = 200 filas.
+La truncada descarta la barra infinita, que es justamente el ciclo principal del
+círculo (muere en √3 ≈ 1,73).
+
+**Resultados (coinciden exactamente con el texto del documento):**
+
+| `dB/diam X` | q = 0,05 | 0,10 | 0,15 | 0,20 |
+|---|---|---|---|---|
+| Truncado en ε ≤ 0,6 | **0,042** | **0,079** | **0,106** | **0,117** |
+| Completo (sin truncar) | **0,191** | **0,385** | **0,407** | **0,407** |
+
+- Con truncamiento queda **bajo `2q` en las 80 réplicas** (por eso la figura
+  original lo mostraba como validación de la cota).
+- Sin truncar **supera `2q` en las 80 réplicas** y se satura en 0,407 ≈ la mitad
+  de la persistencia del ciclo: el costo de emparejarlo con la diagonal cuando el
+  ruido lo destruye.
+
+**Panel (b):** sobre las 1 680 réplicas de la Fig. 5.2, `dB` dividida por
+`2σ(√d + √(2·ln(n/δ)))` con δ = 0,05: **máximo 0,442, media 0,213, 0
+violaciones** (documento: 0,44 y 0,21; tolerancia teórica del 5 %).
+
+**Consecuencia:** la cota `dB/diam ≤ 2q` **no tenía respaldo teórico**; la que sí
+lo tiene (Proposición 4.3) es la probabilística, y se cumple con holgura. Los
+Items 25 y 26 quedan superados; los PNG `fig53a_forma_documento.png` y
+`fig53b_forma_teorema.png` **se retiran**.
+
+**Artefactos:** `data/figuras/fig53_cota_corregida.png`,
+`data/figuras/fig53_truncamiento.csv`.
+
+---
+
 ## Resumen de trazabilidad (software → tesis)
 
 | Hipótesis | Función | Dato | Figura |
 |---|---|---|---|
-| H.E.1a | `estabilidad_dimensional.protocolo_fig52` | `data/figuras/fig52_replicas.csv` | 5.2(b–c), 5.3 |
+| H.E.1a | `estabilidad_dimensional.protocolo_fig52` | `data/figuras/fig52_replicas.csv` | 5.2(b–c), 5.3(b) |
+| Artefacto del truncamiento | `truncamiento.analisis_truncamiento` | `data/figuras/fig53_truncamiento.csv` | 5.3(a) |
 | H.E.1b | `stability.comparar_tda_vs_euclidiano` | — | Tabla 5.5 |
 | H.E.1c | `estabilidad_dimensional.protocolo_fig52` / `q_estrella` | `data/figuras/fig52_replicas.csv` | 5.2(a1–a3) |
 | Calibración τ | `analysis.calibracion.calibrar_c0` / `tau_estrella` | `data/figuras/fig51_calibracion_C0.csv` | 5.1 |

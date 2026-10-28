@@ -8,7 +8,7 @@ documento para que la comparación visual con el PDF sea directa.
 Uso como API
 ────────────
     from tda.analysis.calibracion import resultado_calibracion
-    from tda.visualization.figuras import fig_51_calibracion, fig_53_cota
+    from tda.visualization.figuras import fig_51_calibracion, fig_53_cota_corregida
 
     res = resultado_calibracion(n_points=400)
     fig = fig_51_calibracion(res["cal"], res["tau"], res["margenes"])
@@ -326,70 +326,82 @@ def fig_52_estabilidad(replicas, q0, tema: str = "claro", etiquetas=None):
     return fig
 
 
-def fig_53_cota(qs, crudo, catalogo, forma="documento", colores=None):
-    """Figura 5.3 — distancia bottleneck relativa frente a la cota.
+def fig_53_cota_corregida(truncamiento, replicas, tema: str = "claro"):
+    """Figura 5.3 — artefacto del truncamiento y cota probabilística (2 paneles).
 
-    ``forma="documento"`` (literal del PDF): eje Y ``dB/diam(X)``, cota diagonal
-    ``2q``, rango [0, ~0.45]. Con la métrica exacta, círculo y dos_círculos cruzan
-    la cota — es la inconsistencia del documento (Item 11/25).
+    Parámetros:
+        truncamiento : DataFrame de `analysis.truncamiento.analisis_truncamiento`
+                       (círculo, ruido de la definición anterior, dos filtraciones).
+        replicas     : DataFrame de la Fig. 5.2 (1 680 réplicas) para el panel (b).
+        tema         : `"claro"` (PDF) u `"oscuro"` (app Streamlit).
 
-    ``forma="teorema"`` (correcta, Cohen-Steiner): eje Y ``dB/dH``, cota horizontal
-    ``2``; todas las curvas quedan por debajo.
-
-    Mismo esqueleto de datos, dos presets. Ver Correcciones, Item 26.
+    (a) `dB/diam(X)` con la filtración truncada en ε ≤ 0,6 —la de la figura
+    original, que descarta el ciclo principal del círculo— frente a la filtración
+    completa; la banda es el rango de las réplicas. (b) `dB` dividida por la cota
+    probabilística `2σ(√d + √(2 ln(n/δ)))` con δ = 0,05, por nivel de ruido.
     """
-    qs = np.asarray(qs)
-    qmax = float(qs.max())
+    txt = "#f0f0f0" if tema == "oscuro" else "#0b0b0b"
+    gris = "#b0b0b0" if tema == "oscuro" else "#52514e"
+    fondo = "none" if tema == "oscuro" else "white"
+    rojo = "#d03b3b"
 
-    def _val(c):
-        if forma == "documento":
-            return c["dB_diam"]
-        return c["dB"] / c["dH"] if c["dH"] > 0 else np.nan
+    with plt.rc_context({
+        "font.family": "sans-serif", "font.size": 9,
+        "axes.titlesize": 10, "axes.titleweight": "bold",
+        "axes.titlelocation": "left", "axes.labelsize": 9,
+        "axes.edgecolor": gris, "axes.labelcolor": txt,
+        "xtick.color": gris, "ytick.color": gris,
+        "axes.grid": True, "grid.color": "#e4e3df" if tema == "claro" else "#333333",
+        "grid.linewidth": 0.6, "axes.axisbelow": True,
+        "legend.frameon": False, "figure.facecolor": fondo,
+        "axes.facecolor": fondo, "text.color": txt,
+        "axes.spines.top": False, "axes.spines.right": False,
+    }):
+        fig, (a, b) = plt.subplots(1, 2, figsize=(10.4, 3.8))
 
-    if forma == "documento":
-        cota_x, cota_y = [0.0, qmax], [0.0, 2.0 * qmax]
-        cota_label = "cota $2q$"
-        ylabel = "$d_{B}\\,/\\,\\mathrm{diam}(X)$"
-        title = ("Distancia bottleneck relativa frente a la cota\n"
-                 "forma del documento:  $d_{B}/\\mathrm{diam}(X) \\leq 2q$")
-        yfloor = 0.42
-    else:
-        cota_x, cota_y = [0.0, qmax], [2.0, 2.0]
-        cota_label = "cota $2$"
-        ylabel = "$d_{B}\\,/\\,d_{H}$"
-        title = ("Distancia bottleneck relativa frente a la cota\n"
-                 "forma del teorema:  $d_{B} \\leq 2\\,d_{H}$")
-        yfloor = 2.1
+        # ── (a) artefacto del truncamiento ──────────────────────────
+        qs = np.array(sorted(truncamiento["q"].unique()))
+        a.plot(qs, 2 * qs, color=rojo, ls="--", lw=1.5,
+               label="cota de la versión anterior  2q")
+        for (modo, g), color, marca in zip(
+                truncamiento.groupby("modo", sort=False),
+                [_S_52[1], _S_52[0]], ["s", "o"]):
+            medias = g.groupby("q")["dB_diam"]
+            a.fill_between(qs, medias.min().values, medias.max().values,
+                           color=color, alpha=0.15, lw=0)
+            a.plot(qs, medias.mean().values, color=color, marker=marca,
+                   lw=1.6, ms=5.5, label=modo)
+        a.set_xlabel("nivel de ruido  q  (σ = q·diam X, definición anterior)")
+        a.set_ylabel("d_B / diam X")
+        a.set_xticks(qs, ["0" if q == 0 else _coma(q, 2) for q in qs])
+        a.yaxis.set_major_formatter(FuncFormatter(lambda v, p: _coma(v)))
+        a.legend(loc="upper left", fontsize=7.4)
+        a.set_title("(a) Artefacto del truncamiento (círculo, n = 400)")
 
-    fig, ax = plt.subplots(figsize=(7, 4.2))
-    for shape in _ORDEN_NUBES:
-        if shape not in catalogo:
-            continue
-        y, e = [], []
-        for q in qs:
-            vals = [_val(c) for c in crudo if c["shape"] == shape and c["q"] == q]
-            vals = [v for v in vals if v == v]
-            y.append(float(np.mean(vals)) if vals else np.nan)
-            e.append(float(np.std(vals)) if vals else 0.0)
-        ax.errorbar(qs, y, yerr=e, fmt="-" + _MARCADORES_NUBES.get(shape, "o"), ms=4,
-                    capsize=3, lw=1.3,
-                    color=(colores or _COLORES_NUBES).get(shape, _AZUL), label=shape)
-    ax.plot(cota_x, cota_y, "--", color=_ROJO, lw=1.5, label=cota_label)
-    ax.set_xlabel("nivel de ruido $q$")
-    ax.set_ylabel(ylabel)
-    ax.set_title(title, fontsize=10)
-    ax.set_xlim(0.0, qmax)
-    ax.set_xticks([0.0, 0.025, 0.05, 0.075, 0.10, 0.125, 0.15, 0.175, 0.20])
-    vals_all = [v for v in (_val(c) for c in crudo) if v == v]
-    vtop = max(vals_all + [0.0]) * 1.05
-    ax.set_ylim(0.0, max(vtop, yfloor))
-    # leyenda del PDF: primero las nubes (en orden), la cota al final
-    h, l = ax.get_legend_handles_labels()
-    orden = {n: i for i, n in enumerate(list(_ORDEN_NUBES) + [cota_label])}
-    pares = sorted(zip(l, h), key=lambda p: orden.get(p[0], 99))
-    ax.legend([x[1] for x in pares], [x[0] for x in pares],
-              fontsize=7, ncol=2, loc="upper left", framealpha=0.95)
-    fig.tight_layout()
+        # ── (b) cota probabilística ─────────────────────────────────
+        niveles = sorted(replicas["q"].unique())
+        razon = replicas["dB"] / replicas["cota_prob"]
+        datos = [razon[replicas["q"] == q].values for q in niveles]
+        bp = b.boxplot(datos, widths=0.5, patch_artist=True, showfliers=True,
+                       flierprops=dict(marker=".", markersize=3,
+                                       markerfacecolor=gris,
+                                       markeredgecolor="none"),
+                       medianprops=dict(color=txt, lw=1.4))
+        for caja in bp["boxes"]:
+            caja.set(facecolor=_S_52[0], alpha=0.35, edgecolor=_S_52[0])
+        b.axhline(1, color=rojo, lw=1.2, ls="--")
+        nv = int((replicas["dB"] > replicas["cota_prob"]).sum())
+        b.text(0.98, 0.99, "cota probabilística (δ = 0,05)", ha="right",
+               va="top", color=rojo, fontsize=8, transform=b.transAxes)
+        b.set_xticks(range(1, len(niveles) + 1), [_coma(q, 2) for q in niveles])
+        b.yaxis.set_major_formatter(FuncFormatter(lambda v, p: _coma(v)))
+        b.set_xlabel("nivel de ruido  q  (σ = q·diam X / √d)")
+        b.set_ylabel("d_B / [2σ(√d + √(2 ln(n/δ)))]")
+        b.set_ylim(0, 1.15)
+        b.set_title(f"(b) Cota probabilística: {nv} violaciones "
+                    f"en {len(replicas)} réplicas")
+
+        fig.tight_layout()
     return fig
 
 
@@ -651,8 +663,14 @@ def main():
 
         sweep, crudo = _run_he1(args.n, args.R)
         qs = [0.0, 0.05, 0.10, 0.15, 0.20]
-        fig_53_cota(qs, crudo, CATALOGO, forma="documento").savefig(OUT_DIR / "fig53a_forma_documento.png", dpi=300)
-        fig_53_cota(qs, crudo, CATALOGO, forma="teorema").savefig(OUT_DIR / "fig53b_forma_teorema.png", dpi=300)
+        from tda.analysis.truncamiento import (
+            analisis_truncamiento, guardar_truncamiento,
+        )
+        print("[Fig. 5.3] truncamiento de la filtración (círculo, 2 modos)...")
+        trunc = analisis_truncamiento(n_points=args.n)
+        guardar_truncamiento(trunc)
+        fig_53_cota_corregida(trunc, res52["replicas"]
+                              ).savefig(OUT_DIR / "fig53_cota_corregida.png", dpi=300)
         import pandas as pd
         pd.DataFrame(crudo).to_csv(OUT_DIR / "he1_replicas_dB_dH.csv", index=False)
         hechos += ["51", "52", "53"]
