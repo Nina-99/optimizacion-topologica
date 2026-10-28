@@ -152,13 +152,21 @@ La densidad física que entra al ensamble FEM es la filtrada `ρ̃` (no `ρ` cru
 
 La forma `dB ≤ 2dH` se cumple en el **100 %** de las réplicas (lo que el documento ya afirma en su Fig. 5.2(b)); la forma `dB/diam ≤ 2q` no es implicada por el teorema y no se sostiene empíricamente. Es la distinción que la propia Tabla 5.4 del documento establece.
 
-> **Re-medición (Item 29):** con el ruido corregido `σ = q·diam/√d` y el catálogo
-> corregido (Item 30), R = 20, n = 400, q = 0,10: `frac(dB/diam ≤ 2q)` = 0,00 (círculo),
-> 0,50 (anillo), 1,00 (toro), 1,00 (disco); `frac(dB ≤ 2dH)` = **1,00 en las cuatro**;
-> máximo `dB/dH` = 1,47. El ruido más suave deja al **toro** por debajo de `2q` (antes
-> 0,45), pero **círculo y anillo siguen violándola**: la conclusión —`2q·diam` no es
-> consecuencia del teorema— **se mantiene**. Pendiente de la pasada 5.2/5.3 recalcular
-> todo el barrido con R = 100.
+> **Re-medición (Items 29–31):** con el ruido corregido `σ = q·diam/√d`, el catálogo
+> corregido y la distancia bottleneck **exacta** (Item 14 corregido), sobre las 1 680
+> réplicas de la Fig. 5.2, dimensión nativa:
+>
+> | Nube | `frac(dB/diam ≤ 2q)` para q = 0,05 / 0,10 / 0,15 / 0,20 | máx `dB/dH` |
+> |---|---|---|
+> | círculo | 0,00 / 0,00 / 0,00 / 0,00 | 1,52 |
+> | dos_círculos | 0,00 / 0,05 / 1,00 / 1,00 | 1,78 |
+> | anillo | 0,90 / 0,60 / 0,25 / 1,00 | 1,37 |
+> | toro, disco, esfera, gaussiana | 1,00 en todos | ≤ 0,91 |
+>
+> `frac(dB ≤ 2dH)` = **1,00** en las 560 réplicas nativas. La conclusión se mantiene:
+> **círculo y dos_círculos violan `2q`** en los niveles bajos, y `dB/diam ≤ 2q` no es
+> consecuencia del teorema. (Una medición previa de esta misma nota usó la bottleneck
+> con el objetivo equivocado —Item 14— y daba 0,50 para el anillo en q = 0,10.)
 
 **Consecuencia:** no cambia H.E.1a (sigue cumpliéndose al 100 %), solo la **notación de la cota**. H.E.1b y H.E.1c no se ven afectadas.
 
@@ -308,6 +316,11 @@ métodos). Solo la cola $u \ge 0.90$ de la Fig. 5.7.
 ---
 
 ## Item 19 — Fig. 5.2: estilo de paneles según el PDF (sin líneas guía 95/50)
+
+> **SUPERADO por el Item 31.** Este item describía la figura del PDF *original*
+> (un panel (a) y sin línea guía del 95 %). El Cap. V corregido trae cinco paneles
+> —(a1–a3) por dimensión ambiente, (b) y (c)— y **sí** dibuja la guía punteada en
+> 0,95. La app y el headless siguen ahora esa versión.
 
 **Hecho:** la Fig. 5.2 del PDF no trae líneas guía en 95 %/50 % (solo grilla tenue),
 usa un marcador distinto por nube, bandas con texto dentro ("fiable"/"no fiable")
@@ -495,6 +508,12 @@ inconsistencia del PDF en un hallazgo documentado y verificable.
 
 ## Item 27 — Fig. 5.2(a): por qué `dos_circulos` colapsa antes que en el documento
 
+> **SUPERADO por los Items 30 y 31.** La causa era la geometría del catálogo
+> (`dos_circulos` con separación 5), no el fenómeno. Con el catálogo corregido y el
+> ruido normalizado, la Fig. 5.2 reproduce al documento: `dos_circulos` da **q\* = 0**
+> en las tres dimensiones, exactamente como reporta el Cap. V corregido. Se conserva
+> el diagnóstico por trazabilidad, pero ya no describe el software.
+
 **Investigación (con evidencia).** El desacuerdo no es de fórmula sino de **geometría
 de la nube**. A $q = 0.05$ el software lee `dos_circulos` = $(\beta_0, \beta_1) = (2, 0)$:
 el $\beta_0$ es correcto, pero el **agujero no se detecta**. Diagnóstico:
@@ -619,13 +638,53 @@ idéntica al PDF: **τ\* = 0,175, ventana única con 7/7**, curva
 
 ---
 
+## Item 31 — Fig. 5.2 replicada bit a bit (5 paneles, 1 680 réplicas)
+
+**Qué se hizo:** `analysis/estabilidad_dimensional.py` reimplementa el
+experimento del Cap. V corregido (`caso1_tda.py`) y `visualization.figuras.
+fig_52_estabilidad` dibuja los cinco paneles. La app (pestaña H.E.1) lee la
+corrida cacheada en `data/figuras/fig52_replicas.csv` y muestra la misma figura
+matplotlib, con tema claro/oscuro.
+
+**Protocolo (idéntico al documento):** 7 nubes × d ∈ {nativa, 10, 100} ×
+q ∈ {0,05; 0,10; 0,15; 0,20} × R = 20 réplicas = **1 680**; n = 400;
+τ = 0,175 (el de la Fig. 5.1); σ = q·diam(X)/√d; embebido por relleno de ceros;
+lectura de βk con `diam(Y)`; semillas `42 + i` (nube) y
+`42 + 1000r + 10⁵q + 10⁷d + 100i` (ruido).
+
+**Verificación (contra `tda_replicas.csv` del Cap. V):** 1 200 filas comparables
+(las 480 restantes difieren solo en la tilde de «círculo»/«dos círculos») y
+**`max |dB_origen − dB_nuestro| = 0,0`** — coincidencia exacta, no aproximada.
+
+**Resultados (coinciden con el texto del documento):**
+
+| Magnitud | Documento | Software |
+|---|---|---|
+| Razón media `dB/(2dH)`: nativa / d=10 / d=100 | 0,31 / 0,25 / 0,36 | **0,305 / 0,252 / 0,358** |
+| Máximo `dB/dH` en dimensión nativa | 0,89 | **0,892** |
+| Violaciones de `dB ≤ 2dH` en 1 680 réplicas | 0 | **0** |
+| `q*` nativa: disco / círculo / gaussiana / anillo / esfera / dos círculos / toro | 0,20 / 0,15 / 0,15 / 0,10 / 0,10 / 0 / 0 | **idéntico** |
+| `q*` en d=10 y d=100: círculo, anillo, disco / esfera, gaussiana | 0,10 / 0,05 | **idéntico** |
+
+**Artefactos:** `data/figuras/fig52_estabilidad.png`, `fig52_replicas.csv`
+(1 680 filas), `fig52_q0.csv` (lectura sin ruido, con márgenes). Los antiguos
+`fig52a_tasa_acierto.png` y `fig52b_cota_estabilidad.png` **se retiran**: eran la
+versión de dos paneles del PDF original.
+
+**Nota de lectura:** los paneles (b) y (c) no contradicen a (a). El diagrama se
+mueve poco (b), pero un desplazamiento pequeño basta para que una barra cruce el
+umbral fijo τ (a). El orden de los `q*` reproduce el de los márgenes de la
+Fig. 5.1(c): las nubes con margen grande resisten más.
+
+---
+
 ## Resumen de trazabilidad (software → tesis)
 
 | Hipótesis | Función | Dato | Figura |
 |---|---|---|---|
-| H.E.1a | `stability.verificar_cota_bottleneck` | — | 5.2(b), 5.3 |
+| H.E.1a | `estabilidad_dimensional.protocolo_fig52` | `data/figuras/fig52_replicas.csv` | 5.2(b–c), 5.3 |
 | H.E.1b | `stability.comparar_tda_vs_euclidiano` | — | Tabla 5.5 |
-| H.E.1c | `stability.barrido_cota_bottleneck` (acierto) | — | 5.2(a) |
+| H.E.1c | `estabilidad_dimensional.protocolo_fig52` / `q_estrella` | `data/figuras/fig52_replicas.csv` | 5.2(a1–a3) |
 | Calibración τ | `analysis.calibracion.calibrar_c0` / `tau_estrella` | `data/figuras/fig51_calibracion_C0.csv` | 5.1 |
 | H.E.2a | `metric_simp` + `experiment_simp` | `data/validacion_HE2_corregida.csv` | 5.4(b), Tabla 5.6 |
 | H.E.2b | `experiment_simp` (barridos) | `data/barrido_beta1_HE2b.csv` | 5.5, 5.6, 5.7 |

@@ -196,59 +196,133 @@ def fig_51_calibracion(cal, tau, margenes, etiquetas=None, tema: str = "claro"):
 # Marcadores por nube (como el PDF: cada curva con su símbolo)
 
 
-def fig_52a_tasa_acierto(qs, sweep, catalogo, colores=None):
-    """Figura 5.2(a) — Tasa de acierto de βk frente al ruido q, por nube.
+# ── Figura 5.2 (Cap. V corregido: 5 paneles) ───────────────────────
+_GRUPOS_52 = (("nativa (2 o 3)", lambda d: d <= 3),
+              ("d = 10", lambda d: d == 10),
+              ("d = 100", lambda d: d == 100))
+# Paleta de ranuras categóricas del PDF corregido (S) y orden fijo de nubes.
+_S_52 = ("#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6")
+_M_52 = ("o", "s", "^", "v", "D", "P", "X")
+_ORDEN_52 = ("circulo", "anillo", "dos_circulos", "toro", "disco", "esfera", "gaussiana")
+_COLOR_NUBE_52 = dict(zip(_ORDEN_52, _S_52))
+_MARCA_NUBE_52 = dict(zip(_ORDEN_52, _M_52))
+_COLOR_DIM_52 = _S_52[:3]
 
-    Estilo del PDF: franjas con texto dentro ("fiable"/"no fiable"), un
-    marcador por nube, ticks en {0, 0.05, ..., 0.20}, sin líneas guía 95/50.
+
+def fig_52_estabilidad(replicas, q0, tema: str = "claro", etiquetas=None):
+    """Figura 5.2 — estabilidad del diagrama y fiabilidad de βk (5 paneles).
+
+    Parámetros:
+        replicas : DataFrame de `analysis.estabilidad_dimensional.protocolo_fig52`
+                   (una fila por nube × d × q × réplica).
+        q0       : DataFrame con la lectura sin ruido por nube (punto q = 0).
+        tema     : `"claro"` (PDF) u `"oscuro"` (tema de la app Streamlit).
+        etiquetas: dict nube → etiqueta (default: las del documento).
+
+    (a1–a3) tasa de acierto de (β₀, β₁) frente a q, por dimensión ambiente;
+    (b) dB frente a 2·dH, ambos normalizados por diam(X), en todas las réplicas;
+    (c) razón de ajuste dB/(2·dH) por dimensión.
     """
-    qs = np.asarray(qs)
-    fig, ax = plt.subplots(figsize=(7, 4.2))
-    ax.axvspan(qs.min(), 0.05, color="green", alpha=0.10)
-    ax.axvspan(0.15, qs.max(), color="red", alpha=0.10)
-    ax.text(0.025, 0.93, "fiable", color=_VERDE, fontsize=9, ha="center")
-    ax.text(0.175, 0.93, "no fiable", color=_ROJO, fontsize=9, ha="center")
-    for shape in _ORDEN_NUBES:
-        if shape not in sweep:
-            continue
-        ax.plot(qs, sweep[shape]["acierto"], "-",
-                marker=_MARCADORES_NUBES.get(shape, "o"), ms=5,
-                color=(colores or _COLORES_NUBES).get(shape, _AZUL), label=shape)
-    ax.set_xlabel("nivel de ruido q = σₙ/diam(X)")
-    ax.set_ylabel("tasa de acierto de βk")
-    ax.set_title("(a) Colapso de la lectura de βk")
-    ax.set_xlim(0.0, float(qs.max()))
-    ax.set_xticks([0.0, 0.05, 0.10, 0.15, 0.20])
-    ax.set_ylim(0.0, 1.0)
-    ax.legend(fontsize=7, ncol=2, loc="center right")
-    fig.tight_layout()
-    return fig
+    from tda.processing.sampling import ETIQUETA_NUBE, ORDEN_CALIBRACION
 
+    etiquetas = etiquetas or ETIQUETA_NUBE
+    qs = sorted(float(q) for q in replicas["q"].unique())
+    xticks = [0.0] + qs
+    xtl = ["0"] + [_coma(q, 2) for q in qs]
+    q0i = q0.set_index("nube")
 
-def fig_52b_cota_estabilidad(crudo):
-    """Figura 5.2(b) — Cada réplica: dB vs 2·dH, con región prohibida.
+    txt = "#f0f0f0" if tema == "oscuro" else "#1a1a1a"
+    gris = "#b0b0b0" if tema == "oscuro" else "#4d4d4d"
+    fondo = "none" if tema == "oscuro" else "white"
+    rojo = "#c0392b"
+    rosa = "#f7dede" if tema == "oscuro" else "#fbe9e9"
 
-    Estilo del PDF: ejes dH(X,Y) / dB(Dgm(X), Dgm(Y)), diagonal a todo el
-    eje, texto "región prohibida / por el teorema" sin sombreado, leyenda
-    con el n real de réplicas.
-    """
-    fig, ax = plt.subplots(figsize=(6.5, 5))
-    dB = np.array([c["dB"] for c in crudo])
-    dH = np.array([c["dH"] for c in crudo])
-    ax.scatter(dH, dB, s=10, alpha=0.45, color=_AZUL,
-               label=f"réplicas (n = {len(crudo)})")
-    xmax = max(float(dH.max()), 1e-9) * 1.05
-    ax.set_xlim(0.0, xmax)
-    ax.set_ylim(0.0, 2.0 * xmax)
-    ax.plot([0.0, xmax], [0.0, 2.0 * xmax], "--", color=_ROJO, lw=1.5,
-            label="cota teórica dB = 2 dH")
-    ax.text(0.62 * xmax, 0.86 * 2.0 * xmax, "región prohibida\npor el teorema",
-            color=_ROJO, fontsize=9, style="italic", ha="center")
-    ax.set_xlabel("dH(X,Y)")
-    ax.set_ylabel("dB(Dgm(X), Dgm(Y))")
-    ax.set_title("(b) Verificación empírica de la cota de estabilidad")
-    ax.legend(fontsize=8, loc="upper left")
-    fig.tight_layout()
+    with plt.rc_context({
+        "font.family": "sans-serif", "font.size": 9,
+        "axes.titlesize": 10, "axes.titleweight": "bold",
+        "axes.titlelocation": "left", "axes.labelsize": 9,
+        "axes.edgecolor": gris, "axes.labelcolor": txt,
+        "xtick.color": gris, "ytick.color": gris,
+        "axes.grid": True, "grid.color": "#e7e7e7" if tema == "claro" else "#333333",
+        "grid.linewidth": 0.6, "axes.axisbelow": True,
+        "legend.frameon": False, "figure.facecolor": fondo,
+        "axes.facecolor": fondo, "text.color": txt,
+        "axes.spines.top": False, "axes.spines.right": False,
+    }):
+        fig = plt.figure(figsize=(11, 7.0))
+        gs = fig.add_gridspec(2, 3, height_ratios=[1, 1.05],
+                              hspace=0.45, wspace=0.12, top=0.90)
+
+        # ── (a1–a3) tasa de acierto por dimensión ambiente ──────────
+        for k, (nombre, mascara) in enumerate(_GRUPOS_52):
+            ax = fig.add_subplot(gs[0, k])
+            sub = replicas[mascara(replicas["d"])]
+            for nube in _ORDEN_52:
+                g = sub[sub["nube"] == nube].groupby("q")["acierto"].mean()
+                if g.empty:
+                    continue
+                ax.plot(xticks,
+                        [float(q0i.loc[nube, "acierto"])] + list(g.reindex(qs).values),
+                        color=_COLOR_NUBE_52[nube], marker=_MARCA_NUBE_52[nube],
+                        ms=5.5, lw=1.6, label=etiquetas.get(nube, nube))
+            ax.axhline(0.95, color=gris, lw=1, ls=":")
+            ax.set_xlabel("nivel de ruido  q  (σ = q·diam X / √d)")
+            ax.set_xticks(xticks, xtl)
+            ax.set_ylim(-0.04, 1.06)
+            if k == 0:
+                ax.set_ylabel("tasa de acierto de β₀ y β₁")
+                ax.set_title(f"(a{k + 1}) d {nombre}")
+            else:
+                ax.set_title(f"(a{k + 1}) {nombre}")
+                ax.tick_params(labelleft=False)
+
+        hnd, lab = fig.axes[0].get_legend_handles_labels()
+        fig.legend(hnd, lab, ncol=7, loc="upper center",
+                   bbox_to_anchor=(0.5, 0.995), fontsize=8, handlelength=1.8)
+
+        # ── (b) dB vs 2·dH normalizados ─────────────────────────────
+        ax = fig.add_subplot(gs[1, :2])
+        x = replicas["cota_teorema"] / replicas["diam"]
+        y = replicas["dB"] / replicas["diam"]
+        lim = float(max(x.max(), y.max())) * 1.05
+        ax.fill_between([0, lim], [0, lim], [lim, lim], color=rosa, lw=0)
+        ax.plot([0, lim], [0, lim], color=rojo, lw=1.5, ls="--")
+        ax.text(lim * 0.03, lim * 0.88,
+                "región prohibida por el teorema\n(d_B > 2 d_H)",
+                color=rojo, fontsize=8, va="top")
+        for (nombre, mascara), color, marcador in zip(
+                _GRUPOS_52, _COLOR_DIM_52, ["o", "s", "^"]):
+            m = mascara(replicas["d"])
+            ax.scatter(x[m], y[m], s=9, color=color, marker=marcador, alpha=0.55,
+                       lw=0, label=f"{nombre}  (n = {int(m.sum())})")
+        ax.set_xlim(0, lim)
+        ax.set_ylim(0, lim)
+        ax.set_xlabel("2 d_H(X, Y) / diam X")
+        ax.set_ylabel("d_B(Dgm X, Dgm Y) / diam X")
+        ax.legend(loc="center right", bbox_to_anchor=(0.9, 0.42),
+                  markerscale=1.8, title="dimensión ambiente", title_fontsize=8)
+        for eje in (ax.xaxis, ax.yaxis):
+            eje.set_major_formatter(FuncFormatter(lambda v, p: _coma(v)))
+        viol = int((replicas["dB"] > replicas["cota_teorema"] + 1e-9).sum())
+        ax.set_title(f"(b) Verificación de d_B ≤ 2 d_H: {viol} violaciones "
+                     f"en {len(replicas)} réplicas")
+
+        # ── (c) razón de ajuste de la cota ──────────────────────────
+        ax2 = fig.add_subplot(gs[1, 2])
+        datos = [((replicas["dB"] / replicas["cota_teorema"])[mascara(replicas["d"])]
+                  .replace([np.inf, -np.inf], np.nan).dropna().values)
+                 for _, mascara in _GRUPOS_52]
+        bp = ax2.boxplot(datos, widths=0.5, patch_artist=True, showfliers=False,
+                         medianprops=dict(color=txt, lw=1.4))
+        for caja, color in zip(bp["boxes"], _COLOR_DIM_52):
+            caja.set(facecolor=color, edgecolor=color, alpha=0.35)
+        ax2.axhline(1, color=rojo, lw=1.2, ls="--")
+        ax2.set_xticks([1, 2, 3], ["nativa", "10", "100"])
+        ax2.set_ylim(0, 1.08)
+        ax2.set_xlabel("dimensión ambiente d")
+        ax2.set_ylabel("d_B / (2 d_H)")
+        ax2.set_title("(c) Razón de ajuste de la cota")
+
     return fig
 
 
@@ -541,6 +615,7 @@ def main():
     ap.add_argument("--todos", action="store_true")
     ap.add_argument("--n", type=int, default=400, help="puntos por nube (H.E.1)")
     ap.add_argument("--R", type=int, default=100, help="réplicas (H.E.1)")
+    ap.add_argument("--R52", type=int, default=20, help="réplicas por celda (Fig. 5.2)")
     ap.add_argument("--malla", type=str, default="60x30", help="malla SIMP (H.E.2)")
     args = ap.parse_args()
 
@@ -560,15 +635,27 @@ def main():
                            ).savefig(OUT_DIR / "fig51_calibracion_tau.png", dpi=300)
         res["cal"].to_csv(OUT_DIR / "fig51_calibracion_C0.csv", index=False)
         res["margenes"].to_csv(OUT_DIR / "fig51_margenes_C.csv", index=False)
+        # Fig. 5.2 — protocolo dimensional (nativa, d = 10, d = 100)
+        from tda.analysis.estabilidad_dimensional import (
+            guardar_resultados, protocolo_fig52, q_estrella, resumen_razones,
+        )
+        print(f"[Fig. 5.2] 7 nubes x 3 dimensiones x 4 niveles x R={args.R52}...")
+        res52 = protocolo_fig52(n_points=args.n, n_rep=args.R52)
+        guardar_resultados(res52)
+        fig_52_estabilidad(res52["replicas"], res52["q0"]
+                           ).savefig(OUT_DIR / "fig52_estabilidad.png", dpi=300)
+        print("           razón d_B/(2 d_H) por dimensión:")
+        print(resumen_razones(res52["replicas"]).to_string(index=False))
+        print("           q* por nube y dimensión:")
+        print(q_estrella(res52["replicas"]).to_string(index=False))
+
         sweep, crudo = _run_he1(args.n, args.R)
         qs = [0.0, 0.05, 0.10, 0.15, 0.20]
-        fig_52a_tasa_acierto(qs, sweep, CATALOGO).savefig(OUT_DIR / "fig52a_tasa_acierto.png", dpi=300)
-        fig_52b_cota_estabilidad(crudo).savefig(OUT_DIR / "fig52b_cota_estabilidad.png", dpi=300)
         fig_53_cota(qs, crudo, CATALOGO, forma="documento").savefig(OUT_DIR / "fig53a_forma_documento.png", dpi=300)
         fig_53_cota(qs, crudo, CATALOGO, forma="teorema").savefig(OUT_DIR / "fig53b_forma_teorema.png", dpi=300)
         import pandas as pd
         pd.DataFrame(crudo).to_csv(OUT_DIR / "he1_replicas_dB_dH.csv", index=False)
-        hechos += ["51", "52a", "52b", "53"]
+        hechos += ["51", "52", "53"]
 
     if args.todos or args.protocolo == "he2":
         nex, ney = (int(v) for v in args.malla.lower().split("x"))

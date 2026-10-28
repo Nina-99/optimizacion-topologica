@@ -1,10 +1,11 @@
 """Página 1: H.E.1 — Robustez topológica (TDA).
 
 Presenta la validación en el ORDEN del documento:
-  0. Calibración previa del umbral τ (Figura 5.1)
-  1. H.E.1a — estabilidad de los diagramas (Figuras 5.3 y 5.2(b))
+  0. Calibración previa del umbral τ (Figura 5.1) y estabilidad dimensional
+     (Figura 5.2: paneles a1–a3, b y c)
+  1. H.E.1a — estabilidad de los diagramas (Figura 5.3)
   2. H.E.1b — ventaja comparativa TDA vs euclidiano (contraste de McNemar)
-  3. H.E.1c — rango de fiabilidad de βk (Figura 5.2(a))
+  3. H.E.1c — rango de fiabilidad de βk (q* de la Figura 5.2)
   4. Veredicto H.E.1 (Tabla 5.5)
 
 Constantes y notación tomadas del documento:
@@ -36,7 +37,7 @@ from tda.analysis.stability import (
 )
 from tda.core.topology import bottleneck_distance
 from tda.analysis.calibracion import ETIQUETA_NUBE, resultado_calibracion
-from tda.visualization.figuras import fig_51_calibracion
+from tda.visualization.figuras import fig_51_calibracion, fig_52_estabilidad
 from tda.app.theme import (
     apply_mpl_theme, apply_plotly_theme, responsive_style,
     methodology_expander, is_dark, page_header,
@@ -142,6 +143,37 @@ if calib:
         f"τ ∈ [{v_min:.3f}, {v_max:.3f}] · τ* = {calib['tau']['tau_star']:.3f} · "
         f"τ adoptado = {TAU_CALIBRADO} {'cae dentro' if dentro else 'queda FUERA'}."
     )
+    st.markdown("---")
+
+# ── Paso previo — Figura 5.2: estabilidad dimensional ────────────────
+st.subheader("Paso previo — Figura 5.2: estabilidad del diagrama y fiabilidad de $\\beta_k$")
+st.caption(
+    "El ruido se normaliza por la dimensión ($\\sigma = q\\,\\mathrm{diam}(X)/\\sqrt{d}$) y "
+    "$\\tau$ es el calibrado en la Fig. 5.1. Los paneles (a1–a3) miden la lectura de "
+    "$(\\beta_0,\\beta_1)$ en la dimensión nativa y en $d = 10,\\, 100$; (b) contrasta "
+    "$d_B$ con la cota $2\\,d_H$ en todas las réplicas y (c) cuán holgada es esa cota."
+)
+from tda.analysis.estabilidad_dimensional import (
+    cargar_resultados, guardar_resultados, protocolo_fig52, q_estrella,
+)
+res52 = st.session_state.get("he1_fig52") or cargar_resultados()
+if res52 is None:
+    if st.button("Ejecutar Figura 5.2 (1 680 réplicas)", key="btn_fig52"):
+        with st.spinner("Corriendo 7 nubes × {nativa, 10, 100} × 4 niveles × 20 réplicas..."):
+            res52 = protocolo_fig52(n_points=int(n_points))
+            guardar_resultados(res52)
+        st.session_state.he1_fig52 = res52
+if res52:
+    fig52 = fig_52_estabilidad(res52["replicas"], res52["q0"],
+                               tema="oscuro" if is_dark() else "claro")
+    st.pyplot(fig52)
+    plt.close(fig52)
+    st.session_state.setdefault("he1_figs", {})["fig52_estabilidad"] = fig52
+    _rep52 = res52["replicas"]
+    _viol = int((_rep52["dB"] > _rep52["cota_teorema"] + 1e-9).sum())
+    st.caption(f"{len(_rep52)} réplicas · **{_viol}** violaciones de $d_B \\leq 2\\,d_H$.")
+    with st.expander("Nivel crítico q* por nube y dimensión (H.E.1c)", expanded=False):
+        st.dataframe(q_estrella(_rep52), width="stretch", hide_index=True)
     st.markdown("---")
 
 # ── 🔬 Filtración interactiva (ε) — el corazón del TDA ───────────────
@@ -296,30 +328,6 @@ if st.session_state.get("tda_he1_run", False) and res:
     else:
         st.success("Forma correcta del Teorema de Estabilidad (Cohen-Steiner, Edelsbrunner & Harer): $d_B \\leq 2\\,d_H$. Todas las curvas quedan por debajo de la cota.")
 
-    # Figura 5.2(b) — cada réplica: dB vs 2 dH
-    st.markdown("**Figura 5.2(b):** Cada punto es una réplica; se contrasta la distancia bottleneck $d_B$ contra la cota $2\\,d_H$. Ninguna réplica entra en la región prohibida.")
-    fig52b = go.Figure()
-    fig52b.add_trace(go.Scatter(
-        x=[c["dH"] for c in crudo], y=[c["dB"] for c in crudo],
-        mode="markers", marker=dict(size=6, color="royalblue", opacity=0.5),
-        name=f"réplicas (n = {len(crudo)})",
-    ))
-    max_dh = max([c["dH"] for c in crudo] + [1e-9]) * 1.05
-    fig52b.add_trace(go.Scatter(x=[0, max_dh], y=[0, 2 * max_dh],
-                                mode="lines", line=dict(dash="dash", color="white"),
-                                name="cota teórica dB = 2 dH"))
-    fig52b.add_annotation(x=max_dh * 0.62, y=2 * max_dh * 0.86,
-                          text="región prohibida<br>por el teorema", showarrow=False,
-                          font=dict(color="red"))
-    fig52b.update_layout(height=380, template="plotly_white",
-                         title="(b) Verificación empírica de la cota de estabilidad",
-                         xaxis_title="dH(X,Y)",
-                         yaxis_title="dB(Dgm(X), Dgm(Y))",
-                         xaxis=dict(range=[0, max_dh]),
-                         yaxis=dict(range=[0, 2 * max_dh]))
-    apply_plotly_theme(fig52b)
-    st.plotly_chart(fig52b, width="stretch")
-    st.session_state.setdefault("he1_figs", {})["fig52b_cota_estabilidad"] = fig52b
 
     # Resultado H.E.1a
     frac_global = float(np.mean([sweep[s]["cumple_frac"][i]
@@ -371,33 +379,6 @@ if st.session_state.get("tda_he1_run", False) and res:
     # 3. H.E.1c — rango de fiabilidad de βk (Figura 5.2(a))
     # ══════════════════════════════════════════════════════════════════
     st.subheader("3. H.E.1c — Rango de fiabilidad de $\\beta_k$")
-    st.markdown("**Figura 5.2(a):** Tasa de acierto de $\\beta_k$ frente al nivel relativo de ruido $q$, por nube de referencia.")
-    fig52a = go.Figure()
-    # zonas de fiabilidad (según el PDF: fiable q ≤ 0.05, no fiable q ≥ 0.15)
-    fig52a.add_vrect(x0=min(qs), x1=0.05, fillcolor="green", opacity=0.12, line_width=0)
-    fig52a.add_vrect(x0=0.15, x1=max(qs), fillcolor="red", opacity=0.10, line_width=0)
-    fig52a.add_annotation(x=0.025, y=0.93, text="fiable", showarrow=False,
-                          font=dict(color="green", size=11))
-    fig52a.add_annotation(x=0.175, y=0.93, text="no fiable", showarrow=False,
-                          font=dict(color="red", size=11))
-    _orden52a = ["anillo", "circulo", "disco", "dos_circulos", "esfera", "gaussiana", "toro"]
-    _col52a = {"anillo": "#1f77b4", "circulo": "#ff7f0e", "disco": "#2ca02c",
-               "dos_circulos": "#d62728", "esfera": "#9467bd", "gaussiana": "#8c564b", "toro": "#e377c2"}
-    _sym52a = {"anillo": "circle", "circulo": "square", "disco": "triangle-up",
-               "dos_circulos": "triangle-down", "esfera": "diamond", "gaussiana": "cross", "toro": "x"}
-    for shape in _orden52a:
-        fig52a.add_trace(go.Scatter(x=qs, y=sweep[shape]["acierto"], mode="lines+markers",
-                                    marker=dict(symbol=_sym52a[shape], color=_col52a[shape], size=8),
-                                    name=shape))
-    fig52a.update_layout(height=380, template="plotly_white",
-                         title="(a) Colapso de la lectura de βk",
-                         xaxis_title="nivel de ruido q = σₙ/diam(X)",
-                         yaxis_title="tasa de acierto de βk",
-                         xaxis=dict(range=[0.0, 0.20], dtick=0.05),
-                         yaxis=dict(range=[0.0, 1.0], dtick=0.2))
-    apply_plotly_theme(fig52a)
-    st.plotly_chart(fig52a, width="stretch")
-    st.session_state.setdefault("he1_figs", {})["fig52a_tasa_acierto"] = fig52a
 
     # Diagnóstico: por qué algunas nubes colapsan antes (persistencia H₁ vs τ)
     with st.expander("🔎 Diagnóstico de la Fig. 5.2(a) — ¿por qué colapsa β₁?", expanded=False):
@@ -506,9 +487,9 @@ methodology_expander("📖 Protocolo y compuertas — H.E.1", [
     ("Protocolo y compuertas", (
         "| Sub-hipótesis | Se mide | Instrumento | Criterio | Evidencia |\n"
         "|---|---|---|---|---|\n"
-        "| H.E.1a | $d_B$ vs $2\\,d_H$ por réplica | Ripser + Bottleneck | 100 % de las réplicas | Figs. 5.2(b), 5.3 |\n"
+        "| H.E.1a | $d_B$ vs $2\\,d_H$ por réplica | Ripser + Bottleneck | 100 % de las réplicas | Fig. 5.2(b), 5.3 |\n"
         "| H.E.1b | exactitud TDA vs euclidiano | McNemar | $p < 0.05$ | Tabla 5.5 |\n"
-        "| H.E.1c | $q^*$ (acierto de $\\beta_k$) | barrido de ruido | $q^* \\in [0.05, 0.10]$ | Fig. 5.2(a) |\n"
+        "| H.E.1c | $q^*$ (acierto de $\\beta_k$) | barrido de ruido | $q^* \\in [0.05, 0.10]$ | Fig. 5.2(a1–a3) |\n"
     )),
     ("Compuertas (Cap. IV)", "Calibración de $\\tau$ (F3) **antes** de medir; la cota $d_B \\le 2\\,d_H$ es bloqueante (F4) y la concordancia Euler–GUDHI valida el indicador."),
 ], "H.E.1")

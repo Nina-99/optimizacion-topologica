@@ -16,6 +16,10 @@ from ripser import ripser
 from tda.processing.sampling import (
     generate_cloud, add_gaussian_noise, compute_diameter, betti_teorico,
 )
+# τ* calibrado sobre el catálogo INDEPENDIENTE C₀ (Fig. 5.1, Cap. V). Vive en
+# `analysis.calibracion` para que haya una sola fuente de verdad; se reexporta
+# acá porque las páginas de la app lo importan desde este módulo.
+from tda.analysis.calibracion import TAU_CALIBRADO
 from tda.analysis.stability import betti_persistente, hausdorff_distance
 from tda.core.topology import bottleneck_distance
 from tda.optimization.metric_simp import MetricaTDA_SIMP
@@ -23,10 +27,6 @@ from tda.optimization.metric_simp import MetricaTDA_SIMP
 CATALOGO = ["circulo", "disco", "anillo", "dos_circulos", "toro", "esfera", "gaussiana"]
 SUBCONJUNTO_VALIDADO = ["circulo", "disco", "anillo"]   # Tabla 5.5, nota (a)
 Q_LEVELS = [0.0, 0.05, 0.10, 0.15, 0.20]
-# τ* calibrado sobre el catálogo INDEPENDIENTE C₀ (Fig. 5.1, Cap. V): única
-# ventana de la grilla con 7/7 aciertos de (β₀, β₁). No es un valor de ajuste:
-# sale de tda.analysis.calibracion.calibrar_c0 / tau_estrella.
-TAU_CALIBRADO = 0.175
 SEED = 42
 FV = 0.5
 P_DEFECTO = 3

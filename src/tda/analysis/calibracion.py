@@ -53,6 +53,11 @@ SEED_C0 = 900                # catálogo de calibración C₀ (semillas 900 + i)
 SEED_MEDICION = 42           # catálogo de medición C (semillas 42 + i)
 TAUS = np.round(np.arange(0.05, 0.401, 0.025), 3)   # 15 puntos, paso 0,025
 
+# τ adoptado por todo el protocolo (Fig. 5.1 → Figs. 5.2/5.3): es el τ* de C₀,
+# única ventana con 7/7 aciertos de (β₀, β₁). Vive acá para que la calibración
+# y las mediciones no puedan desincronizarse.
+TAU_CALIBRADO = 0.175
+
 
 # ═══════════════════════════════════════════════════════════════════
 # Piezas puras
