@@ -41,6 +41,7 @@ from tda.visualization.figuras import (
     fig_51_calibracion, fig_52_estabilidad, fig_53_cota_corregida,
 )
 from tda.analysis.estabilidad_dimensional import (
+    R_FIG52,
     cargar_resultados, guardar_resultados, protocolo_fig52, q_estrella,
 )
 from tda.analysis.truncamiento import (
