@@ -158,13 +158,20 @@ st.caption(
 from tda.analysis.estabilidad_dimensional import (
     cargar_resultados, guardar_resultados, protocolo_fig52, q_estrella,
 )
-res52 = st.session_state.get("he1_fig52") or cargar_resultados()
-if res52 is None:
-    if st.button("Ejecutar Figura 5.2 (1 680 réplicas)", key="btn_fig52"):
-        with st.spinner("Corriendo 7 nubes × {nativa, 10, 100} × 4 niveles × 20 réplicas..."):
-            res52 = protocolo_fig52(n_points=int(n_points))
-            guardar_resultados(res52)
+if st.button("▶ Ejecutar protocolo H.E.1 completo (Figuras 5.2, 5.3 y McNemar)", type="primary", key="btn_he1_unificado"):
+    with st.spinner("Ejecutando protocolo H.E.1 completo (Fig. 5.2: 1 680 réplicas, Fig. 5.3 y McNemar)..."):
+        res52 = protocolo_fig52(n_points=int(n_points))
+        guardar_resultados(res52)
         st.session_state.he1_fig52 = res52
+        _trunc = analisis_truncamiento(n_points=int(n_points))
+        guardar_truncamiento(_trunc)
+        st.session_state.he1_trunc = _trunc
+        res_mcn = comparar_tda_vs_euclidiano(n_points=int(n_points), n_rep=2 * int(n_mcn),
+                                             tau=TAU_CALIBRADO, apply_affine=True,
+                                             random_seed=SEED)
+        st.session_state.he1_mcnemar = res_mcn
+
+res52 = st.session_state.get("he1_fig52")
 if res52:
     fig52 = fig_52_estabilidad(res52["replicas"], res52["q0"],
                                tema="oscuro" if is_dark() else "claro")
@@ -190,13 +197,7 @@ st.caption(
 from tda.analysis.truncamiento import (
     analisis_truncamiento, cargar_truncamiento, guardar_truncamiento,
 )
-_trunc = st.session_state.get("he1_trunc") or cargar_truncamiento()
-if _trunc is None:
-    if st.button("Ejecutar truncamiento (200 réplicas)", key="btn_fig53"):
-        with st.spinner("Círculo n = 400: filtración truncada vs completa..."):
-            _trunc = analisis_truncamiento(n_points=int(n_points))
-            guardar_truncamiento(_trunc)
-        st.session_state.he1_trunc = _trunc
+_trunc = st.session_state.get("he1_trunc")
 if _trunc is not None and res52:
     fig53 = fig_53_cota_corregida(_trunc, res52["replicas"],
                                   tema="oscuro" if is_dark() else "claro")
