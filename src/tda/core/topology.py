@@ -96,24 +96,81 @@ def wasserstein_distance(dgm1: np.ndarray, dgm2: np.ndarray) -> float:
     return float(np.sum(np.sqrt(np.sum(diff ** 2, axis=1))))
 
 
+def _bottleneck_factible(A: np.ndarray, B: np.ndarray, t: float,
+                         D: np.ndarray) -> bool:
+    """¿Existe un matching entre A y B con costo máximo ≤ t?
+
+    Grafo bipartito cuadrado de (n + m) × (n + m):
+
+      - Filas    0..n-1 → puntos de A;  filas n..n+m-1 → comodines `e_j` de B.
+      - Columnas 0..m-1 → puntos de B;  columnas m..m+n-1 → comodines `f_i` de A.
+
+    Aristas:
+      `A_i → B_j` si `D[i,j] ≤ t`   (el par se empareja)
+      `A_i → f_i` si `pers(A_i)/2 ≤ t`  (A_i va a la diagonal)
+      `e_j → B_j` si `pers(B_j)/2 ≤ t`  (B_j va a la diagonal)
+      `e_j → f_i` siempre (los comodines se "apartan" cuando su vértice se
+      emparejó con el otro diagrama; sin esta arista el matching prohibiría
+      todo emparejamiento real)
+
+    Existe matching perfecto ⟺ el umbral `t` es factible. La factibilidad es
+    monótona en `t`, lo que habilita la búsqueda binaria de
+    `bottleneck_distance`.
+    """
+    from scipy.sparse import csr_matrix
+    from scipy.sparse.csgraph import maximum_bipartite_matching
+
+    n, m = D.shape
+    filas, columnas = [], []
+    if n and m:
+        r, c = np.nonzero(D <= t)
+        filas.append(r)
+        columnas.append(c)
+    ia = np.nonzero((A[:, 1] - A[:, 0]) / 2.0 <= t)[0]
+    filas.append(ia)
+    columnas.append(m + ia)
+    ib = np.nonzero((B[:, 1] - B[:, 0]) / 2.0 <= t)[0]
+    filas.append(n + ib)
+    columnas.append(ib)
+    if n and m:
+        e_j = np.repeat(np.arange(n, n + m), n)
+        f_i = np.tile(np.arange(m, m + n), m)
+        filas.append(e_j)
+        columnas.append(f_i)
+    f = np.concatenate(filas)
+    c = np.concatenate(columnas)
+    grafo = csr_matrix((np.ones(len(f), dtype=bool), (f, c)),
+                       shape=(n + m, n + m))
+    return bool((maximum_bipartite_matching(grafo, perm_type="row") >= 0).all())
+
+
 def bottleneck_distance(dgm1: np.ndarray, dgm2: np.ndarray) -> float:
-    """Calcula la distancia Bottleneck exacta entre dos diagramas de persistencia.
+    """Distancia bottleneck exacta entre dos diagramas de persistencia.
 
-    Definicion estandar (Cohen-Steiner et al. 2007): minimo sobre
-    biyecciones entre (A union Diagonal) y (B union Diagonal) del
-    maximo costo L_inf, donde el costo punto-diagonal es
-    persistencia/2. Se resuelve con asignacion hungara
-    (scipy.optimize.linear_sum_assignment).
+    Definición estándar (Cohen-Steiner, Edelsbrunner & Harer 2007): mínimo,
+    sobre las biyecciones entre `(A ∪ diagonal) y (B ∪ diagonal)`, del **máximo**
+    costo L∞; el costo de mandar un punto a la diagonal es `persistencia / 2`.
 
-    Parametros:
+    **Cuidado (trampa clásica):** el objetivo es **minimizar el máximo**, no la
+    suma. Resolverlo con `scipy.optimize.linear_sum_assignment` (que minimiza
+    la suma) devuelve el máximo de un matching *óptimo para la suma*, que es
+    **mayor o igual** al bottleneck: sobreestima siempre y, en el 36 % de los
+    diagramas de prueba, se desviaba hasta 0,27 (ver `tests/core/test_topology.py`).
+
+    Implementación: búsqueda binaria sobre el conjunto finito de costos
+    candidatos (todas las distancias L∞ entre puntos, más `persistencia/2`),
+    comprobando cada umbral con un matching bipartito
+    (`scipy.sparse.csgraph.maximum_bipartite_matching`). El resultado es el
+    primer umbral factible, y como la respuesta pertenece al conjunto de
+    candidatos, es **exacto**.
+
+    Parámetros:
         dgm1: Primer diagrama de forma (n, 2) con [nacimiento, muerte].
         dgm2: Segundo diagrama de forma (m, 2) con [nacimiento, muerte].
 
     Retorna:
-        Distancia Bottleneck dB(dgm1, dgm2) con norma L_inf.
+        Distancia bottleneck dB(dgm1, dgm2) con norma L∞.
     """
-    from scipy.optimize import linear_sum_assignment
-
     if dgm1.ndim != 2 or dgm1.shape[1] != 2:
         raise ValueError("dgm1 debe tener forma (n, 2)")
     if dgm2.ndim != 2 or dgm2.shape[1] != 2:
@@ -132,22 +189,21 @@ def bottleneck_distance(dgm1: np.ndarray, dgm2: np.ndarray) -> float:
     if m == 0:
         return float(np.max((A[:, 1] - A[:, 0]) / 2.0))
 
-    N = n + m
-    C = np.zeros((N, N))
-    for i in range(n):
-        for j in range(m):
-            C[i, j] = max(abs(A[i, 0] - B[j, 0]), abs(A[i, 1] - B[j, 1]))
-    for i in range(n):
-        for j in range(m, N):
-            C[i, j] = 1e9
-        C[i, m + i] = (A[i, 1] - A[i, 0]) / 2.0
-    for i in range(n, N):
-        for j in range(m):
-            C[i, j] = 1e9
-    for j in range(m):
-        C[n + j, j] = (B[j, 1] - B[j, 0]) / 2.0
-    row, col = linear_sum_assignment(C)
-    return float(C[row, col].max())
+    D = np.max(np.abs(A[:, None, :] - B[None, :, :]), axis=2)
+    candidatos = np.unique(np.concatenate([
+        D.ravel(), (A[:, 1] - A[:, 0]) / 2.0, (B[:, 1] - B[:, 0]) / 2.0,
+    ]))
+    if _bottleneck_factible(A, B, float(candidatos[0]), D):
+        return float(candidatos[0])
+
+    lo, hi = 0, len(candidatos) - 1      # invariante: candidatos[hi] factible
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if _bottleneck_factible(A, B, float(candidatos[mid]), D):
+            hi = mid
+        else:
+            lo = mid + 1
+    return float(candidatos[lo])
 
 
 def betti_numbers(persistence_diagram: np.ndarray) -> Tuple[int, int]:

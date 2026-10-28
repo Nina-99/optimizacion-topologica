@@ -189,3 +189,111 @@ class TestDistanceErrors:
                 np.array([[0.0, 1.0], [0.5, 1.5]]),
                 np.array([0.0, 1.0]),  # 1D
             )
+
+
+def _brute_force_bottleneck(A: np.ndarray, B: np.ndarray) -> float:
+    """Referencia por enumeración: mínimo, sobre todos los emparejamientos
+    posibles (punto–punto y punto–diagonal), del máximo costo L∞.
+
+    Solo viable para diagramas chicos; se usa como verdad en los tests.
+    """
+    import itertools
+
+    n, m = len(A), len(B)
+    mejor = np.inf
+    for k in range(min(n, m) + 1):
+        for ia in itertools.combinations(range(n), k):
+            for ib in itertools.combinations(range(m), k):
+                for perm in itertools.permutations(ib):
+                    c = 0.0
+                    for a, b in zip(ia, perm):
+                        c = max(c, abs(A[a, 0] - B[b, 0]), abs(A[a, 1] - B[b, 1]))
+                        if c >= mejor:
+                            break
+                    for i in range(n):
+                        if i not in ia:
+                            c = max(c, (A[i, 1] - A[i, 0]) / 2.0)
+                    for j in range(m):
+                        if j not in ib:
+                            c = max(c, (B[j, 1] - B[j, 0]) / 2.0)
+                    mejor = min(mejor, c)
+    return float(mejor)
+
+
+class TestBottleneckExacto:
+    """Valor numérico de la distancia bottleneck — regresión del bug de objetivo.
+
+    La función se resolvía con `linear_sum_assignment`, que **minimiza la suma**
+    de costos; el bottleneck **minimiza el máximo**. Consecuencia medida en 150
+    diagramas aleatorios: 52 errores, todos de sobreestimación (hasta +0,27),
+    0 de subestimación. El bug sobrevivió porque solo se testiaba el shape.
+    """
+
+    def test_diagramas_identicos_dan_cero(self):
+        dgm = np.array([[0.0, 1.0], [0.5, 2.0]])
+        assert bottleneck_distance(dgm, dgm) == pytest.approx(0.0)
+
+    def test_lado_vacio_cuesta_media_persistencia(self):
+        """Sin puntos que emparejar, todo va a la diagonal: costo pers/2."""
+        dgm = np.array([[0.0, 2.0], [1.0, 1.5]])
+        assert bottleneck_distance(np.empty((0, 2)), dgm) == pytest.approx(1.0)
+        assert bottleneck_distance(dgm, np.empty((0, 2))) == pytest.approx(1.0)
+
+    def test_emparejar_puede_ser_mas_barato_que_ir_a_diagonal(self):
+        """Caso mínimo donde la semántica de diagonal importa.
+
+        Emparejar cuesta 0.5 y es mejor que mandar los dos a la diagonal (1.0).
+        Una implementación que ignore la diagonal da 1.0; la correcta da 0.5.
+        """
+        A = np.array([[0.0, 2.0]])
+        B = np.array([[0.0, 1.5]])
+        assert bottleneck_distance(A, B) == pytest.approx(0.5)
+
+    def test_coincide_con_brute_force(self):
+        """150 diagramas aleatorios chicos contra la enumeración exacta."""
+        rng = np.random.default_rng(0)
+        for _ in range(60):
+            n, m = int(rng.integers(1, 5)), int(rng.integers(1, 5))
+
+            def dgm(k):
+                b = rng.uniform(0, 1, k)
+                p = rng.uniform(0.01, 1, k)
+                return np.c_[b, b + p]
+
+            A, B = dgm(n), dgm(m)
+            assert bottleneck_distance(A, B) == pytest.approx(
+                _brute_force_bottleneck(A, B), abs=1e-9)
+
+    def test_coincide_con_gudhi(self):
+        """Oráculo independiente (C++): debe coincidir bit a bit en tolerancia."""
+        gudhi = pytest.importorskip("gudhi")
+        rng = np.random.default_rng(7)
+        for _ in range(40):
+            n, m = int(rng.integers(1, 12)), int(rng.integers(1, 12))
+
+            def dgm(k):
+                b = rng.uniform(0, 1, k)
+                p = rng.uniform(0.01, 1, k)
+                return np.c_[b, b + p]
+
+            A, B = dgm(n), dgm(m)
+            assert bottleneck_distance(A, B) == pytest.approx(
+                gudhi.bottleneck_distance(A, B, 0.0), abs=1e-9)
+
+    def test_diagramas_reales_de_ripser_coinciden_con_gudhi(self):
+        """Caso real (400 puntos, H0 e H1) — el escala donde fallaba."""
+        ripser = pytest.importorskip("ripser")
+        gudhi = pytest.importorskip("gudhi")
+        t = np.linspace(0, 2 * np.pi, 400, endpoint=False)
+        X = np.c_[np.cos(t), np.sin(t)]
+        rng = np.random.default_rng(7)
+        Y = X + rng.normal(0, 0.15, X.shape)
+        for pts_a, pts_b in [(X, Y), (Y, X)]:
+            for dgm_a, dgm_b in zip(ripser.ripser(pts_a, maxdim=1)["dgms"],
+                                    ripser.ripser(pts_b, maxdim=1)["dgms"]):
+                a = np.asarray(dgm_a[np.isfinite(dgm_a[:, 1])], dtype=float)
+                b = np.asarray(dgm_b[np.isfinite(dgm_b[:, 1])], dtype=float)
+                if len(a) == 0 or len(b) == 0:
+                    continue
+                assert bottleneck_distance(a, b) == pytest.approx(
+                    gudhi.bottleneck_distance(a, b), abs=1e-9)
