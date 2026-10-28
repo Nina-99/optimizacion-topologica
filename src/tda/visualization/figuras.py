@@ -524,39 +524,65 @@ def fig_55_penalizacion(df_p):
     return fig
 
 
-def fig_56_malla(df_mesh):
-    """Figura 5.6 — Compliance (izq) y β₁ (der) vs malla; eje X logarítmico (Ne).
+def fig_56_malla(df_mesh, mallas_2d: list | None = None):
+    """Figura 5.6 — (a) Diseños convergidos en tres mallas; (b) Compliance vs malla.
 
-    Estilo del PDF: título "Independencia de malla: β₁ constante, c estable";
-    compliance marrón con círculos (eje izq), β₁ verde con cuadrados (eje der
-    "β₁(Ω_sólido)"); anotaciones r_min junto a cada punto; sin leyenda. El eje X
-    del PDF es logarítmico en Ne (verificado por posición de marcadores: 0.631).
+    Replicado exacto del PDF corregido del Cap. V:
+    (a) imágenes de densidad de las resoluciones evaluadas (ej. 60×30, 120×60, 180×90);
+    (b) compliance penalizada y binarizada frente al número de elementos con r_min físico constante.
     """
-    fig, ax1 = plt.subplots(figsize=(7, 4.2))
-    ax2 = ax1.twinx()
-    ne = df_mesh["Ne"].to_numpy()
-    ax1.set_xscale("log")
-    ax1.plot(ne, df_mesh["c(rho*)"], "-o", color=_MARRON, lw=1.9, ms=7)
-    ax2.plot(ne, df_mesh["beta1"], "-s", color=_VERDE, lw=1.9, ms=7)
-    n = len(df_mesh)
-    for i, (_, row) in enumerate(df_mesh.iterrows()):
-        off = (-44, -4) if i == n - 1 else (-6, -16)
-        ax1.annotate(f"$r_{{min}} = {row['rmin']:g}$", (row["Ne"], row["c(rho*)"]),
-                     textcoords="offset points", xytext=off,
-                     ha="right" if i == n - 1 else "center",
-                     fontsize=8, color=_GRIS)
-    ax1.set_xlabel("número de elementos $N_e$")
-    ax1.set_xticks(ne)
-    ax1.set_xticklabels([f"{int(n):,}" for n in ne])
-    ax1.minorticks_off()
-    ax1.set_xlim(ne.min() / 1.35, ne.max() * 1.35)
-    cmin, cmax = float(df_mesh["c(rho*)"].min()), float(df_mesh["c(rho*)"].max())
-    ax1.set_ylim(cmin - 0.15 * (cmax - cmin), cmax + 0.15 * (cmax - cmin))
-    ax1.set_ylabel("compliance $c(\\rho^*)$", color=_MARRON)
-    ax2.set_ylabel("β₁(Ωsólido)", color=_VERDE)
-    ax2.set_ylim(-0.4, 3.4)
-    ax2.set_yticks([0, 1, 2, 3])
-    ax1.set_title("Independencia de malla: β₁ constante, c estable")
+    mallas_2d = mallas_2d or []
+    n_mallas = max(1, len(mallas_2d))
+    fig = plt.figure(figsize=(9, 7.5))
+    gs = fig.add_gridspec(2, n_mallas, height_ratios=[1.2, 1], hspace=0.30)
+
+    # ── (a) diseños convergidos ──────────────────────────────────────
+    for idx, item in enumerate(mallas_2d):
+        ax = fig.add_subplot(gs[0, idx])
+        rho = item.get("rho")
+        label = item.get("label", f"Malla {idx+1}")
+        ne = item.get("Ne", 0)
+        rmin = item.get("rmin", 2.4)
+        beta1 = item.get("beta1", 3)
+        if rho is not None:
+            ax.imshow(rho, cmap="gray_r", vmin=0, vmax=1, origin="lower",
+                      aspect="equal", interpolation="nearest")
+        ax.set_title(f"{label}  (N_e = {ne:,})\nr_min = {rmin}, β₁ = {beta1}", fontsize=8.5)
+        ax.axis("off")
+    if not mallas_2d:
+        ax = fig.add_subplot(gs[0, :])
+        ax.text(0.5, 0.5, "(a) Diseños convergidos no provistos", ha="center", va="center")
+        ax.axis("off")
+
+    fig.text(0.05, 0.94, "(a) Diseños convergidos: β₁ = 3 en las resoluciones evaluadas", fontsize=10, weight="bold")
+
+    # ── (b) compliance frente a la malla ─────────────────────────────
+    ax2 = fig.add_subplot(gs[1, :])
+    if "Ne" in df_mesh.columns and "c(rho*)" in df_mesh.columns:
+        ne_vals = df_mesh["Ne"].to_numpy()
+        c_p = df_mesh["c(rho*)"].to_numpy()
+        ax2.plot(range(len(ne_vals)), c_p, "-o", color=_AZUL, lw=1.8, ms=6, label="penalizada c_p(ρ*)")
+        if "c_binarizada" in df_mesh.columns:
+            c_bin = df_mesh["c_binarizada"].to_numpy()
+            ax2.plot(range(len(ne_vals)), c_bin, "-s", color=_NARANJA, lw=1.8, ms=6, label="diseño binarizado")
+        
+        for idx, (n, cp) in enumerate(zip(ne_vals, c_p)):
+            ax2.text(idx, cp + 0.3, f"{cp:.1f}".replace(".", ","), ha="center", va="bottom", fontsize=8.5)
+        if "c_binarizada" in df_mesh.columns:
+            for idx, (n, cb) in enumerate(zip(ne_vals, df_mesh["c_binarizada"].to_numpy())):
+                ax2.text(idx, cb - 0.5, f"{cb:.1f}".replace(".", ","), ha="center", va="top", fontsize=8.5)
+
+        ax2.set_xticks(range(len(ne_vals)))
+        labels_x = [f"{row.get('label', '')}\nN_e = {int(row['Ne']):,}" for _, row in df_mesh.iterrows()]
+        ax2.set_xticklabels(labels_x)
+        ax2.set_ylabel("compliance  c")
+        ax2.set_title("(b) Compliance frente a la malla, con r_min físico constante")
+        ax2.legend(loc="upper left", fontsize=8)
+        ax2.set_xlim(-0.5, len(ne_vals) - 0.5)
+        
+        ymin, ymax = ax2.get_ylim()
+        ax2.set_ylim(ymin - 2, ymax + 2)
+
     fig.tight_layout()
     return fig
 
