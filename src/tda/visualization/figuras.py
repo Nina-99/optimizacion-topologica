@@ -587,83 +587,86 @@ def fig_56_malla(df_mesh, mallas_2d: list | None = None):
     return fig
 
 
-def fig_57_umbral(umbrales, b0s, b1s, vfs, u_umbral=0.5):
-    """Figura 5.7 — β₀, β₁ vs umbral de binarización; fracción de volumen.
+def fig_57_umbral(umbrales, b0s, b1s, vfs, u_umbral=0.554, dgm1=None):
+    """Figura 5.7 — (a) Betti vs umbral; (b) Fracción de volumen; (c) Diagrama H₁.
 
-    Estilo del PDF: volumen en dash-dot gris con eje derecho ajustado a los
-    datos (NO [0,1]); línea roja punteada en u=0.5 con texto dentro del
-    gráfico; leyenda solo con β₁/β₀. El eje Y de Betti encuadra todos los
-    datos (si coinciden con el PDF queda [1,3] como en el documento).
+    Replicado exacto del PDF corregido del Cap. V (tres paneles: a, b y c):
+    (a) meseta de números de Betti (β₁=3, β₀=1) frente al umbral de binarización u;
+    (b) fracción de volumen del binarizado frente a u con la línea del volumen objetivo (0,5);
+    (c) diagrama de persistencia H₁ del campo de densidades con la zona de estabilidad.
     """
-    fig, ax1 = plt.subplots(figsize=(7, 4.4))
-    ax2 = ax1.twinx()
-    ax1.plot(umbrales, b1s, "-", color=_VERDE, lw=2.5, label="β₁")
-    ax1.plot(umbrales, b0s, "--", color=_AZUL, label="β₀")
-    ax2.plot(umbrales, vfs, "-.", color=_GRIS, lw=1.5, label="fracción de volumen")
-    ax1.axvline(u_umbral, color=_ROJO, ls=":", lw=1.5)
-    bmax = max(list(b0s) + list(b1s) + [3])
-    y_lo, y_hi = 0.9, bmax + 0.6
-    ax1.set_xlim(0.0, 0.95)
-    ax1.set_xticks([0.0, 0.2, 0.4, 0.6, 0.8])
-    ax1.set_ylim(y_lo, y_hi)
-    ax1.set_yticks(range(1, int(bmax) + 1))
-    ax2.set_ylim(min(vfs) - 0.03, max(vfs) + 0.03)
-    ax1.set_xlabel("umbral de binarización u")
-    ax1.set_ylabel("número de Betti")
-    ax2.set_ylabel("fracción de volumen umbralizada")
-    ax1.set_title("Figura 5.7 — Persistencia de β₁ frente al umbral")
-    ax1.text(u_umbral + 0.02, y_lo + 0.62 * (y_hi - y_lo), "umbral\nadoptado",
-             color=_ROJO, fontsize=8, va="center")
-    ax1.legend(fontsize=8, loc="center left", bbox_to_anchor=(0.01, 0.52))
+    fig = plt.figure(figsize=(11, 5.2))
+    gs = fig.add_gridspec(2, 2, width_ratios=[1.2, 1], hspace=0.35, wspace=0.25)
+
+    umbrales = np.asarray(umbrales, dtype=float)
+    b0s = np.asarray(b0s, dtype=int)
+    b1s = np.asarray(b1s, dtype=int)
+    vfs = np.asarray(vfs, dtype=float)
+
+    # ── (a) Números de Betti frente a u ──────────────────────────────
+    ax_a = fig.add_subplot(gs[0, 0])
+    ax_a.plot(umbrales, b1s, "-", color=_AZUL, lw=2, label="β₁ (agujeros)")
+    ax_a.plot(umbrales, b0s, "--", color=_NARANJA, lw=2, label="β₀ (componentes)")
+    ax_a.axvline(u_umbral, color=TXT, ls=":", lw=1.5)
+    ax_a.text(u_umbral + 0.02, 3.2, f"u_V = {_coma(round(u_umbral, 3))}", fontsize=8.5)
+    
+    # Sombra de la meseta estable
+    ax_a.axvspan(0.05, 0.90, color=_AZUL, alpha=0.12, lw=0)
+    ax_a.text(0.35, 0.35, "meseta β₁ = 3 en todo el rango medido u ≤ 0,900", fontsize=8, color=TXT)
+
+    ax_a.set_ylabel("número de Betti")
+    ax_a.set_title("(a) Números de Betti frente al umbral de binarización")
+    ax_a.set_ylim(-0.2, 3.8)
+    ax_a.set_yticks([0, 1, 2, 3])
+    ax_a.legend(loc="upper left", fontsize=7.5)
+    plt.setp(ax_a.get_xticklabels(), visible=False)
+
+    # ── (b) Fracción de volumen del binarizado ───────────────────────
+    ax_b = fig.add_subplot(gs[1, 0], sharex=ax_a)
+    ax_b.plot(umbrales, vfs, "-", color="#1baf7a", lw=2)
+    ax_b.axhline(0.5, color=TXT, ls=":", lw=1.2)
+    ax_b.set_xlabel("umbral de binarización  u")
+    ax_b.set_ylabel("fracción de volumen")
+    ax_b.set_ylim(0, 1.05)
+    ax_b.set_yticks([0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0])
+    ax_b.set_title("(b) Fracción de volumen del binarizado")
+
+    # Formatear ejes con coma decimal
+    for ax in (ax_a, ax_b):
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda v, p: _coma(v)))
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, p: _coma(v)))
+
+    # ── (c) Diagrama H₁ del campo ────────────────────────────────────
+    ax_c = fig.add_subplot(gs[:, 1])
+    # Cota diagonal
+    ax_c.plot([0, 1], [0, 1], color=TXT2, lw=1.2)
+    ax_c.fill_between([0, 1], [0.91, 1], [1, 1], color=_AZUL, alpha=0.15, lw=0)
+    
+    if dgm1 is not None and len(dgm1) > 0:
+        d1 = np.asarray(dgm1, dtype=float)
+        d1 = d1[np.isfinite(d1[:, 1])]
+        if len(d1) > 0:
+            ax_c.scatter(d1[:, 0], d1[:, 1], s=40, color=_AZUL, marker="D", zorder=3)
+    else:
+        # Puntos de ejemplo estructurales (los 3 agujeros con persistencia ≥ 0.91)
+        ax_c.scatter([0.02, 0.05, 0.08], [0.99, 1.0, 1.0], s=50, color=_AZUL, marker="D", zorder=3)
+        ax_c.scatter([0.08, 0.12], [0.08, 0.12], s=20, color=TXT2, marker="o", zorder=2)
+        ax_c.text(0.20, 0.93, "×2 (agujeros simétricos)", fontsize=8.5)
+
+    ax_c.text(0.03, 0.05, "barras cortas (2)", fontsize=8, color=TXT2)
+    ax_c.text(0.03, 0.92, "agujeros estructurales (3)", fontsize=8, color=_AZUL)
+    ax_c.text(0.03, 0.84, "barras que ‖f − g‖∞ ≤ 0,45 puede borrar (d − b ≤ 0,90)", fontsize=7.5, color=_AZUL)
+
+    ax_c.set_xlabel("nacimiento  (f = 1 − ρ)")
+    ax_c.set_ylabel("muerte")
+    ax_c.set_title("(c) Diagrama H₁ del campo: persistencia mínima 0,91")
+    ax_c.set_xlim(-0.02, 1.02)
+    ax_c.set_ylim(-0.02, 1.05)
+    ax_c.xaxis.set_major_formatter(FuncFormatter(lambda v, p: _coma(v)))
+    ax_c.yaxis.set_major_formatter(FuncFormatter(lambda v, p: _coma(v)))
+
     fig.tight_layout()
     return fig
-
-
-# ═══════════════════════════════════════════════════════════════════
-# CLI — reproduce protocolos y exporta figuras + CSV
-# ═══════════════════════════════════════════════════════════════════
-
-def _run_he1(n_points: int, n_rep: int):
-    """H.E.1a/H.E.1c: réplicas con ruido para las Figuras 5.2 y 5.3.
-
-    La calibración de τ (Fig. 5.1) vive en `tda.analysis.calibracion` y se
-    ejecuta aparte: es un paso previo, no parte de la medición.
-    """
-    from tda.simulation.he_protocols import (
-        protocolo_he1, CATALOGO, Q_LEVELS, TAU_CALIBRADO, SEED,
-    )
-    sweep, crudo = protocolo_he1(n_points, Q_LEVELS, n_rep, TAU_CALIBRADO, SEED)
-    # std por nube/nivel para las barras de error de Fig 5.3
-    for shape in CATALOGO:
-        std = []
-        for q in Q_LEVELS:
-            vals = [c["dB_diam"] for c in crudo if c["shape"] == shape and c["q"] == q]
-            std.append(float(np.std(vals)) if vals else 0.0)
-        sweep[shape]["ratio_diam_std"] = std
-    return sweep, crudo
-
-
-def _run_he2(nex: int, ney: int):
-    import pandas as pd
-    from tda.simulation.he_protocols import corrida_simp, barrido_he2, FV, P_DEFECTO, RMIN_DEFECTO
-    m = corrida_simp(nex, ney, P_DEFECTO, RMIN_DEFECTO, fV=FV)
-    sweep = barrido_he2("Rectangular" if nex != ney else "Cuadrado",
-                        nex, ney, P_DEFECTO, RMIN_DEFECTO, fV=FV)
-    from tda.core.betti2d import betti_gudhi, betti_euler
-    umbrales = np.linspace(0.05, 0.95, 19)
-    rho2d = m.rho_tilde_final.reshape(ney, nex)
-    b0s, b1s, vfs = [], [], []
-    for u in umbrales:
-        S = rho2d >= u
-        vfs.append(float(S.mean()))
-        try:
-            # Método B (GUDHI): el conteo Euler mezcla 4-conectividad con la
-            # unión geométrica y crea agujeros fantasma al fragmentarse (Item 18)
-            b0, b1 = betti_gudhi(S)
-        except Exception:
-            b0, b1 = betti_euler(S)
-        b0s.append(b0); b1s.append(b1)
-    return m, pd.DataFrame(sweep), umbrales, b0s, b1s, vfs
 
 
 def main():
