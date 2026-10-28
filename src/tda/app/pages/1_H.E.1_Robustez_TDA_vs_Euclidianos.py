@@ -39,6 +39,7 @@ from tda.core.topology import bottleneck_distance
 from tda.analysis.calibracion import ETIQUETA_NUBE, resultado_calibracion
 from tda.visualization.figuras import (
     fig_51_calibracion, fig_52_estabilidad, fig_53_cota_corregida,
+    fig_he1b_exactitud, fig_he1c_q_estrella,
 )
 from tda.analysis.estabilidad_dimensional import (
     R_FIG52,
@@ -251,6 +252,11 @@ if res52:
                          (f"χ² = {_stat:.2f}, " if _stat is not None else "") +
                          ("p < 0.001" if _p < 0.001 else f"p = {_p:.4f}"))
 
+        fig51b = fig_he1b_exactitud(mcn, tema="oscuro" if is_dark() else "claro")
+        st.pyplot(fig51b)
+        plt.close(fig51b)
+        st.session_state.setdefault("he1_figs", {})["he1b_exactitud"] = fig51b
+
         _he1b_ok = bool(_mc.get("significant")) and (
             mcn.get("exactitud_tda", 0) > mcn.get("exactitud_eucl", 1))
         if _he1b_ok:
@@ -273,6 +279,11 @@ if res52:
     st.markdown("**Nivel crítico $q^*$** — mayor nivel de ruido con acierto $\\ge 0.95$ "
                 "(acierto de $(\\beta_0,\\beta_1)$ promediado por nube y dimensión):")
     st.dataframe(_piv.reset_index(), width="stretch", hide_index=True)
+
+    fig51c = fig_he1c_q_estrella(_qest, tema="oscuro" if is_dark() else "claro")
+    st.pyplot(fig51c)
+    plt.close(fig51c)
+    st.session_state.setdefault("he1_figs", {})["he1c_q_estrella"] = fig51c
 
     _q_nat = _qest[_qest["d"] <= 3]["q_estrella"]
     st.caption(
@@ -346,6 +357,81 @@ if res52:
         st.error(f"Error en la exportación: {e}")
 
     st.markdown("---")
+
+# ── 🔬 Filtración interactiva (ε) — el corazón del TDA ───────────────
+st.subheader("🔬 Filtración interactiva — complejo de Vietoris–Rips")
+st.caption("Mové el radio ε: los puntos se conectan y los rasgos topológicos **nacen y mueren**. "
+           "Abajo, el código de barras con el umbral ε marcado (línea roja).")
+_fc1, _fc2, _fc3 = st.columns([2, 1, 1])
+with _fc1:
+    _shape = st.selectbox("Nube", ["circulo", "anillo", "dos_circulos", "toro", "esfera"],
+                          key="filt_shape")
+with _fc2:
+    _nf = st.slider("Puntos", 40, 200, 100, 10, key="filt_n")
+with _fc3:
+    _eps = st.slider("Radio ε", 0.0, 3.0, 0.5, 0.05, key="filt_eps")
+
+from scipy.spatial.distance import pdist, squareform
+np.random.seed(SEED)
+_Xf = generate_cloud(_shape, _nf)
+_dim = _Xf.shape[1]
+_dgm = ripser(_Xf, maxdim=1)["dgms"]
+_D = squareform(pdist(_Xf))
+_ei, _ej = np.where(np.triu(_D <= _eps, k=1))
+
+# 1-esqueleto (aristas ≤ ε)
+_ex, _ey, _ez = [], [], []
+for _a, _b in zip(_ei, _ej):
+    _ex += [_Xf[_a, 0], _Xf[_b, 0], None]
+    _ey += [_Xf[_a, 1], _Xf[_b, 1], None]
+    if _dim == 3:
+        _ez += [_Xf[_a, 2], _Xf[_b, 2], None]
+fig_filt = go.Figure()
+_line_kw = dict(x=_ex, y=_ey, mode="lines", line=dict(color="#bdc3c7", width=1), name="aristas ≤ ε")
+if _dim == 3:
+    _line_kw["z"] = _ez
+    fig_filt.add_trace(go.Scatter3d(**_line_kw))
+    fig_filt.add_trace(go.Scatter3d(x=_Xf[:, 0], y=_Xf[:, 1], z=_Xf[:, 2], mode="markers",
+                                    marker=dict(size=3, color="#e74c3c"), name="puntos"))
+else:
+    fig_filt.add_trace(go.Scatter(**_line_kw))
+    fig_filt.add_trace(go.Scatter(x=_Xf[:, 0], y=_Xf[:, 1], mode="markers",
+                                  marker=dict(size=6, color="#e74c3c"), name="puntos"))
+
+def _betti_at(dgms, eps):
+    b0 = sum(1 for b, d in dgms[0] if b <= eps and (np.isinf(d) or eps < d))
+    b1 = sum(1 for b, d in dgms[1] if b <= eps and (np.isinf(d) or eps < d))
+    return b0, b1
+
+_b0e, _b1e = _betti_at(_dgm, _eps)
+fig_filt.update_layout(height=380, template="plotly_white",
+                       title=f"Complejo VR(X, ε = {_eps:.2f}) · β₀ = {_b0e}, β₁ = {_b1e}",
+                       legend=dict(x=0, y=1), margin=dict(l=0, r=0, b=0, t=40))
+apply_plotly_theme(fig_filt)
+st.plotly_chart(fig_filt, width="stretch")
+_m1, _m2 = st.columns(2)
+_m1.metric("β₀ (componentes conexas)", _b0e)
+_m2.metric("β₁ (ciclos / agujeros)", _b1e)
+
+# Código de barras con línea de ε
+fig_bc = go.Figure()
+for _k, _col in [(0, "#2980b9"), (1, "#27ae60")]:
+    _bars = _dgm[_k] if _k < len(_dgm) else np.empty((0, 2))
+    _y = 0
+    for _b, _d in _bars:
+        _dd = _b + 1.5 if np.isinf(_d) else _d
+        fig_bc.add_trace(go.Scatter(x=[_b, _dd], y=[_y, _y], mode="lines",
+                                    line=dict(color=_col, width=3), showlegend=(_y == 0),
+                                    name=f"H{_k}"))
+        _y += 1
+fig_bc.add_vline(x=_eps, line=dict(color="red", dash="dot"),
+                 annotation_text=f"ε = {_eps:.2f}")
+fig_bc.update_layout(height=300, template="plotly_white",
+                     title="Código de barras (nacimiento → muerte)",
+                     xaxis_title="escala ε", yaxis_title="rasgo")
+apply_plotly_theme(fig_bc)
+st.plotly_chart(fig_bc, width="stretch")
+st.markdown("---")
 
 methodology_expander("📖 Protocolo y compuertas — H.E.1", [
     ("Protocolo y compuertas", (

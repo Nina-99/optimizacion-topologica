@@ -411,6 +411,96 @@ def fig_53_cota_corregida(truncamiento, replicas, tema: str = "claro"):
     return fig
 
 
+# ── Visualizaciones de apoyo de H.E.1b y H.E.1c (no son figuras del PDF) ──
+
+def fig_he1b_exactitud(mcn, tema: str = "claro"):
+    """H.E.1b — exactitud TDA vs clasificador euclidiano (barras + McNemar).
+
+    Visualización de apoyo de la app: no reemplaza la Tabla 5.5, la resume.
+    """
+    txt = "#f0f0f0" if tema == "oscuro" else "#0b0b0b"
+    gris = "#b0b0b0" if tema == "oscuro" else "#52514e"
+    fondo = "none" if tema == "oscuro" else "white"
+
+    acc_tda = float(mcn.get("exactitud_tda", 0.0))
+    acc_euc = float(mcn.get("exactitud_eucl", 0.0))
+    mc = mcn.get("mc_nemar", {}) or {}
+    p_val = mc.get("p_value")
+
+    with plt.rc_context({
+        "font.family": "sans-serif", "font.size": 9,
+        "axes.titlesize": 10, "axes.titleweight": "bold", "axes.titlelocation": "left",
+        "axes.edgecolor": gris, "axes.labelcolor": txt, "xtick.color": gris,
+        "ytick.color": gris, "axes.grid": True,
+        "grid.color": "#e4e3df" if tema == "claro" else "#333333",
+        "grid.linewidth": 0.6, "axes.axisbelow": True, "legend.frameon": False,
+        "figure.facecolor": fondo, "axes.facecolor": fondo, "text.color": txt,
+        "axes.spines.top": False, "axes.spines.right": False,
+    }):
+        fig, ax = plt.subplots(figsize=(5.6, 3.2))
+        nombres = ["Descriptor\ntopológico (TDA)", "Clasificador\neuclidiano"]
+        valores = [acc_tda, acc_euc]
+        colores = [_S_52[0], _S_52[1]]
+        barras = ax.bar(nombres, valores, color=colores, width=0.55, alpha=0.85)
+        for barra, v in zip(barras, valores):
+            ax.text(barra.get_x() + barra.get_width() / 2, v + 0.02,
+                    f"{v:.3f}".replace(".", ","), ha="center", va="bottom", fontsize=9)
+        ax.set_ylim(0, 1.12)
+        ax.set_ylabel("exactitud")
+        ax.axhline(0.5, color=gris, ls=":", lw=1)
+        p_txt = ("p < 0,001" if p_val is not None and p_val < 0.001
+                 else (f"p = {p_val:.4f}".replace(".", ",") if p_val is not None else "p n/d"))
+        ax.set_title(f"(b) Exactitud TDA vs euclidiano — McNemar: {p_txt}")
+        fig.tight_layout()
+    return fig
+
+
+def fig_he1c_q_estrella(qest, tema: str = "claro"):
+    """H.E.1c — nivel crítico q* por nube y dimensión ambiente (mapa de calor).
+
+    `qest` es el DataFrame de `estabilidad_dimensional.q_estrella`
+    (columnas nube, d, q_estrella). Visualización de apoyo de la app.
+    """
+    from tda.processing.sampling import ETIQUETA_NUBE
+
+    txt = "#f0f0f0" if tema == "oscuro" else "#0b0b0b"
+    gris = "#b0b0b0" if tema == "oscuro" else "#52514e"
+    fondo = "none" if tema == "oscuro" else "white"
+
+    df = qest.copy()
+    df["dimension"] = df["d"].map(lambda d: "nativa" if d <= 3 else str(int(d)))
+    piv = df.pivot_table(index="nube", columns="dimension", values="q_estrella",
+                         aggfunc="max")
+    orden_cols = [c for c in ["nativa", "10", "100"] if c in piv.columns]
+    orden_cols += [c for c in piv.columns if c not in orden_cols]
+    piv = piv[orden_cols]
+
+    with plt.rc_context({
+        "font.family": "sans-serif", "font.size": 9,
+        "axes.titlesize": 10, "axes.titleweight": "bold", "axes.titlelocation": "left",
+        "axes.edgecolor": gris, "axes.labelcolor": txt, "xtick.color": gris,
+        "ytick.color": gris, "figure.facecolor": fondo, "axes.facecolor": fondo,
+        "text.color": txt,
+    }):
+        fig, ax = plt.subplots(figsize=(5.6, 3.6))
+        datos = piv.values.astype(float)
+        im = ax.imshow(datos, cmap="Blues", vmin=0, vmax=max(0.2, float(np.nanmax(datos))))
+        ax.set_xticks(range(len(piv.columns)),
+                      [f"d {c}" if c != "nativa" else "nativa" for c in piv.columns])
+        ax.set_yticks(range(len(piv.index)),
+                      [ETIQUETA_NUBE.get(n, n) for n in piv.index])
+        for i in range(datos.shape[0]):
+            for j in range(datos.shape[1]):
+                v = datos[i, j]
+                ax.text(j, i, _coma(round(float(v), 2)), ha="center", va="center",
+                        fontsize=8, color="white" if v > 0.12 else txt)
+        ax.set_title("(c) Nivel crítico q* por nube y dimensión")
+        ax.set_xlabel("dimensión ambiente")
+        fig.colorbar(im, ax=ax, fraction=0.045, label="q*")
+        fig.tight_layout()
+    return fig
+
+
 # ═══════════════════════════════════════════════════════════════════
 # CASO 2 — SIMP (Figuras 5.4, 5.5, 5.6, 5.7)
 # ═══════════════════════════════════════════════════════════════════
