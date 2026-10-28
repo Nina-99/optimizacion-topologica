@@ -471,36 +471,55 @@ def fig_54b_historial(c_hist, c_uniforme, c_final, n_iter_max=300, converged=Tru
 
 
 def fig_55_penalizacion(df_p):
-    """Figura 5.5 — Compliance (izq) y grisura (der) vs p; anota β₁.
+    """Figura 5.5 — (a) Compliance penalizada y binarizada; (b) Grisura vs p.
 
-    Estilo del PDF: título "Efecto de la penalización: compliance, binariedad y
-    topología"; compliance marrón con círculos, grisura azul discontinua con
-    cuadrados; eje derecho "grisura (0 = diseño binario)"; β₁ en verde junto a
-    cada punto; leyenda en el centro-derecha. (Colores muestreados del PDF.)
+    Replicado exacto del PDF corregido del Cap. V (dos paneles apilados):
+    (a) compliance c_p(ρ*) frente a c del binarizado, con placa uniforme y cota convexa;
+    (b) grisura media con los valores numéricos y β₁ por factor de penalización p.
     """
-    fig, ax1 = plt.subplots(figsize=(7, 4.2))
-    ax2 = ax1.twinx()
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(7.5, 7.5), sharex=True,
+                                    gridspec_kw=dict(height_ratios=[1.1, 1], hspace=0.12))
     p = df_p["p"].to_numpy()
-    l1, = ax1.plot(p, df_p["c(rho*)"], "-o", color=_MARRON, lw=1.9, ms=7,
-                   label="compliance $c(\\rho^*)$")
-    l2, = ax2.plot(p, df_p["grisura"], "--s", color=_AZUL_TEAL, lw=1.9, ms=7,
-                   label="grisura $4\\tilde{\\rho}(1-\\tilde{\\rho})$")
+
+    # ── (a) compliance ───────────────────────────────────────────────
+    ax1.plot(p, df_p["c(rho*)"], "-o", color=_AZUL, lw=1.8, ms=6,
+             label="compliance penalizada c_p(ρ*)")
+    if "c_binarizada" in df_p.columns:
+        ax1.plot(p, df_p["c_binarizada"], "-s", color=_NARANJA, lw=1.8, ms=6,
+                 label="compliance del binarizado (comparable entre p)")
+
+    ax1.axhline(79.1, color=TXT2, ls=":", lw=1.2)
+    ax1.text(3.8, 79.1, "placa uniforme p = 1: 79,1", ha="right", va="bottom",
+             fontsize=8, color=TXT2)
+    ax1.axhline(55.1, color=_AZUL, ls="--", lw=1.2)
+    ax1.text(2.5, 55.1, "cota inferior convexa: 55,1", ha="left", va="top",
+             fontsize=8, color=_AZUL)
+
+    ax1.set_ylabel("compliance c  (escala log)")
+    ax1.set_yscale("log")
+    ax1.set_title("(a) Compliance penalizada y del diseño binarizado")
+    ax1.legend(loc="upper right", fontsize=8)
+
+    # ── (b) grisura ──────────────────────────────────────────────────
+    grisura = df_p["grisura"].to_numpy()
+    ax2.plot(p, grisura, "-^", color="#1baf7a", lw=1.8, ms=6)
     for _, row in df_p.iterrows():
-        ax1.annotate(f"$\\beta_1 = {int(row['beta1'])}$", (row["p"], row["c(rho*)"]),
-                     textcoords="offset points", xytext=(0, -16), ha="center",
-                     fontsize=9, color=_VERDE_ANOT)
-    ax1.set_xlabel("factor de penalización $p$")
-    ax1.set_ylabel("compliance $c(\\rho^*)$", color=_MARRON)
-    ax2.set_ylabel("grisura (0 = diseño binario)", color=_AZUL_TEAL)
-    ax1.set_xticks(p)
-    ax1.set_xlim(0.8, 4.2)
-    ax1.set_title("Efecto de la penalización: compliance, binariedad y topología")
-    y0, y1 = ax1.get_ylim()
-    ax1.set_ylim(y0 - 0.07 * (y1 - y0), y1 + 0.04 * (y1 - y0))
-    g0, g1 = ax2.get_ylim()
-    ax2.set_ylim(min(df_p["grisura"]) - 0.03, max(df_p["grisura"]) + 0.04)
-    ax1.legend([l1, l2], [l1.get_label(), l2.get_label()], fontsize=8,
-               loc="center right")
+        val = row["grisura"]
+        ax2.text(row["p"], val + 0.04, f"{val:.3f}".replace(".", ","),
+                 ha="center", va="bottom", fontsize=8.5)
+
+    ax2.set_xlabel("factor de penalización  p   (debajo: β₁ del binarizado; * = no convergido)")
+    ax2.set_ylabel("grisura media de 4ρ(1−ρ)")
+    ax2.set_ylim(-0.02, 0.75)
+    ax2.set_title("(b) Grisura (0 = diseño binario)")
+    ax2.set_xticks(p)
+    ticks_b = []
+    for _, row in df_p.iterrows():
+        b = int(row["beta1"])
+        conv = "" if row.get("converged", True) else " *"
+        ticks_b.append(f"{int(row['p'])}\nβ₁ = {b}{conv}")
+    ax2.set_xticklabels([f"{int(row['p'])}\nβ₁ = {int(row['beta1'])}{'' if row.get('converged', True) else ' *'}" for _, row in df_p.iterrows()])
+
     fig.tight_layout()
     return fig
 
