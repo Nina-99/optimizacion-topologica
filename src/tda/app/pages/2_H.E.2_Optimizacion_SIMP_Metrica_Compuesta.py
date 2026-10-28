@@ -53,7 +53,7 @@ def plot_material_distribution(density_2d, title: str):
     fig = go.Figure(data=[go.Heatmap(z=density_2d, colorscale="gray_r", zmin=0, zmax=1,
                                      zsmooth=False, colorbar=dict(title="ρ"),
                                      xgap=0, ygap=0)])
-    fig.update_layout(title=title,
+    fig.update_layout(title=title, height=380,
                       xaxis=dict(title="elementos x", range=[-0.5, nx - 0.5], dtick=max(1, nx // 6)),
                       yaxis=dict(title="elementos y", range=[-0.5, ny - 0.5], dtick=max(1, ny // 6),
                                  scaleanchor="x", scaleratio=1, autorange="reversed"))

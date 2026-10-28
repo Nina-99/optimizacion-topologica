@@ -173,18 +173,15 @@ if st.button("▶ Ejecutar protocolo H.E.1 (Figuras 5.2, 5.3 y McNemar)", type="
         st.session_state.he1_mcnemar = res_mcn
 
 
-# ── Paso previo — Figura 5.2: estabilidad dimensional ────────────────
-st.subheader("Paso previo — Figura 5.2: estabilidad del diagrama y fiabilidad de $\\beta_k$")
-st.caption(
-    "El ruido se normaliza por la dimensión ($\\sigma = q\\,\\mathrm{diam}(X)/\\sqrt{d}$) y "
-    "$\\tau$ es el calibrado en la Fig. 5.1. Los paneles (a1–a3) miden la lectura de "
-    "$(\\beta_0,\\beta_1)$ en la dimensión nativa y en $d = 10,\\, 100$; (b) contrasta "
-    "$d_B$ con la cota $2\\,d_H$ en todas las réplicas y (c) cuán holgada es esa cota."
-)
-# (protocolo ejecutado desde el botón superior)
-
 res52 = st.session_state.get("he1_fig52")
 if res52:
+    st.subheader("1. H.E.1a — Estabilidad de los diagramas (Figuras 5.2 y 5.3)")
+    st.caption(
+        "El ruido se normaliza por la dimensión ($\sigma = q\,\mathrm{diam}(X)/\sqrt{d}$) y "
+        "$\tau$ es el calibrado en la Fig. 5.1. Los paneles (a1–a3) miden la lectura de "
+        "$(\beta_0,\beta_1)$ en la dimensión nativa y en $d = 10,\, 100$; (b) contrasta "
+        "$d_B$ con la cota $2\,d_H$ en todas las réplicas y (c) cuán holgada es esa cota."
+    )
     fig52 = fig_52_estabilidad(res52["replicas"], res52["q0"],
                                tema="oscuro" if is_dark() else "claro")
     st.pyplot(fig52)
@@ -197,15 +194,6 @@ if res52:
         st.dataframe(q_estrella(_rep52), width="stretch", hide_index=True)
     st.markdown("---")
 
-# ── Paso previo — Figura 5.3: truncamiento y cota probabilística ─────
-# (Integrado en H.E.1a)
-st.caption(
-    "El panel (a) explica **por qué la versión anterior del documento concluyó "
-    "$d_B/\\mathrm{diam} \\le 2q$**: al cortar la filtración en $\\varepsilon \\le 0{,}6$, el ciclo "
-    "principal del círculo (muere en $\\sqrt{3} \\approx 1{,}73$) queda como barra infinita y se "
-    "descarta. Sin truncar, la distancia se satura en la mitad de esa persistencia. El panel (b) "
-    "verifica la cota que la reemplaza, $2\\sigma(\\sqrt{d}+\\sqrt{2\\ln(n/\\delta)})$ con $\\delta = 0{,}05$."
-)
 _trunc = st.session_state.get("he1_trunc")
 if _trunc is not None and res52:
     fig53 = fig_53_cota_corregida(_trunc, res52["replicas"],
