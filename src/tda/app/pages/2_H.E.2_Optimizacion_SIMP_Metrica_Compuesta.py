@@ -27,7 +27,7 @@ from plotly.subplots import make_subplots
 
 from tda.optimization.metric_simp import MetricaTDA_SIMP
 from tda.visualization.figuras import (
-    fig_54a_diseno, fig_54b_historial, fig_55_penalizacion, fig_56_malla, fig_57_umbral,
+    fig_54a_diseno, fig_54b_historial, fig_55_penalizacion, fig_56_malla, fig_57_umbral, fig_57_umbral,
 )
 from tda.simulation.he_protocols import corrida_simp, barrido_he2
 from tda.app.download_utils import download_button, export_settings_ui, write_figs_zip
@@ -373,29 +373,11 @@ if st.session_state.get("simp_optimized", False):
         u_lo, u_hi, persist = persistencia_beta1(umbrales, b1s, beta1)
 
         _ymax = max(b0s + b1s + [3]) + 1
-        fig57 = make_subplots(specs=[[{"secondary_y": True}]])
-        fig57.add_trace(go.Scatter(x=umbrales, y=b1s, mode="lines", name="β₁",
-                                   line=dict(color="green", width=3)), secondary_y=False)
-        fig57.add_trace(go.Scatter(x=umbrales, y=b0s, mode="lines", name="β₀",
-                                   line=dict(color="royalblue", dash="dash")), secondary_y=False)
-        fig57.add_trace(go.Scatter(x=umbrales, y=vfs, mode="lines", name="Fracción de volumen",
-                                   line=dict(color="gray", dash="dashdot")), secondary_y=True)
-        fig57.add_trace(go.Scatter(x=[0.5, 0.5], y=[0, _ymax], mode="lines",
-                                   name="umbral adoptado", line=dict(color="red", dash="dot"),
-                                   showlegend=False),
-                        secondary_y=False)
-        fig57.add_annotation(x=0.52, y=_ymax * 0.72, text="umbral<br>adoptado",
-                             showarrow=False, font=dict(color="red", size=11),
-                             xref="x", yref="y")
-        fig57.update_layout(title="Persistencia de β₁ frente al umbral de binarización",
-                            height=420, template="plotly_white", legend=dict(x=0.02, y=0.98))
-        fig57.update_xaxes(title_text="umbral de binarización u", range=[0.0, 0.95])
-        fig57.update_yaxes(title_text="número de Betti", secondary_y=False, range=[0, _ymax], dtick=1)
-        fig57.update_yaxes(title_text="fracción de volumen umbralizada", secondary_y=True,
-                           range=[0.0, 1.0])
-        apply_plotly_theme(fig57, leyenda="secundaria")
-        st.plotly_chart(fig57, width="stretch")
-        st.session_state.setdefault("he2_figs", {})["fig57_betti_umbral"] = fig57
+        st.markdown("**Figura 5.7:** Números de Betti y fracción de volumen frente al umbral de binarización, con el diagrama de persistencia $H_1$.")
+        fig57_mat = fig_57_umbral(umbrales, b0s, b1s, vfs, u_umbral=0.554, dgm1=dgm1)
+        st.pyplot(fig57_mat)
+        plt.close(fig57_mat)
+        st.session_state.setdefault("he2_figs", {})["fig57_betti_umbral"] = fig57_mat
         _conc_ok = [c for c in concs if c is not None]
         if _conc_ok and all(_conc_ok):
             st.caption(f"Doble cómputo Euler≡GUDHI en los {len(_conc_ok)} umbrales del barrido.")
