@@ -4,8 +4,8 @@ Extrae la lógica de cómputo de las páginas de la app para que pueda reutiliza
 (la página H.G. ejecuta ambos protocolos para sintetizar).
 
 Constantes del documento:
-  - H.E.1: catálogo de 7 nubes, q ∈ {0, .05, .10, .15, .20}, σ = q·diam(X),
-    R réplicas, semilla 42, τ = 0.15.
+  - H.E.1: catálogo de 7 nubes, q ∈ {0, .05, .10, .15, .20}, σ = q·diam(X)/√d,
+    R réplicas, semilla 42, τ = 0.175 (calibrado, ver abajo).
   - H.E.2: viga en voladizo; fV = 0.5, p = 3, rmin = 2.4; p ∈ {1,2,3,4},
     rmin ∈ [1.5, 4.0]; elementos unitarios (E₀ = 1, F = 1), filtro de densidad.
 """
@@ -23,7 +23,10 @@ from tda.optimization.metric_simp import MetricaTDA_SIMP
 CATALOGO = ["circulo", "disco", "anillo", "dos_circulos", "toro", "esfera", "gaussiana"]
 SUBCONJUNTO_VALIDADO = ["circulo", "disco", "anillo"]   # Tabla 5.5, nota (a)
 Q_LEVELS = [0.0, 0.05, 0.10, 0.15, 0.20]
-TAU_CALIBRADO = 0.15
+# τ* calibrado sobre el catálogo INDEPENDIENTE C₀ (Fig. 5.1, Cap. V): única
+# ventana de la grilla con 7/7 aciertos de (β₀, β₁). No es un valor de ajuste:
+# sale de tda.analysis.calibracion.calibrar_c0 / tau_estrella.
+TAU_CALIBRADO = 0.175
 SEED = 42
 FV = 0.5
 P_DEFECTO = 3
@@ -99,29 +102,21 @@ def protocolo_he1(n_points, q_levels, n_rep, tau=TAU_CALIBRADO, seed=SEED):
     return resultados, crudo
 
 
-def calibrar_tau(n_points, seed=SEED, n_tau=20):
+def calibrar_tau(n_points, seed=None):
     """Curva de calibración de τ contra el patrón de oro (Fig. 5.1).
 
-    Grilla del Algoritmo maestro: τ ∈ {0.05, 0.10, ..., 0.40}.
-    Lectura β₁ (invariante que τ filtra): β₀ de muestras finitas es
-    artefacto de escala y con βk=(β₀,β₁) la meseta 7/7 no existe.
+    Delega en `tda.analysis.calibracion`: catálogo C₀ INDEPENDIENTE del que
+    luego se mide (semillas 900 + i), grilla de 0,025 y lectura β_k = (β₀, β₁)
+    sobre las 7 nubes. `seed` es la semilla BASE de C₀ (default SEED_C0).
+
+    Retorna (taus, aciertos): grilla y nº de nubes con (β₀, β₁) correctos.
     """
-    np.random.seed(seed)
-    dgms = {}
-    for shape in CATALOGO:
-        X = generate_cloud(shape, n_points)
-        dgms[shape] = (ripser(X, maxdim=1), compute_diameter(X))
-    taus = np.arange(0.05, 0.401, 0.05)
-    aciertos = []
-    for tau in taus:
-        ok = 0
-        for shape in CATALOGO:
-            dgm, diam = dgms[shape]
-            _, b1 = betti_persistente(dgm, tau, diam)   # lectura β₁ (invariante de τ)
-            if b1 == betti_teorico(shape)[1]:
-                ok += 1
-        aciertos.append(ok)
-    return taus, aciertos
+    from tda.analysis.calibracion import SEED_C0, TAUS, calibrar_c0, curva_calibracion
+
+    curva = curva_calibracion(calibrar_c0(n_points=n_points,
+                                          seed=SEED_C0 if seed is None else seed,
+                                          taus=TAUS))
+    return curva.index.values.astype(float), curva.values.astype(int)
 
 
 def corrida_simp(nelx, nely, p, r_min, E=1.0, Fmag=1.0, fV=FV, t=1.0,

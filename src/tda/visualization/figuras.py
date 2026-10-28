@@ -7,8 +7,11 @@ documento para que la comparación visual con el PDF sea directa.
 
 Uso como API
 ────────────
+    from tda.analysis.calibracion import resultado_calibracion
     from tda.visualization.figuras import fig_51_calibracion, fig_53_cota
-    fig = fig_51_calibracion(taus, aciertos)
+
+    res = resultado_calibracion(n_points=400)
+    fig = fig_51_calibracion(res["cal"], res["tau"], res["margenes"])
     fig.savefig("fig51.png", dpi=300)
 
 Uso como CLI (reproduce todo desde cero y exporta PNG + CSV)
@@ -30,6 +33,7 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 OUT_DIR = PROJECT_ROOT / "data" / "figuras"
@@ -72,30 +76,120 @@ _MARCADORES_NUBES = {
 # CASO 1 — TDA (Figuras 5.1, 5.2, 5.3)
 # ═══════════════════════════════════════════════════════════════════
 
-def fig_51_calibracion(taus, aciertos, n_nubes: int, tau_adoptado: float = 0.15):
-    """Figura 5.1 — Curva de calibración de τ.
+# Paleta de la Figura 5.1 (muestreada del PDF: azul de serie, gris de fondo)
+_AZUL_51, _GRIS_51, _FONDO_51 = "#2a78d6", "#f0efec", "#86b6ef"
+_CRIT_51 = "#d03b3b"
+_RFC51_BASE = {
+    "font.family": "sans-serif", "font.size": 9, "axes.titlesize": 10,
+    "axes.labelsize": 9, "axes.grid": True, "grid.linewidth": 0.6,
+    "axes.axisbelow": True, "axes.titleweight": "bold",
+    "axes.titlelocation": "left", "legend.frameon": False,
+}
 
-    X: τ ∈ [0.05, 0.40]; Y: nº de nubes con lectura β₁ correcta (0..n_nubes).
-    La franja verde marca la ventana de acierto máximo.
+
+def _rfc51(tema: str) -> dict:
+    """rcParams de la Fig. 5.1 según el tema de la app (`"claro"` = PDF)."""
+    oscuro = tema == "oscuro"
+    return {**_RFC51_BASE,
+            "grid.color": "#3a3a3a" if oscuro else "#e4e3df",
+            "axes.edgecolor": "#b0b0b0" if oscuro else "#52514e",
+            "axes.labelcolor": "#f0f0f0" if oscuro else "#0b0b0b",
+            "xtick.color": "#b0b0b0" if oscuro else "#52514e",
+            "ytick.color": "#b0b0b0" if oscuro else "#52514e",
+            "figure.facecolor": "none" if oscuro else "white",
+            "axes.facecolor": "none" if oscuro else "white"}
+
+
+def _coma(x, dec=None):
+    """Formato decimal con coma (convención tipográfica del documento)."""
+    txt = f"{x:.{dec}f}" if dec is not None else f"{x:g}"
+    return txt.replace(".", ",").replace("-", "−")
+
+
+def fig_51_calibracion(cal, tau, margenes, etiquetas=None, tema: str = "claro"):
+    """Figura 5.1 — calibración del umbral de significación τ (3 paneles).
+
+    Parámetros:
+        cal      : DataFrame de `tda.analysis.calibracion.calibrar_c0` (C₀)
+        tau      : dict de `tau_estrella` (tau_star, ventana_min, ventana_max)
+        margenes : DataFrame de `tda.analysis.calibracion.margenes` (C)
+        etiquetas: dict nube → etiqueta de eje (default: etiquetas del PDF)
+        tema     : `"claro"` (PDF) u `"oscuro"` (tema de la app Streamlit)
+
+    (a) A(τ) sobre C₀ con la ventana válida; (b) acierto por nube y τ con τ*
+    encuadrado; (c) margen de cada nube de C respecto de τ*. Devuelve la figura.
     """
-    taus = np.asarray(taus)
-    aciertos = np.asarray(aciertos)
-    fig, ax = plt.subplots(figsize=(7, 4.2))
-    amax = int(aciertos.max()) if len(aciertos) else 0
-    ventana = taus[aciertos == amax] if amax else np.array([])
-    if len(ventana):
-        ax.axvspan(ventana.min(), ventana.max(), color="green", alpha=0.12,
-                   label=f"Ventana válida [{ventana.min():.2f}, {ventana.max():.2f}]")
-    ax.plot(taus, aciertos, "-o", color=_AZUL, ms=5, label="Nubes con lectura β₁ correcta")
-    ax.axvline(tau_adoptado, color=_ROJO, ls="--", lw=1.5, label=f"τ adoptado = {tau_adoptado}")
-    ax.set_xlabel("umbral relativo de persistencia τ")
-    ax.set_ylabel(f"nubes con lectura β₁ correcta (de {n_nubes})")
-    ax.set_title("Figura 5.1 — Calibración del umbral τ contra el patrón de oro")
-    ax.set_xlim(0.05, 0.40)
-    ax.set_ylim(0, n_nubes)
-    ax.set_yticks(range(0, n_nubes + 1))
-    ax.legend(fontsize=8, loc="lower center")
-    fig.tight_layout()
+    from matplotlib.colors import ListedColormap
+
+    from tda.analysis.calibracion import ORDEN_CALIBRACION, curva_calibracion
+
+    etiquetas = etiquetas or {}
+    orden = [n for n in ORDEN_CALIBRACION if n in set(cal.nube)]
+    orden += [n for n in cal.nube.unique() if n not in orden]
+    A = curva_calibracion(cal)
+    n_nubes = len(orden)
+    tau_star, v_min, v_max = tau["tau_star"], tau["ventana_min"], tau["ventana_max"]
+
+    # Colores según tema: en oscuro el texto y el gris de fondo se invierten,
+    # el azul de acierto y el rojo de margen negativo se mantienen.
+    txt = "#f0f0f0" if tema == "oscuro" else "#0b0b0b"
+    borde = "#b0b0b0" if tema == "oscuro" else "#52514e"
+    heat_bg = "#2b2b2b" if tema == "oscuro" else _GRIS_51
+
+    with plt.rc_context(_rfc51(tema)):
+        fig, (a, b, m) = plt.subplots(
+            1, 3, figsize=(13.6, 3.7),
+            gridspec_kw=dict(width_ratios=[1.05, 1, 0.85], wspace=0.42),
+        )
+
+        # ── (a) curva de calibración ───────────────────────────────
+        a.axvspan(v_min - 0.0125, v_max + 0.0125, color="#cde2fb", lw=0)
+        a.axhline(n_nubes, color=borde, lw=1, ls=":")
+        a.plot(A.index, A.values, color=_AZUL_51, marker="o", zorder=3)
+        a.axvline(tau_star, color=txt, lw=1, ls="--")
+        a.text(tau_star + 0.02, n_nubes / 2,
+               f"τ* = {_coma(round(tau_star, 3))}\núnica ventana con {n_nubes}/{n_nubes}",
+               fontsize=8, color=txt)
+        a.set(xlabel="umbral relativo de persistencia  τ  (fracción de diam X)",
+              ylabel="nubes con β₀, β₁ correctos", ylim=(0, n_nubes + 0.6),
+              yticks=range(0, n_nubes + 1), xlim=(0.04, 0.41))
+        a.set_title(f"(a) Curva de calibración sobre el catálogo C₀")
+
+        # ── (b) acierto por nube × τ ───────────────────────────────
+        piv = (cal.pivot_table(index="nube", columns="tau", values="correcto")
+                  .reindex(orden))
+        b.imshow(piv.values, cmap=ListedColormap([heat_bg, _FONDO_51]),
+                 aspect="auto", vmin=0, vmax=1)
+        b.set_yticks(range(len(orden)), [etiquetas.get(n, n) for n in orden])
+        taus = piv.columns.values
+        b.set_xticks(range(0, len(taus), 2), [_coma(t, 3) for t in taus[::2]], rotation=45)
+        j = list(taus).index(tau_star)
+        b.add_patch(plt.Rectangle((j - 0.5, -0.5), 1, len(orden),
+                                  fill=False, ec=txt, lw=1.4))
+        b.grid(False)
+        for s in b.spines.values():
+            s.set_visible(False)
+        b.set(xlabel="τ")
+        b.set_title("(b) Lectura correcta (azul) o incorrecta (gris)")
+
+        # ── (c) margen respecto de τ* ──────────────────────────────
+        mg = margenes.set_index("nube").reindex(orden)
+        y = np.arange(len(orden))
+        m.barh(y, mg.margen.values, height=0.55,
+               color=[_AZUL_51 if v > 0 else _CRIT_51 for v in mg.margen.values])
+        m.axvline(0, color=txt, lw=1)
+        for yi, v in zip(y, mg.margen.values):
+            m.text(v + (0.006 if v >= 0 else -0.006), yi, _coma(round(v, 3)),
+                   va="center", ha="left" if v >= 0 else "right", fontsize=7.6)
+        m.set_yticks(y, [etiquetas.get(n, n) for n in orden])
+        m.invert_yaxis()
+        m.set(xlabel="margen respecto de τ*  (fracción de diam X)",
+              xlim=(min(-0.09, float(mg.margen.min()) - 0.09), float(mg.margen.max()) + 0.12))
+        m.set_title("(c) Margen de cada nube en C (sin ruido)")
+
+    coma = FuncFormatter(lambda v, p: _coma(v))
+    a.xaxis.set_major_formatter(coma)
+    m.xaxis.set_major_formatter(coma)
     return fig
 
 
@@ -399,10 +493,14 @@ def fig_57_umbral(umbrales, b0s, b1s, vfs, u_umbral=0.5):
 # ═══════════════════════════════════════════════════════════════════
 
 def _run_he1(n_points: int, n_rep: int):
+    """H.E.1a/H.E.1c: réplicas con ruido para las Figuras 5.2 y 5.3.
+
+    La calibración de τ (Fig. 5.1) vive en `tda.analysis.calibracion` y se
+    ejecuta aparte: es un paso previo, no parte de la medición.
+    """
     from tda.simulation.he_protocols import (
-        protocolo_he1, calibrar_tau, CATALOGO, Q_LEVELS, TAU_CALIBRADO, SEED,
+        protocolo_he1, CATALOGO, Q_LEVELS, TAU_CALIBRADO, SEED,
     )
-    taus, aciertos = calibrar_tau(n_points, SEED)
     sweep, crudo = protocolo_he1(n_points, Q_LEVELS, n_rep, TAU_CALIBRADO, SEED)
     # std por nube/nivel para las barras de error de Fig 5.3
     for shape in CATALOGO:
@@ -411,7 +509,7 @@ def _run_he1(n_points: int, n_rep: int):
             vals = [c["dB_diam"] for c in crudo if c["shape"] == shape and c["q"] == q]
             std.append(float(np.std(vals)) if vals else 0.0)
         sweep[shape]["ratio_diam_std"] = std
-    return taus, aciertos, sweep, crudo
+    return sweep, crudo
 
 
 def _run_he2(nex: int, ney: int):
@@ -450,11 +548,20 @@ def main():
     hechos = []
 
     if args.todos or args.protocolo == "he1":
+        from tda.analysis.calibracion import ETIQUETA_NUBE, resultado_calibracion
         from tda.simulation.he_protocols import CATALOGO
         print(f"[H.E.1] n={args.n}, R={args.R}...")
-        taus, aciertos, sweep, crudo = _run_he1(args.n, args.R)
+        # Fig. 5.1 — paso previo: τ se calibra sobre C₀, antes de medir
+        print("[Fig. 5.1] calibrando τ sobre el catálogo C₀...")
+        res = resultado_calibracion(n_points=args.n)
+        print(f"           τ* = {res['tau']['tau_star']} "
+              f"(ventana [{res['tau']['ventana_min']}, {res['tau']['ventana_max']}])")
+        fig_51_calibracion(res["cal"], res["tau"], res["margenes"], ETIQUETA_NUBE
+                           ).savefig(OUT_DIR / "fig51_calibracion_tau.png", dpi=300)
+        res["cal"].to_csv(OUT_DIR / "fig51_calibracion_C0.csv", index=False)
+        res["margenes"].to_csv(OUT_DIR / "fig51_margenes_C.csv", index=False)
+        sweep, crudo = _run_he1(args.n, args.R)
         qs = [0.0, 0.05, 0.10, 0.15, 0.20]
-        fig_51_calibracion(taus, aciertos, len(CATALOGO)).savefig(OUT_DIR / "fig51_calibracion_tau.png", dpi=300)
         fig_52a_tasa_acierto(qs, sweep, CATALOGO).savefig(OUT_DIR / "fig52a_tasa_acierto.png", dpi=300)
         fig_52b_cota_estabilidad(crudo).savefig(OUT_DIR / "fig52b_cota_estabilidad.png", dpi=300)
         fig_53_cota(qs, crudo, CATALOGO, forma="documento").savefig(OUT_DIR / "fig53a_forma_documento.png", dpi=300)

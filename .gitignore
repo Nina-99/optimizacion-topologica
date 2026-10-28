@@ -25,3 +25,6 @@ openspec/
 *.txt
 !requirements*.txt
 Makefile
+
+# Material fuente de referencia (Cap. V corregido)
+figuras_capV_completo.zip

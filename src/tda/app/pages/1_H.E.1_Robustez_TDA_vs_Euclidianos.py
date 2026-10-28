@@ -9,8 +9,9 @@ Presenta la validación en el ORDEN del documento:
 
 Constantes y notación tomadas del documento:
   - Catálogo de 7 nubes (§1.5.2, Tabla 4.3).
-  - q ∈ {0, 0.05, 0.10, 0.15, 0.20}; σ = q·diam(X) (Tabla 1.1, §2.2.1).
-  - Umbral τ = 0.15 (calibrado, Fig. 5.1 / §5.4.1).
+  - q ∈ {0, 0.05, 0.10, 0.15, 0.20}; σ = q·diam(X)/√d (corregido, Tabla 1.1 /
+    §2.2.1 — Item 29 de las correcciones).
+  - Umbral τ = 0.175 (τ* calibrado sobre C₀, Fig. 5.1 / §5.4.1).
   - R = 100 réplicas; semilla 42 (Algoritmo maestro, §3.4.3).
   - H.E.1a: dB/diam(X) ≤ 2q en el 100 % de las réplicas (k = 0, 1).
   - H.E.1b: exactitud TDA > euclidiana (McNemar p < 0.05), disco vs anillo + afín.
@@ -34,12 +35,14 @@ from tda.analysis.stability import (
     betti_persistente, comparar_tda_vs_euclidiano, hausdorff_distance,
 )
 from tda.core.topology import bottleneck_distance
+from tda.analysis.calibracion import ETIQUETA_NUBE, resultado_calibracion
+from tda.visualization.figuras import fig_51_calibracion
 from tda.app.theme import (
     apply_mpl_theme, apply_plotly_theme, responsive_style,
-    methodology_expander, page_header,
+    methodology_expander, is_dark, page_header,
 )
 from tda.simulation.he_protocols import (
-    protocolo_he1, calibrar_tau, CATALOGO, SUBCONJUNTO_VALIDADO,
+    protocolo_he1, CATALOGO, SUBCONJUNTO_VALIDADO,
     Q_LEVELS, TAU_CALIBRADO, SEED,
 )
 
@@ -101,7 +104,7 @@ col_a, col_b = st.columns(2)
 with col_a:
     st.markdown("**H.E.1a — estabilidad de los diagramas**")
     st.latex(r"d_{B}\bigl(\mathrm{Dgm}_{k}^{\mathrm{VR}}(X),\ \mathrm{Dgm}_{k}^{\mathrm{VR}}(Y)\bigr) \le 2\,d_{H}(X,Y),\quad k=0,1")
-    st.caption("Se satisface en el **100 %** de las réplicas, con ruido gaussiano $\\sigma = q\\,\\mathrm{diam}(X)$. Es la cota del Teorema de Estabilidad (Cohen-Steiner et al.).")
+    st.caption("Se satisface en el **100 %** de las réplicas, con ruido gaussiano $\\sigma = q\\,\\mathrm{diam}(X)/\\sqrt{d}$. Es la cota del Teorema de Estabilidad (Cohen-Steiner et al.).")
 with col_b:
     st.markdown("**H.E.1b — ventaja comparativa (TDA vs euclidiano)**")
     st.caption("Disco vs anillo bajo deformación afín aleatoria. El descriptor de persistencia supera al euclidiano (PCA + inercia de k-medias + dispersión radial) con $p<0.05$ (McNemar).")
@@ -113,47 +116,32 @@ st.markdown("---")
 ejecutar = st.button("▶ Ejecutar protocolo H.E.1", type="primary")
 
 # ── 0. Calibración previa del umbral τ (Figura 5.1) ──────────────────
-st.subheader("Paso previo — Figura 5.1: Curva de calibración del umbral relativo de persistencia $\\tau$")
-st.caption("El eje vertical cuenta cuántas de las siete nubes de referencia reciben la lectura $\\beta_1$ correcta (invariante que $\\tau$ filtra). El documento la enuncia como $\\beta_k$; con $\\beta_k$ no se reproduce el plateau 7/7 — ver Item 13.")
+st.subheader("Paso previo — Figura 5.1: calibración del umbral relativo de persistencia $\\tau$")
+st.caption(
+    "$\\tau$ se fija **antes** de medir, sobre el catálogo independiente "
+    "$\\mathcal{C}_0$ (semillas 900+i, sin ruido). El panel (a) suma los aciertos de "
+    "$(\\beta_0, \\beta_1)$ de las siete nubes, el (b) muestra cuál falla en cada umbral "
+    "y el (c) el margen de cada nube de $\\mathcal{C}$ respecto de $\\tau^*$."
+)
 if st.button("Calibrar τ (Figura 5.1)", key="btn_calib_tau"):
-    with st.spinner("Calibrando contra el patrón de oro (7 nubes)..."):
-        taus, aciertos = calibrar_tau(n_points, SEED)
-        st.session_state.he1_calib = {"taus": taus, "aciertos": aciertos}
+    with st.spinner("Calibrando τ sobre C₀ (7 nubes × 15 umbrales, sin ruido)..."):
+        st.session_state.he1_calib = resultado_calibracion(n_points=int(n_points))
 
 calib = st.session_state.get("he1_calib")
 if calib:
-    taus, aciertos = calib["taus"], calib["aciertos"]
-    acierto_max = max(aciertos) if aciertos else 0
-    ventana = [t for t, a in zip(taus, aciertos) if a == acierto_max]
-    fig51 = go.Figure()
-    if ventana:
-        fig51.add_vrect(x0=min(ventana), x1=max(ventana), fillcolor="green", opacity=0.15, line_width=0)
-    fig51.add_trace(go.Scatter(x=taus, y=aciertos, mode="lines+markers",
-                               line=dict(color="royalblue"),
-                               name=f"Nubes con lectura β₁ correcta (de {len(CATALOGO)})"))
-    if ventana:
-        fig51.add_trace(go.Scatter(x=[None], y=[None], mode="markers",
-                                   marker=dict(color="green", opacity=0.4, symbol="square", size=12),
-                                   name=f"Ventana válida [{min(ventana):.2f}, {max(ventana):.2f}]"))
-    fig51.add_trace(go.Scatter(x=[TAU_CALIBRADO, TAU_CALIBRADO], y=[0, len(CATALOGO)],
-                               mode="lines", line=dict(dash="dash", color="white"),
-                               name=f"τ adoptado = {TAU_CALIBRADO}"))
-    fig51.update_layout(height=380, template="plotly_white",
-                        xaxis_title="Umbral relativo de persistencia (τ)",
-                        yaxis_title=f"Nubes con lectura β₁ correcta (de {len(CATALOGO)})",
-                        xaxis=dict(range=[0.05, 0.40], dtick=0.05),
-                        yaxis=dict(range=[0, len(CATALOGO)], dtick=1))
-    apply_plotly_theme(fig51)
-    st.plotly_chart(fig51, width="stretch")
+    fig51 = fig_51_calibracion(calib["cal"], calib["tau"], calib["margenes"],
+                               ETIQUETA_NUBE,
+                               tema="oscuro" if is_dark() else "claro")
+    st.pyplot(fig51)
+    plt.close(fig51)
     st.session_state.setdefault("he1_figs", {})["fig51_calibracion_tau"] = fig51
-    if ventana:
-        dentro = min(ventana) <= TAU_CALIBRADO <= max(ventana)
-        (st.success if dentro else st.warning)(
-            f"Ventana válida (acierto máximo {acierto_max}/{len(CATALOGO)}): τ ∈ [{min(ventana):.2f}, {max(ventana):.2f}]. "
-            f"τ adoptado = {TAU_CALIBRADO} {'cae dentro' if dentro else 'queda FUERA'}."
-        )
-    else:
-        st.warning("Sin ventana válida en el rango evaluado.")
+    v_min, v_max = calib["tau"]["ventana_min"], calib["tau"]["ventana_max"]
+    dentro = v_min <= TAU_CALIBRADO <= v_max
+    (st.success if dentro else st.warning)(
+        f"Ventana con {len(CATALOGO)}/{len(CATALOGO)} aciertos: "
+        f"τ ∈ [{v_min:.3f}, {v_max:.3f}] · τ* = {calib['tau']['tau_star']:.3f} · "
+        f"τ adoptado = {TAU_CALIBRADO} {'cae dentro' if dentro else 'queda FUERA'}."
+    )
     st.markdown("---")
 
 # ── 🔬 Filtración interactiva (ε) — el corazón del TDA ───────────────

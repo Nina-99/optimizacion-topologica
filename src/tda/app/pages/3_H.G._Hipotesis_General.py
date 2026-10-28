@@ -60,7 +60,7 @@ ejecutar = st.button("▶ Ejecutar H.E.1 y H.E.2 automáticamente", type="primar
 if ejecutar:
     # ── H.E.1 ──
     with st.spinner("H.E.1 — calibración de τ, protocolo de estabilidad y contraste de McNemar..."):
-        taus, aciertos = calibrar_tau(n_points, SEED)
+        taus, aciertos = calibrar_tau(n_points)
         sweep, crudo = protocolo_he1(n_points, Q_LEVELS, n_rep, TAU_CALIBRADO, SEED)
         mcn = comparar_tda_vs_euclidiano(n_points=n_points, n_rep=2 * n_mcn,
                                          tau=TAU_CALIBRADO, apply_affine=True, random_seed=SEED)
@@ -264,7 +264,7 @@ try:
             f"Fecha: {datetime.now():%Y-%m-%d %H:%M}\n"
             f"Semilla maestra: {SEED}\n\n"
             f"H.E.1: catálogo de 7 nubes; q ∈ {Q_LEVELS}; τ = {TAU_CALIBRADO}; "
-            f"n = {n_points}; R = {n_rep} réplicas; σ = q·diam(X).\n"
+            f"n = {n_points}; R = {n_rep} réplicas; σ = q·diam(X)/√d.\n"
             "H.E.2: viga en voladizo 60×30; f_V = 0.5; p = 3; r_min = 2.4; "
             "elementos unitarios (E0 = 1, F = 1); filtro de densidad.\n\n"
             "Contenido:\n"

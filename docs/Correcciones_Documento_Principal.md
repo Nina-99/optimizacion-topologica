@@ -152,6 +152,14 @@ La densidad física que entra al ensamble FEM es la filtrada `ρ̃` (no `ρ` cru
 
 La forma `dB ≤ 2dH` se cumple en el **100 %** de las réplicas (lo que el documento ya afirma en su Fig. 5.2(b)); la forma `dB/diam ≤ 2q` no es implicada por el teorema y no se sostiene empíricamente. Es la distinción que la propia Tabla 5.4 del documento establece.
 
+> **Re-medición (Item 29):** con el ruido corregido `σ = q·diam/√d` y el catálogo
+> corregido (Item 30), R = 20, n = 400, q = 0,10: `frac(dB/diam ≤ 2q)` = 0,00 (círculo),
+> 0,50 (anillo), 1,00 (toro), 1,00 (disco); `frac(dB ≤ 2dH)` = **1,00 en las cuatro**;
+> máximo `dB/dH` = 1,47. El ruido más suave deja al **toro** por debajo de `2q` (antes
+> 0,45), pero **círculo y anillo siguen violándola**: la conclusión —`2q·diam` no es
+> consecuencia del teorema— **se mantiene**. Pendiente de la pasada 5.2/5.3 recalcular
+> todo el barrido con R = 100.
+
 **Consecuencia:** no cambia H.E.1a (sigue cumpliéndose al 100 %), solo la **notación de la cota**. H.E.1b y H.E.1c no se ven afectadas.
 
 ---
@@ -169,6 +177,14 @@ La forma `dB ≤ 2dH` se cumple en el **100 %** de las réplicas (lo que el docu
 ---
 
 ## Item 13 — Fig. 5.1: la definición βk no reproduce su plateau 7/7
+
+> **RETRACTADO por el Item 30.** La premisa de este item («con βk no existe ventana 7/7»)
+> era **falsa**: provenía de un catálogo con geometría equivocada y de una gaussiana sin
+> truncar. Con el catálogo corregido (Item 30), **βk = (β₀, β₁) sí alcanza 7/7**, en un
+> único punto **τ\* = 0,175**. Se conserva el item íntegro por trazabilidad; la
+> «Resolución adoptada» de abajo (calibrar sobre β₁) **queda anulada**: la calibración
+> vuelve a βk, como dice el pie de la figura. Solo queda pendiente recalcular q\* y la
+> Tabla 5.5 con τ = 0,175 (pasada de la Fig. 5.2).
 
 **Hecho:** la calibración de τ se calcula sobre **βk = (β₀, β₁)** (Def. 8.1 / Tabla 1.1 / pie de Fig. 5.1), con `βk(τ) = #{(b,d) : d−b > τ·diam}`.
 
@@ -535,6 +551,74 @@ del PDF (fidelidad al documento); el ajuste aplica solo a la app.
 
 ---
 
+## Item 29 — Ruido gaussiano: normalizar por la dimensión (`σ = q·diam/√d`)
+
+**Antes**
+- Tabla 1.1 (línea del indicador `q`): «`σ_n = q·diam(X)`, con q ∈ {0,.05,.10,.15,.20}».
+- §2.2.1: misma fórmula en la definición operacional del ruido.
+- Algoritmo maestro, paso 7: `Y ← X + N(0, (q·diam(X))²·I)`.
+- Glosario: «q — Nivel de ruido relativo, `σ_n = q·diam(X)`».
+
+**Después**
+- Tabla 1.1 y §2.2.1: **`σ_n = q·diam(X)/√d`**, con `d` la dimensión ambiente de la nube.
+- Algoritmo maestro, paso 7: `Y ← X + N(0, (q·diam(X)/√d)²·I)`.
+- Glosario: «q — Nivel de ruido relativo, `σ_n = q·diam(X)/√d`».
+
+**Razón (con evidencia):** el propio PDF de las figuras corregidas del Cap. V lo declara
+como error del original: *«La figura original no normalizaba el ruido por la dimensión»*.
+Sin el factor `1/√d`, el desplazamiento cuadrático medio de un punto crece como `√d·q·diam`:
+en `d = 100` la nube se destruye aunque `q` sea chico, y el experimento mide la dimensión,
+no la robustez. Con la normalización, la perturbación media por coordenada es `σ` y el
+mismo `q` significa lo mismo en ℝ² y en ℝ¹⁰⁰.
+
+**Efecto en el software (ya aplicado):** `processing/sampling.add_gaussian_noise` usa
+`σ = q·diam(X)/√d`. Arrastra las Fig. 5.2 y 5.3 (los `q*` y la razón `dB/(2dH)` cambian:
+con ruido más suave, las nubes aguantan más). **La cota `dB/diam ≤ 2q` queda retirada**
+del documento (ya figuraba en los Items 11 y 25): el PDF corregido la reemplaza por la
+cota probabilística `2σ(√d + √(2·ln(n/δ)))` con `δ = 0,05` (Fig. 5.3).
+
+**Estado:** los PNG `fig52*` y `fig53*` de `data/figuras/` siguen generados con la fórmula
+vieja y `τ = 0.15`; se regeneran en la pasada de las Figs. 5.2/5.3.
+
+---
+
+## Item 30 — Catálogo de nubes corregido (retracta la premisa del Item 13)
+
+**Antes:** el catálogo del repo usaba geometrías distintas a las del documento —
+`dos_circulos` con radio 1 y separación 5, `toro` con r = 1, `anillo` con
+r ∈ [0,8;2], `gaussiana` sin truncar — y la calibración de τ se hacía sobre el
+**mismo** catálogo que luego se medía.
+
+**Después** (`processing/sampling.CATALOGO_CORREGIDO`, `ORDEN_CALIBRACION`):
+- `dos_circulos`: radio 0,6, centros en ±1,5 · `toro`: r = 0,8 ·
+  `anillo`: r ∈ [0,75;1] · `gaussiana`: truncada en `2σ` y escalada × 0,5.
+- Semillas: `default_rng(900 + i)` para el catálogo independiente `C₀` de calibración
+  y `default_rng(42 + i)` para el catálogo `C` de medición (antes, la misma semilla
+  para ambos).
+
+**Razón (con evidencia):** con la gaussiana sin truncar, sus puntos atípicos aislados
+producen `β₀ = 2` o `3` en todo `τ ≤ 0,20` y la compuerta F3 aborta el proceso — esa es
+la causa real del «no existe ventana 7/7» del Item 13, **no** la definición de βk.
+Reimplementando el pipeline completo sobre el catálogo corregido, la Fig. 5.1 se reproduce
+idéntica al PDF: **τ\* = 0,175, ventana única con 7/7**, curva
+`{0.05:2, 0.075:3, 0.1:5, 0.125:6, 0.15:6, 0.175:7, 0.2:6, 0.225:5, …}` y márgenes
+`0.124, 0.127, 0.044, −0.002, 0.096, 0.028, 0.081`.
+
+**Consecuencias:**
+- **Item 13 retractado** (ver su cabecera): con βk = (β₀, β₁) la ventana **existe**.
+  La «Resolución adoptada» de calibrar sobre β₁ queda anulada; la calibración vuelve a βk.
+- `TAU_CALIBRADO = 0.175` en `simulation/he_protocols` (antes 0,15); arrastra las
+  Figs. 5.2/5.3 y el criterio de `q*`.
+- **Pendiente:** recalcular `q*` y la Tabla 5.5 con τ = 0,175 (pasada 5.2/5.3).
+
+**Verificación:** `analysis/calibracion.py` (17 tests) + `simulation/test_he_protocols.py`
+(3 tests que garantizan que `TAU_CALIBRADO` no se desincronice de la calibración).
+253 tests en verde; la página H.E.1 renderiza la figura 3 paneles y reporta
+«τ ∈ [0.175, 0.175] · τ* = 0.175 · τ adoptado = 0.175 cae dentro» (verificado con
+`streamlit.testing.v1.AppTest`).
+
+---
+
 ## Resumen de trazabilidad (software → tesis)
 
 | Hipótesis | Función | Dato | Figura |
@@ -542,7 +626,7 @@ del PDF (fidelidad al documento); el ajuste aplica solo a la app.
 | H.E.1a | `stability.verificar_cota_bottleneck` | — | 5.2(b), 5.3 |
 | H.E.1b | `stability.comparar_tda_vs_euclidiano` | — | Tabla 5.5 |
 | H.E.1c | `stability.barrido_cota_bottleneck` (acierto) | — | 5.2(a) |
-| Calibración τ | `stability.betti_persistente` | — | 5.1 |
+| Calibración τ | `analysis.calibracion.calibrar_c0` / `tau_estrella` | `data/figuras/fig51_calibracion_C0.csv` | 5.1 |
 | H.E.2a | `metric_simp` + `experiment_simp` | `data/validacion_HE2_corregida.csv` | 5.4(b), Tabla 5.6 |
 | H.E.2b | `experiment_simp` (barridos) | `data/barrido_beta1_HE2b.csv` | 5.5, 5.6, 5.7 |
 | Doble cómputo β | `betti2d.betti_doble_computo` | — | 5.4(a) |

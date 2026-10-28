@@ -9,6 +9,7 @@ Referencias:
   - Definición 8.1: βₖ^(τ) = #{(b,d) ∈ Dgmₖ : d−b > τ·diam(X)}
   - Teorema de Estabilidad (Chazal et al.): dB ≤ 2·dH
   - §9.4.1: Catálogo de 7 nubes, perturbación q ∈ {0,.05,.10,.15,.20}
+    con σ = q·diam(X)/√d (normalización por dimensión, Cap. V corregido)
   - §9.4.3: Transformación afín aleatoria para H.E.1b
   - §9.4.4: Contraste de McNemar con ≥200 muestras/clase
 """
