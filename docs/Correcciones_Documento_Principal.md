@@ -728,6 +728,28 @@ Items 25 y 26 quedan superados; los PNG `fig53a_forma_documento.png` y
 
 ---
 
+## Item 33 — Corrección crítica: distancia bottleneck exacta (minimax)
+
+**Qué se hizo:** se reemplazó la implementación de `bottleneck_distance` en `src/tda/core/topology.py`. Usaba `scipy.optimize.linear_sum_assignment` (que minimiza la **suma** de costos); la distancia bottleneck exige minimizar el **máximo** costo (**minimax**).
+
+**Impacto y evidencia:** medido en 150 diagramas aleatorios, el código viejo presentaba **52 errores de sobreestimación** (hasta +0,27), ocultos porque los tests anteriores solo verificaban dimensiones de salida (`shape`). Se sustituyó por búsqueda binaria sobre costos candidatos evaluada con el algoritmo de flujo máximo (`scipy.sparse.csgraph.maximum_flow`), exacto y ~3000× más rápido en grafos densos de comodines. Validado contra enumeración exacta (*brute-force*, 150/150) y GUDHI (`e=0.0`).
+
+---
+
+## Item 34 — Unificación de las páginas H.E.1 y H.E.2 en la app Streamlit
+
+**Qué se hizo:**
+- **Página H.E.1:** Se reestructuró con el mismo diseño formal que H.E.2 (secciones numeradas 1 a 5, botón maestro unificado sin recargas automáticas de disco, presentación secuencial de H.E.1a, H.E.1b con barras de exactitud, H.E.1c con mapa de calor de q*, tabla de veredicto 5.5, exportador ZIP e interactivo pedagógico al pie).
+- **Página H.E.2:** Se actualizaron las Figuras 5.4(b), 5.5 (dos paneles apilados), 5.6 (galería de mallas 2D + compliance) y 5.7 (tres paneles: Betti, volumen y diagrama H₁) para invocar directamente a las funciones de renderizado del backend (`visualization/figuras.py`) con estricta paridad respecto al PDF corregido.
+
+---
+
+## Item 35 — Hipótesis General (H.G.) integrada y con protocolo funcional
+
+**Qué se hizo:** `3_H.G._Hipotesis_General.py` se actualizó para consumir las claves unificadas (`he1_fig52`, `he1_mcnemar`, `he1_trunc`) en lugar de las del protocolo obsoleto. El botón de ejecución automática corre todo el flujo cruzado de TDA y SIMP bajo un contenedor de estado (`st.status`), arrojando el semáforo y la Tabla 5.9 completos.
+
+---
+
 ## Resumen de trazabilidad (software → tesis)
 
 | Hipótesis | Función | Dato | Figura |
@@ -737,7 +759,7 @@ Items 25 y 26 quedan superados; los PNG `fig53a_forma_documento.png` y
 | H.E.1b | `stability.comparar_tda_vs_euclidiano` | — | Tabla 5.5 |
 | H.E.1c | `estabilidad_dimensional.protocolo_fig52` / `q_estrella` | `data/figuras/fig52_replicas.csv` | 5.2(a1–a3) |
 | Calibración τ | `analysis.calibracion.calibrar_c0` / `tau_estrella` | `data/figuras/fig51_calibracion_C0.csv` | 5.1 |
-| H.E.2a | `metric_simp` + `experiment_simp` | `data/validacion_HE2_corregida.csv` | 5.4(b), Tabla 5.6 |
-| H.E.2b | `experiment_simp` (barridos) | `data/barrido_beta1_HE2b.csv` | 5.5, 5.6, 5.7 |
+| H.E.2a | `metric_simp` + `experiment_simp` | `data/validacion_HE2_corregida.csv` | 5.4(a–b), Tabla 5.6 |
+| H.E.2b | `barrido_he2` + `fig_55`–`57` | `barrido_HE2b.csv` | 5.5(a–b), 5.6(a–b), 5.7(a–c) |
 | Doble cómputo β | `betti2d.betti_doble_computo` | — | 5.4(a) |
 | Reconstrucción de figuras | `visualization.figuras` (E3) | `data/figuras/*.png`, `*.csv` | 5.1–5.7 |
