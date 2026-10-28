@@ -209,9 +209,7 @@ if _trunc is not None and res52:
                "(tolerancia teórica del 5 %).")
     st.markdown("---")
 
-    sweep = res["sweep"]
-    crudo = res["crudo"]
-    qs = Q_LEVELS
+# (sweep/crudo antiguo reemplazado por res52)
 
     # ══════════════════════════════════════════════════════════════════
     # 1. H.E.1a — estabilidad de los diagramas (Figuras 5.3 y 5.2(b))
