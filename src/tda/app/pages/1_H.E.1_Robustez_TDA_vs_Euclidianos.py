@@ -40,6 +40,12 @@ from tda.analysis.calibracion import ETIQUETA_NUBE, resultado_calibracion
 from tda.visualization.figuras import (
     fig_51_calibracion, fig_52_estabilidad, fig_53_cota_corregida,
 )
+from tda.analysis.estabilidad_dimensional import (
+    cargar_resultados, guardar_resultados, protocolo_fig52, q_estrella,
+)
+from tda.analysis.truncamiento import (
+    analisis_truncamiento, cargar_truncamiento, guardar_truncamiento,
+)
 from tda.app.theme import (
     apply_mpl_theme, apply_plotly_theme, responsive_style,
     methodology_expander, is_dark, page_header,
@@ -116,7 +122,24 @@ st.markdown("**H.E.1c — rango de fiabilidad de $\\beta_k$**")
 st.latex(r"\exists\, q^{*}:\ \beta_{k}^{(\tau)}(X)=\beta_{k}^{\mathrm{teo}}\ \text{en} \ge 95\%\ (q<q^{*}),\quad < 50\%\ (q>q^{*})")
 st.markdown("---")
 
-ejecutar = st.button("▶ Ejecutar protocolo H.E.1", type="primary")
+# Botón unificado superior que ejecuta todo el protocolo H.E.1
+if st.button("▶ Ejecutar protocolo H.E.1 completo (Calibración, Figs. 5.2, 5.3 y McNemar)", type="primary"):
+    with st.spinner("Ejecutando protocolo H.E.1 completo..."):
+        # 1. Calibración (por si no la hicieron)
+        st.session_state.he1_calib = resultado_calibracion(n_points=int(n_points))
+        # 2. Fig 5.2 y McNemar
+        res52 = protocolo_fig52(n_points=int(n_points))
+        guardar_resultados(res52)
+        st.session_state.he1_fig52 = res52
+        # 3. Fig 5.3 (truncamiento)
+        _trunc = analisis_truncamiento(n_points=int(n_points))
+        guardar_truncamiento(_trunc)
+        st.session_state.he1_trunc = _trunc
+        # 4. McNemar (H.E.1b)
+        res_mcn = comparar_tda_vs_euclidiano(n_points=int(n_points), n_rep=2 * int(n_mcn),
+                                             tau=TAU_CALIBRADO, apply_affine=True,
+                                             random_seed=SEED)
+        st.session_state.he1_mcnemar = res_mcn
 
 # ── 0. Calibración previa del umbral τ (Figura 5.1) ──────────────────
 st.subheader("Paso previo — Figura 5.1: calibración del umbral relativo de persistencia $\\tau$")
@@ -155,21 +178,7 @@ st.caption(
     "$(\\beta_0,\\beta_1)$ en la dimensión nativa y en $d = 10,\\, 100$; (b) contrasta "
     "$d_B$ con la cota $2\\,d_H$ en todas las réplicas y (c) cuán holgada es esa cota."
 )
-from tda.analysis.estabilidad_dimensional import (
-    cargar_resultados, guardar_resultados, protocolo_fig52, q_estrella,
-)
-if st.button("▶ Ejecutar protocolo H.E.1 completo (Figuras 5.2, 5.3 y McNemar)", type="primary", key="btn_he1_unificado"):
-    with st.spinner("Ejecutando protocolo H.E.1 completo (Fig. 5.2: 1 680 réplicas, Fig. 5.3 y McNemar)..."):
-        res52 = protocolo_fig52(n_points=int(n_points))
-        guardar_resultados(res52)
-        st.session_state.he1_fig52 = res52
-        _trunc = analisis_truncamiento(n_points=int(n_points))
-        guardar_truncamiento(_trunc)
-        st.session_state.he1_trunc = _trunc
-        res_mcn = comparar_tda_vs_euclidiano(n_points=int(n_points), n_rep=2 * int(n_mcn),
-                                             tau=TAU_CALIBRADO, apply_affine=True,
-                                             random_seed=SEED)
-        st.session_state.he1_mcnemar = res_mcn
+# (protocolo ejecutado desde el botón superior)
 
 res52 = st.session_state.get("he1_fig52")
 if res52:
@@ -193,9 +202,6 @@ st.caption(
     "principal del círculo (muere en $\\sqrt{3} \\approx 1{,}73$) queda como barra infinita y se "
     "descarta. Sin truncar, la distancia se satura en la mitad de esa persistencia. El panel (b) "
     "verifica la cota que la reemplaza, $2\\sigma(\\sqrt{d}+\\sqrt{2\\ln(n/\\delta)})$ con $\\delta = 0{,}05$."
-)
-from tda.analysis.truncamiento import (
-    analisis_truncamiento, cargar_truncamiento, guardar_truncamiento,
 )
 _trunc = st.session_state.get("he1_trunc")
 if _trunc is not None and res52:
@@ -286,7 +292,7 @@ st.plotly_chart(fig_bc, width="stretch")
 st.markdown("---")
 
 # ── Ejecución del protocolo (H.E.1a y H.E.1c) + McNemar (H.E.1b) ─────
-if ejecutar:
+if st.session_state.get('he1_fig52') is not None:
     with st.spinner("H.E.1a/H.E.1c — barriendo el catálogo por nube y nivel de ruido..."):
         res_sweep, crudo = protocolo_he1(n_points, Q_LEVELS, n_rep, TAU_CALIBRADO, SEED)
     with st.spinner("H.E.1b — disco vs anillo con deformación afín y contraste de McNemar..."):
@@ -297,6 +303,7 @@ if ejecutar:
     st.session_state.he1_params = {"n_points": n_points, "n_rep": n_rep, "n_mcn": n_mcn}
     st.session_state.tda_he1_run = True
 
+ejecutar = st.session_state.get("he1_fig52") is not None
 res = st.session_state.get("he1_results", {})
 if st.session_state.get("tda_he1_run", False) and res:
     params = st.session_state.get("he1_params", {})
