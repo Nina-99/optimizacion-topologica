@@ -153,24 +153,25 @@ if calib:
 
 # Botón unificado: ejecuta la medición de H.E.1 (Fig. 5.2, Fig. 5.3 y McNemar).
 # La calibración de τ (Fig. 5.1) es un paso ANTERIOR y tiene su propio botón.
-if st.button("▶ Ejecutar protocolo H.E.1 (Figuras 5.2, 5.3 y McNemar)", type="primary"):
-    if st.session_state.get("he1_calib") is None:
-        st.warning("Conviene calibrar τ primero (Figura 5.1): es el paso previo que fija el umbral. "
-                   "Se puede seguir, pero τ* no estará verificado en esta sesión.")
-    with st.spinner("Ejecutando protocolo H.E.1 (Fig. 5.2: 1 680 réplicas, Fig. 5.3 y McNemar)..."):
-        # 1. Fig 5.2
+if st.button("▶ Ejecutar protocolo H.E.1 completo (Figuras 5.2, 5.3 y McNemar)", type="primary"):
+    with st.status("🏗️ Ejecutando protocolo H.E.1 completo...", expanded=True) as status:
+        st.write("🔄 [1/3] Calculando estabilidad dimensional (Fig. 5.2: 1 680 réplicas)...")
         res52 = protocolo_fig52(n_points=int(n_points))
         guardar_resultados(res52)
         st.session_state.he1_fig52 = res52
-        # 2. Fig 5.3 (truncamiento)
+
+        st.write("🔄 [2/3] Analizando artefacto de truncamiento y cota (Fig. 5.3)...")
         _trunc = analisis_truncamiento(n_points=int(n_points))
         guardar_truncamiento(_trunc)
         st.session_state.he1_trunc = _trunc
-        # 3. McNemar (H.E.1b)
+
+        st.write("🔄 [3/3] Ejecutando contraste de McNemar (H.E.1b)...")
         res_mcn = comparar_tda_vs_euclidiano(n_points=int(n_points), n_rep=2 * int(n_mcn),
                                              tau=TAU_CALIBRADO, apply_affine=True,
                                              random_seed=SEED)
         st.session_state.he1_mcnemar = res_mcn
+        st.session_state.he1_params = {"n_points": int(n_points), "n_rep": R_FIG52, "n_mcn": int(n_mcn)}
+        status.update(label="✅ Protocolo H.E.1 completado con éxito", state="complete", expanded=False)
 
 
 res52 = st.session_state.get("he1_fig52")
@@ -206,25 +207,6 @@ if _trunc is not None and res52:
                f"**{_razon53.mean():.2f}** · **0** violaciones en {len(_razon53)} réplicas "
                "(tolerancia teórica del 5 %).")
     st.markdown("---")
-
-# ── Ejecución del protocolo (H.E.1a y H.E.1c) + McNemar (H.E.1b) ─────
-if st.session_state.get('he1_fig52') is not None:
-    with st.spinner("H.E.1a/H.E.1c — barriendo el catálogo por nube y nivel de ruido..."):
-        res_sweep, crudo = protocolo_he1(n_points, Q_LEVELS, n_rep, TAU_CALIBRADO, SEED)
-    with st.spinner("H.E.1b — disco vs anillo con deformación afín y contraste de McNemar..."):
-        res_mcn = comparar_tda_vs_euclidiano(n_points=n_points, n_rep=2 * n_mcn,
-                                             tau=TAU_CALIBRADO, apply_affine=True,
-                                             random_seed=SEED)
-    st.session_state.he1_results = {"sweep": res_sweep, "crudo": crudo, "mcnemar": res_mcn}
-    st.session_state.he1_params = {"n_points": n_points, "n_rep": n_rep, "n_mcn": n_mcn}
-    st.session_state.tda_he1_run = True
-
-ejecutar = st.session_state.get("he1_fig52") is not None
-res = st.session_state.get("he1_results", {})
-if st.session_state.get("tda_he1_run", False) and res:
-    params = st.session_state.get("he1_params", {})
-    st.info(f"📋 Resultados — n = {params.get('n_points')}, R = {params.get('n_rep')} réplicas, "
-            f"q ∈ {Q_LEVELS}, τ = {TAU_CALIBRADO}, semilla {SEED}.")
 
     sweep = res["sweep"]
     crudo = res["crudo"]
