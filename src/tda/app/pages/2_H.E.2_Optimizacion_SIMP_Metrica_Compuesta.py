@@ -26,6 +26,7 @@ import streamlit as st
 from plotly.subplots import make_subplots
 
 from tda.optimization.metric_simp import MetricaTDA_SIMP
+from tda.visualization.figuras import fig_54a_diseno, fig_54b_historial
 from tda.simulation.he_protocols import corrida_simp, barrido_he2
 from tda.app.download_utils import download_button, export_settings_ui, write_figs_zip
 from tda.app.theme import (
@@ -249,32 +250,11 @@ if st.session_state.get("simp_optimized", False):
     st.caption("El sólido forma una sola pieza (β₀ = 1). El conteo automático de agujeros coincide con la inspección visual.")
 
     # Figura 5.4(b) — historial de compliance (log)
-    st.markdown("**Figura 5.4(b):** Historial de *compliance* en escala logarítmica, con los referentes marcados (diseño uniforme y diseño SIMP).")
-    fig_conv = go.Figure()
-    xmax_conv = max(300, len(c_hist))
-    fig_conv.add_trace(go.Scatter(x=list(range(1, len(c_hist) + 1)), y=c_hist,
-                                  mode="lines", line=dict(color="royalblue", width=2),
-                                  showlegend=False))
-    fig_conv.add_trace(go.Scatter(x=[0, xmax_conv], y=[c_base, c_base], mode="lines",
-                                  line=dict(color="gray", dash="dot"), showlegend=False))
-    fig_conv.add_trace(go.Scatter(x=[0, xmax_conv], y=[c_final, c_final], mode="lines",
-                                  line=dict(color="green", dash="dash"), showlegend=False))
-    fig_conv.add_annotation(x=0.02, y=0.905, xref="paper", yref="paper",
-                            text=f"uniforme c = {c_base:.1f}", showarrow=False,
-                            font=dict(color="gray", size=11), xanchor="left")
-    fig_conv.add_annotation(x=0.34, y=0.135, xref="paper", yref="paper",
-                            text=f"SIMP c = {c_final:.1f} (\u2212{reduccion:.1f}%)", showarrow=False,
-                            font=dict(color="green", size=11), xanchor="left")
-    fig_conv.update_layout(title="(b) Convergencia",
-                           xaxis_title="iteración", yaxis_title="compliance c(\u03c1)",
-                           yaxis_type="log", height=380,
-                           xaxis=dict(range=[0, xmax_conv], dtick=50,
-                                      showgrid=True, gridcolor="rgba(0,0,0,0.08)"),
-                           yaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.10)"),
-                           margin=dict(l=0, r=0, b=0, t=40))
-    apply_plotly_theme(fig_conv, leyenda=None)
-    st.plotly_chart(fig_conv, width="stretch")
-    st.session_state.setdefault("he2_figs", {})["fig54b_historial_compliance"] = fig_conv
+    st.markdown("**Figura 5.4(b):** Historial de *compliance* en escala logarítmica, con los referentes marcados.")
+    fig_h54 = fig_54b_historial(c_hist, c_base, c_final, n_iter_max=max_iter, converged=converged)
+    st.pyplot(fig_h54)
+    plt.close(fig_h54)
+    st.session_state.setdefault("he2_figs", {})["fig54b_historial_compliance"] = fig_h54
 
     he2a_ok = reduccion >= REDUCCION_MIN * 100
     if he2a_ok:
