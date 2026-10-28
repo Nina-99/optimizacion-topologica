@@ -1,6 +1,8 @@
-# Constantes tipográficas del PDF corregido
+from __future__ import annotations
+
 TXT, TXT2, GRID = "#0b0b0b", "#52514e", "#e4e3df"
 CRIT, GOOD = "#d03b3b", "#0ca30c"
+
 
 """figuras.py — Reconstrucción headless de las figuras del Cap. V (entregable E3).
 
@@ -27,7 +29,7 @@ Uso como CLI (reproduce todo desde cero y exporta PNG + CSV)
 Semilla fija (SEED = 42). Salida en `data/figuras/`.
 """
 
-from __future__ import annotations
+
 
 import argparse
 from pathlib import Path
