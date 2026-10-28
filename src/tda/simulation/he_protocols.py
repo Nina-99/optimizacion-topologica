@@ -276,20 +276,30 @@ def barrido_he2(dominio, nex, ney, penal, rmin, E=1.0, Fmag=1.0, fV=FV, t=1.0,
     for nelx_s, nely_s in meshes_sweep:
         configs.append({"label": f"malla={nelx_s}x{nely_s}", "nelx": nelx_s, "nely": nely_s,
                         "p": int(penal), "rmin": rmin * (nelx_s / ref_nelx),
-                        "lx": lx_s, "ly": ly_s})
+                        "lx": lx_s, "ly": ly_s, "es_malla": True})
 
     resultados = []
+    mallas_2d = []
     for i, cfg in enumerate(configs):
         if progress_cb:
             progress_cb(i, len(configs), cfg["label"])
         m_s = corrida_simp(cfg["nelx"], cfg["nely"], cfg["p"], cfg["rmin"], E, Fmag, fV, t,
                            max_iter, Lx=cfg.get("lx"), Ly=cfg.get("ly"))
         conc_s = getattr(m_s, "_betti_concordancia", None)
-        resultados.append({
+        res_item = {
             "Config": cfg["label"], "Malla": f"{cfg['nelx']}x{cfg['nely']}",
             "Ne": cfg["nelx"] * cfg["nely"], "rmin": round(cfg["rmin"], 2), "p": cfg["p"],
             "c(rho*)": round(m_s.c_final, 4), "beta0": m_s.beta0, "beta1": m_s.beta1,
             "grisura": round(float(np.mean(4.0 * m_s.rho_tilde_final * (1.0 - m_s.rho_tilde_final))), 4),
             "Concordancia": "Si" if conc_s else ("No" if conc_s is not None else "N/A"),
-        })
-    return resultados
+        }
+        resultados.append(res_item)
+        if cfg.get("es_malla"):
+            mallas_2d.append({
+                "label": f"{cfg['nelx']}×{cfg['nely']}",
+                "Ne": cfg["nelx"] * cfg["nely"],
+                "rmin": round(cfg["rmin"], 2),
+                "beta1": m_s.beta1,
+                "rho": m_s.rho_final.reshape(cfg["nely"], cfg["nelx"]),
+            })
+    return resultados, mallas_2d

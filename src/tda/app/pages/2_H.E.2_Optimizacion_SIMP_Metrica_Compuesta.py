@@ -294,13 +294,14 @@ if st.session_state.get("simp_optimized", False):
                 bar.progress(i / n)
                 st.write(f"⚙️ {label} ({i}/{n})")
 
-            sweep_results = barrido_he2(dominio, nex_, ney_, penal_val, rmin_val,
+            sweep_results, mallas_2d = barrido_he2(dominio, nex_, ney_, penal_val, rmin_val,
                                         E=E_acero, Fmag=F_carga, fV=volfrac, t=espesor,
                                         max_iter=max_iter, progress_cb=_cb)
             bar.progress(1.0)
             status.update(label="✅ Barrido completado con éxito", state="complete", expanded=False)
 
         st.session_state.sweep_results = sweep_results
+        st.session_state.he2_mallas_2d = mallas_2d
         st.session_state.sweep_done = True
 
     df_sweep = pd.DataFrame(st.session_state.get("sweep_results", [])) if st.session_state.get("sweep_done") else None
