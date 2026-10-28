@@ -26,7 +26,9 @@ import streamlit as st
 from plotly.subplots import make_subplots
 
 from tda.optimization.metric_simp import MetricaTDA_SIMP
-from tda.visualization.figuras import fig_54a_diseno, fig_54b_historial
+from tda.visualization.figuras import (
+    fig_54a_diseno, fig_54b_historial, fig_55_penalizacion, fig_56_malla, fig_57_umbral,
+)
 from tda.simulation.he_protocols import corrida_simp, barrido_he2
 from tda.app.download_utils import download_button, export_settings_ui, write_figs_zip
 from tda.app.theme import (
@@ -307,67 +309,26 @@ if st.session_state.get("simp_optimized", False):
         if len(df_p) > 0:
             st.markdown("**Figura 5.5:** Compliance (eje izquierdo) y grisura (eje derecho) en función del factor de penalización $p$; el valor de β₁ se anota junto a cada punto. Con $p=1$ no hay penalización (β₁=0: sin frontera sólido/vacío); la invariancia de H.E.2b se evalúa para $p\\in\\{2,3,4\\}$.")
             gmin, gmax = float(df_p["grisura"].min()), float(df_p["grisura"].max())
-            fig55 = make_subplots(specs=[[{"secondary_y": True}]])
-            fig55.add_trace(go.Scatter(x=df_p["p"], y=df_p["c(rho*)"], mode="lines+markers",
-                                       name="compliance c(ρ*)",
-                                       line=dict(color="#8c564b", width=2),
-                                       marker=dict(symbol="circle", size=9, color="#8c564b")),
-                            secondary_y=False)
-            fig55.add_trace(go.Scatter(x=df_p["p"], y=df_p["grisura"], mode="lines+markers",
-                                       name="grisura 4ρ̃(1−ρ̃)",
-                                       line=dict(color="#4b759a", width=2, dash="dash"),
-                                       marker=dict(symbol="square", size=9, color="#4b759a")),
-                            secondary_y=True)
-            for _, row in df_p.iterrows():
-                fig55.add_annotation(x=row["p"], y=row["c(rho*)"], text=f"β₁ = {row['beta1']}",
-                                     showarrow=False, yshift=-18, font=dict(color="#2e7d32", size=11))
-            fig55.update_layout(height=400, template="plotly_white",
-                                title="Efecto de la penalización: compliance, binariedad y topología",
-                                xaxis_title="factor de penalización p",
-                                xaxis=dict(dtick=1, range=[0.8, 4.2]),
-                                legend=dict(x=0.5, y=0.62))
-            fig55.update_yaxes(title_text="compliance c(ρ*)", secondary_y=False,
-                               title_font=dict(color="#8c564b"), tickfont=dict(color="#8c564b"))
-            fig55.update_yaxes(title_text="grisura (0 = diseño binario)", secondary_y=True,
-                               title_font=dict(color="#4b759a"), tickfont=dict(color="#4b759a"),
-                               range=[gmin - 0.03, gmax + 0.04])
-            apply_plotly_theme(fig55, leyenda="secundaria")
-            st.plotly_chart(fig55, width="stretch")
-            st.session_state.setdefault("he2_figs", {})["fig55_barrido_penalizacion"] = fig55
-
+            st.markdown("**Figura 5.5:** Efecto de la penalización ($p$) sobre la compliance y la grisura.")
+            fig55_mat = fig_55_penalizacion(df_p)
+            st.pyplot(fig55_mat)
+            plt.close(fig55_mat)
+            st.session_state.setdefault("he2_figs", {})["fig55_barrido_penalizacion"] = fig55_mat
+        
         # Figura 5.6 — compliance y β₁ vs malla (eje X categórico: Ne lineal aplasta 1600)
         if len(df_mesh) > 0:
             st.markdown("**Figura 5.6:** Compliance (eje izquierdo) y β₁ (eje derecho) frente al número de elementos, con $r_{\\min}$ escalado para mantener constante su longitud física.")
             _ne = df_mesh["Ne"].tolist()
             _c = df_mesh["c(rho*)"].tolist()
             _cmin, _cmax = min(_c), max(_c)
-            fig56 = make_subplots(specs=[[{"secondary_y": True}]])
-            fig56.add_trace(go.Scatter(x=_ne, y=_c, mode="lines+markers",
-                                       line=dict(color="#8c564b", width=2),
-                                       marker=dict(symbol="circle", size=9, color="#8c564b"),
-                                       showlegend=False), secondary_y=False)
-            fig56.add_trace(go.Scatter(x=_ne, y=df_mesh["beta1"], mode="lines+markers",
-                                       line=dict(color="green", width=2),
-                                       marker=dict(symbol="square", size=9, color="green"),
-                                       showlegend=False), secondary_y=True)
-            for _, row in df_mesh.iterrows():
-                fig56.add_annotation(x=row["Ne"], y=row["c(rho*)"], text=f"r_min = {row['rmin']}",
-                                     showarrow=False, yshift=-16, font=dict(color="gray", size=11))
-            fig56.update_layout(height=400, template="plotly_white",
-                                title="Independencia de malla: β₁ constante, c estable",
-                                xaxis_title="número de elementos Nₑ",
-                                xaxis=dict(type="log", tickvals=_ne,
-                                           ticktext=[f"{int(n):,}" for n in _ne]))
-            fig56.update_yaxes(title_text="compliance c(ρ*)", secondary_y=False,
-                               title_font=dict(color="#8c564b"), tickfont=dict(color="#8c564b"),
-                               range=[_cmin - 0.15 * (_cmax - _cmin), _cmax + 0.15 * (_cmax - _cmin)])
-            fig56.update_yaxes(title_text="β₁(Ωsólido)", secondary_y=True,
-                               title_font=dict(color="green"), tickfont=dict(color="green"),
-                               range=[-0.4, 3.4], dtick=1)
-            apply_plotly_theme(fig56, leyenda=None)
-            st.plotly_chart(fig56, width="stretch")
-            st.session_state.setdefault("he2_figs", {})["fig56_barrido_malla"] = fig56
-
+            st.markdown("**Figura 5.6:** Independencia de malla frente al número de elementos $N_e$, manteniendo $r_{\min}$ físico constante.")
+            # Preparamos las mallas 2D simuladas o recolectadas si estuvieran en session_state
+            mallas_2d = st.session_state.get("he2_mallas_2d", [])
+            fig56_mat = fig_56_malla(df_mesh, mallas_2d=mallas_2d)
+            st.pyplot(fig56_mat)
+            plt.close(fig56_mat)
+            st.session_state.setdefault("he2_figs", {})["fig56_barrido_malla"] = fig56_mat
+        
         st.markdown("**Barrido completo:**")
         st.dataframe(df_sweep, width="stretch", hide_index=True)
 
