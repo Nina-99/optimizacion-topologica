@@ -116,9 +116,15 @@ def _bottleneck_factible(A: np.ndarray, B: np.ndarray, t: float,
     Existe matching perfecto ⟺ el umbral `t` es factible. La factibilidad es
     monótona en `t`, lo que habilita la búsqueda binaria de
     `bottleneck_distance`.
+
+    El matching se resuelve como **flujo máximo** (`maximum_flow`, C++) y no con
+    `maximum_bipartite_matching`: este último es correcto pero patológico cuando
+    el grafo mezcla un bloque denso (los comodines) con aristas reales escasas
+    — en el H₀ de un toro de 200 puntos tardaba ~24 s por consulta, contra 6 ms
+    del flujo.
     """
     from scipy.sparse import csr_matrix
-    from scipy.sparse.csgraph import maximum_bipartite_matching
+    from scipy.sparse.csgraph import maximum_flow
 
     n, m = D.shape
     filas, columnas = [], []
@@ -137,11 +143,18 @@ def _bottleneck_factible(A: np.ndarray, B: np.ndarray, t: float,
         f_i = np.tile(np.arange(m, m + n), m)
         filas.append(e_j)
         columnas.append(f_i)
+
+    V = n + m                          # nodos por lado del grafo bipartito
+    fuente, sumidero = 2 * V, 2 * V + 1
     f = np.concatenate(filas)
     c = np.concatenate(columnas)
-    grafo = csr_matrix((np.ones(len(f), dtype=bool), (f, c)),
-                       shape=(n + m, n + m))
-    return bool((maximum_bipartite_matching(grafo, perm_type="row") >= 0).all())
+    # fuente -> izquierda -> derecha -> sumidero; flujo V ⟺ matching perfecto
+    filas_flujo = np.concatenate([np.full(V, fuente), f, V + np.arange(V)])
+    columnas_flujo = np.concatenate([np.arange(V), V + c, np.full(V, sumidero)])
+    grafo = csr_matrix((np.ones(len(filas_flujo), dtype=np.int32),
+                        (filas_flujo, columnas_flujo)),
+                       shape=(2 * V + 2, 2 * V + 2))
+    return int(maximum_flow(grafo, fuente, sumidero).flow_value) == V
 
 
 def bottleneck_distance(dgm1: np.ndarray, dgm2: np.ndarray) -> float:
