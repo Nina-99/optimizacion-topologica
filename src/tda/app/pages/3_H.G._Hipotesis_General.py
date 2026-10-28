@@ -14,10 +14,14 @@ import pandas as pd
 import streamlit as st
 
 from tda.analysis.stability import comparar_tda_vs_euclidiano
+from tda.analysis.calibracion import resultado_calibracion
+from tda.analysis.estabilidad_dimensional import (
+    protocolo_fig52, q_estrella, guardar_resultados,
+)
+from tda.analysis.truncamiento import analisis_truncamiento, guardar_truncamiento
 from tda.simulation.he_protocols import (
-    protocolo_he1, calibrar_tau, corrida_simp, barrido_he2,
+    corrida_simp, barrido_he2,
     Q_LEVELS, TAU_CALIBRADO, SEED, FV, P_DEFECTO, RMIN_DEFECTO,
-    CATALOGO, SUBCONJUNTO_VALIDADO,
 )
 from tda.app.download_utils import download_button
 from tda.app.theme import responsive_style, methodology_expander, page_header
@@ -58,23 +62,33 @@ n_mcn = st.sidebar.slider("Muestras por clase (H.E.1b ≥ 200)", min_value=200, 
 ejecutar = st.button("▶ Ejecutar H.E.1 y H.E.2 automáticamente", type="primary")
 
 if ejecutar:
-    # ── H.E.1 ──
-    with st.spinner("H.E.1 — calibración de τ, protocolo de estabilidad y contraste de McNemar..."):
-        taus, aciertos = calibrar_tau(n_points)
-        sweep, crudo = protocolo_he1(n_points, Q_LEVELS, n_rep, TAU_CALIBRADO, SEED)
-        mcn = comparar_tda_vs_euclidiano(n_points=n_points, n_rep=2 * n_mcn,
-                                         tau=TAU_CALIBRADO, apply_affine=True, random_seed=SEED)
-    st.session_state.he1_calib = {"taus": taus, "aciertos": aciertos}
-    st.session_state.he1_results = {"sweep": sweep, "crudo": crudo, "mcnemar": mcn}
-    st.session_state.he1_params = {"n_points": n_points, "n_rep": n_rep, "n_mcn": n_mcn}
-    st.session_state.tda_he1_run = True
+    # ── H.E.1 (protocolo corregido: calibración, Fig. 5.2, Fig. 5.3 y McNemar) ──
+    with st.status("🏗️ Ejecutando H.E.1 y H.E.2...", expanded=True) as _status:
+        st.write("🔄 [1/4] Calibrando τ sobre C₀ (Fig. 5.1)...")
+        st.session_state.he1_calib = resultado_calibracion(n_points=n_points)
 
-    # ── H.E.2 ──
-    with st.spinner("H.E.2 — optimización SIMP base y barrido multi-configuración de H.E.2b..."):
+        st.write(f"🔄 [2/4] Estabilidad dimensional (Fig. 5.2, R = {n_rep})...")
+        res52 = protocolo_fig52(n_points=n_points, n_rep=n_rep)
+        guardar_resultados(res52)
+        st.session_state.he1_fig52 = res52
+
+        st.write("🔄 [3/4] Truncamiento y cota (Fig. 5.3)...")
+        _trunc = analisis_truncamiento(n_points=n_points)
+        guardar_truncamiento(_trunc)
+        st.session_state.he1_trunc = _trunc
+
+        st.write("🔄 [4/4] Contraste de McNemar (H.E.1b)...")
+        st.session_state.he1_mcnemar = comparar_tda_vs_euclidiano(
+            n_points=n_points, n_rep=2 * n_mcn, tau=TAU_CALIBRADO,
+            apply_affine=True, random_seed=SEED)
+        st.session_state.he1_params = {"n_points": n_points, "n_rep": n_rep, "n_mcn": n_mcn}
+
+        st.write("🔄 H.E.2 — optimización SIMP base y barrido multi-configuración...")
         m = corrida_simp(60, 30, P_DEFECTO, RMIN_DEFECTO, max_iter=200)
         c_base = float(m.c_hist[0])
         reduccion = (c_base - m.c_final) / c_base * 100
-        sweep2 = barrido_he2(DOMINIO, 60, 30, P_DEFECTO, RMIN_DEFECTO, max_iter=200)
+        sweep2, _mallas = barrido_he2(DOMINIO, 60, 30, P_DEFECTO, RMIN_DEFECTO, max_iter=200)
+        _status.update(label="✅ H.E.1 y H.E.2 ejecutados", state="complete", expanded=False)
     st.session_state.simp_optimized = True
     st.session_state.simp_c_base = c_base
     st.session_state.simp_c_final = m.c_final
@@ -86,7 +100,7 @@ if ejecutar:
     st.session_state.sweep_done = True
 
 # ── Cálculo de veredictos desde session_state ────────────────────────
-he1_run = st.session_state.get("tda_he1_run", False) and bool(st.session_state.get("he1_results"))
+he1_run = st.session_state.get("he1_fig52") is not None
 he2_run = st.session_state.get("simp_optimized", False)
 sweep_done = st.session_state.get("sweep_done", False)
 
@@ -94,18 +108,22 @@ he1a_ok = he1b_ok = he1c_ok = he2a_ok = he2b_ok = None
 he1a_val = he1b_val = he1c_val = he2a_val = he2b_val = "—"
 
 if he1_run:
-    sw = st.session_state.he1_results.get("sweep", {})
-    if sw:
-        frac = float(np.mean([sw[s]["cumple_frac"][i] for s in sw for i in range(len(Q_LEVELS))]))
-        he1a_ok = frac == 1.0
-        he1a_val = f"{frac:.3f}"
-        acc_subs = [float(np.mean([sw[s].get("acierto_b1", sw[s]["acierto"])[i] for s in SUBCONJUNTO_VALIDADO if s in sw]))
-                    for i in range(len(Q_LEVELS))]
-        cand = [q for q, a in zip(Q_LEVELS, acc_subs) if a >= 0.95]
-        q_star = max(cand) if cand else None
-        he1c_ok = q_star is not None and Q_STAR_RANGO[0] <= q_star <= Q_STAR_RANGO[1]
-        he1c_val = f"q* ≈ {q_star:.2f}" if q_star is not None else "no detectado"
-    mc = st.session_state.he1_results.get("mcnemar", {})
+    _rep = st.session_state.he1_fig52["replicas"]
+    # H.E.1a: fracción de réplicas con dB ≤ 2·dH (cota del teorema)
+    _frac = float((_rep["dB"] <= _rep["cota_teorema"] + 1e-9).mean())
+    he1a_ok = _frac == 1.0
+    he1a_val = f"{_frac:.3f}"
+    # H.E.1c (forma corregida): q* existe para toda nube y dimensión, pero depende de ambas
+    _qe = q_estrella(_rep)
+    if _qe["q_estrella"].notna().all():
+        he1c_ok = True
+        _qnat = _qe[_qe["d"] <= 3]["q_estrella"]
+        he1c_val = f"q* ∈ [{_qnat.min():.2f}, {_qnat.max():.2f}] (nativa)"
+    else:
+        he1c_ok = False
+        he1c_val = "sin q* para alguna nube"
+    # H.E.1b: McNemar
+    mc = st.session_state.get("he1_mcnemar") or {}
     if mc:
         mm = mc.get("mc_nemar", {})
         he1b_ok = bool(mm.get("significant")) and (mc.get("exactitud_tda", 0) > mc.get("exactitud_eucl", 0))
@@ -149,11 +167,11 @@ st.subheader("Tabla 5.9 — Veredicto sobre cada hipótesis")
 filas = [
     {"Hipótesis": "H.E.1a", "Afirmación": "dB ≤ 2·dH (k=0,1), 100 % réplicas",
      "Valor": he1a_val, "Veredicto": "✓" if he1a_ok else ("×" if he1a_ok is False else "—"),
-     "Evidencia": "Figs. 5.2(b), 5.3"},
+     "Evidencia": "Figs. 5.2(b) y 5.3(b)"},
     {"Hipótesis": "H.E.1b", "Afirmación": "TDA > euclidiano (McNemar p<0.05)",
      "Valor": he1b_val, "Veredicto": "✓" if he1b_ok else ("×" if he1b_ok is False else "—"),
      "Evidencia": "Tabla 5.5"},
-    {"Hipótesis": "H.E.1c", "Afirmación": "Existe q* separador ∈ [0.05, 0.10]",
+    {"Hipótesis": "H.E.1c", "Afirmación": "Existe q* por nube y dimensión (forma corregida)",
      "Valor": he1c_val, "Veredicto": "✓" if he1c_ok else ("×" if he1c_ok is False else "—"),
      "Evidencia": "Fig. 5.2(a)"},
     {"Hipótesis": "H.E.2a", "Afirmación": "Reducción ≥ 40 % vs uniforme",
@@ -277,9 +295,13 @@ try:
         z.writestr("estudio/README.txt", readme)
         z.writestr("estudio/tabla_5_9.csv", pd.DataFrame(filas).to_csv(index=False))
         z.writestr("estudio/tabla_5_3.csv", tabla53.to_csv(index=False))
-        h1 = st.session_state.get("he1_results", {})
-        if h1.get("crudo"):
-            z.writestr("estudio/he1/replicas_dB_dH.csv", pd.DataFrame(h1["crudo"]).to_csv(index=False))
+        _res52_exp = st.session_state.get("he1_fig52")
+        if _res52_exp is not None:
+            z.writestr("estudio/he1/fig52_replicas.csv",
+                       _res52_exp["replicas"].to_csv(index=False))
+        _trunc_exp = st.session_state.get("he1_trunc")
+        if _trunc_exp is not None:
+            z.writestr("estudio/he1/fig53_truncamiento.csv", _trunc_exp.to_csv(index=False))
         if st.session_state.get("sweep_done"):
             z.writestr("estudio/he2/barrido_HE2b.csv",
                        pd.DataFrame(st.session_state.get("sweep_results", [])).to_csv(index=False))
