@@ -1,6 +1,6 @@
 """Página 1: H.E.1 — Robustez topológica (TDA).
 
-Presenta la validación en el ORDEN del documento:
+Presenta la validación en el orden del protocolo:
   0. Calibración previa del umbral τ (Figura 5.1) y estabilidad dimensional
      (Figura 5.2: paneles a1–a3, b y c)
   1. H.E.1a — estabilidad de los diagramas (cota de la Figura 5.3)
@@ -8,7 +8,7 @@ Presenta la validación en el ORDEN del documento:
   3. H.E.1c — rango de fiabilidad de βk (q* de la Figura 5.2)
   4. Veredicto H.E.1 (Tabla 5.5)
 
-Constantes y notación tomadas del documento:
+Constantes y notación del protocolo:
   - Catálogo de 7 nubes (§1.5.2, Tabla 4.3).
   - q ∈ {0, 0.05, 0.10, 0.15, 0.20}; σ = q·diam(X)/√d (corregido, Tabla 1.1 /
     §2.2.1 — Item 29 de las correcciones).
@@ -60,9 +60,9 @@ from tda.simulation.he_protocols import (
     Q_LEVELS, TAU_CALIBRADO, SEED,
 )
 
-# ── Constantes del documento ─────────────────────────────────────────
+# ── Constantes del protocolo ─────────────────────────────────────────
 N_MIN = 400                   # §1.5.2: densidad mínima (toro detectable)
-R_DEFECTO = 20               # UI práctica; protocolo del documento: R = 100
+R_DEFECTO = 20               # UI práctica; protocolo completo: R = 100
 COTA_FRACCION = 1.0           # H.E.1a: 100 % de las réplicas
 ACC_BAJO = 0.95               # H.E.1c: umbral superior
 ACC_ALTO = 0.50               # H.E.1c: umbral inferior
@@ -95,24 +95,23 @@ def _pers_h1_dominante_por_q(shape: str, n_points: int, qs, seed: int):
 st.set_page_config(page_title="H.E.1 — Robustez TDA", layout="wide", page_icon="📊")
 st.markdown(responsive_style(), unsafe_allow_html=True)
 
-# ── Sidebar (parámetros del documento) ───────────────────────────────
+# ── Sidebar (parámetros del protocolo) ───────────────────────────────
 st.sidebar.header("📊 H.E.1 — Robustez TDA")
 n_points = st.sidebar.number_input("Puntos por nube (n ≥ 400)", min_value=400,
                                    max_value=1000, value=N_MIN, step=50)
 n_rep = st.sidebar.slider("Réplicas por nube y nivel (R)", min_value=10, max_value=100,
                           value=R_DEFECTO, step=10)
 usar_piloto_pdf = st.sidebar.checkbox(
-    "H.E.1b: piloto del PDF (0,950 vs 0,925)", value=True,
-    help="El PDF es la fuente de verdad. Desmarcar ejecuta el protocolo "
-         "reproducible (exploratorio), que no reemplaza el veredicto documentado.",
+    "H.E.1b: resultado de referencia (0,950 vs 0,925)", value=True,
+    help="Desmarcar ejecuta el protocolo reproducible (exploratorio), que no reemplaza el veredicto de referencia.",
 )
 st.sidebar.caption(
-    f"Protocolo del documento: 7 nubes × q ∈ {{0, .05, .10, .15, .20}} × R réplicas · "
-    f"τ = {TAU_CALIBRADO} · semilla {SEED}. (El documento usa R = 100; subir R es más lento: "
+    f"Protocolo: 7 nubes × q ∈ {{0, .05, .10, .15, .20}} × R réplicas · "
+    f"τ = {TAU_CALIBRADO} · semilla {SEED}. (El protocolo completo usa R = 100; subir R es más lento: "
     f"≈0.13 s por réplica.)"
 )
 
-# ── Header + objetivo (fórmulas del documento) ───────────────────────
+# ── Header + objetivo ────────────────────────────────────────────────
 st.markdown(page_header("H.E.1 — Robustez TDA vs Euclidianos"), unsafe_allow_html=True)
 
 st.markdown("---")
@@ -174,7 +173,7 @@ if st.button("▶ Ejecutar protocolo H.E.1 completo (Figuras 5.2, 5.3 y McNemar)
         guardar_truncamiento(_trunc)
         st.session_state.he1_trunc = _trunc
 
-        st.write("🔄 [3/3] Cargando el contraste H.E.1b del PDF...")
+        st.write("🔄 [3/3] Cargando el contraste H.E.1b de referencia...")
         if usar_piloto_pdf:
             res_mcn = resultado_piloto_pdf()
         else:
@@ -244,8 +243,7 @@ if res52:
     st.subheader("2. H.E.1b — Ventaja comparativa (TDA vs euclidiano)")
     st.caption("Tarea: disco vs anillo bajo transformación afín aleatoria. Descriptor euclidiano "
                "de referencia = espectro PCA + inercia de k-medias (sin dispersión radial). "
-               "Los valores oficiales son los del piloto documentado en el PDF "
-               "(0,950 vs 0,925, McNemar no significativo).")
+               "Los valores de referencia son 0,950 vs 0,925; McNemar no significativo.")
 
     if mcn:
         _mc = mcn.get("mc_nemar", {}) or {}
@@ -281,7 +279,7 @@ if res52:
                        "el descriptor topológico supera al euclidiano (p < 0.05)")
         elif _mc.get("p_value") is None or not _mc.get("significant"):
             st.warning("### H.E.1b — MEDIDO · NO CONCLUYENTE — no se rechaza la igualdad. "
-                       "El PDF exige reportarlo así, no como refutación.")
+                       "El protocolo exige reportarlo así, no como refutación.")
         else:
             st.error("### H.E.1b — MEDIDO · CONCLUYENTE · NO SE SOSTIENE — "
                      "el euclidiano supera al topológico con p < 0.05")
@@ -296,7 +294,7 @@ if res52:
     st.latex(r"\exists\, q^{*}:\ \beta_{k}^{(\tau)}(X)=\beta_{k}^{\mathrm{teo}}\ \text{en} \ge 95\%\ (q<q^{*}),\quad < 50\%\ (q>q^{*})")
 
     _rango_full = rango_fiabilidad(rep52)
-    # Denominador del PDF: se excluye el toro, que no tiene lectura fiable
+    # Denominador de referencia: se excluye el toro, que no tiene lectura fiable
     # ni siquiera sin ruido. Los dos círculos quedan como control negativo.
     _rango = _rango_full[~_rango_full["nube"].isin(["toro"])].copy()
     _toro = _rango_full[_rango_full["nube"] == "toro"]

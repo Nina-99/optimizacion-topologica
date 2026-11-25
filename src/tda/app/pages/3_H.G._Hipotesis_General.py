@@ -1,11 +1,11 @@
 """Página 3: H.G. — Hipótesis General (Cap. I §1.5).
 
 Ejecuta los protocolos de H.E.1 y H.E.2 y sintetiza la hipótesis general en
-sus DOS cláusulas del PDF:
+sus DOS cláusulas:
 
   A. Estabilidad/verificabilidad de β_k bajo q ≤ q*  (H.E.1a, H.E.1c, H.E.2b).
   B. Ventaja frente a descriptores euclidianos cuando la información es
-     topológica (H.E.1b, piloto documentado del PDF).
+     topológica (H.E.1b, piloto de referencia).
 
 H.E.2a (eficiencia estructural) se informa aparte: NO es una cláusula de H.G.
 NO usa μ_α ni regularización en el bucle (fuera de alcance).
@@ -65,7 +65,7 @@ st.info(
 st.sidebar.header("🧭 H.G. — Hipótesis General")
 n_points = st.sidebar.number_input("Puntos por nube (H.E.1)", min_value=400, max_value=1000, value=400, step=50)
 n_rep = st.sidebar.slider("Réplicas por nube y nivel (R)", min_value=10, max_value=100, value=20, step=10,
-                          help="Protocolo del documento: R = 100 (más lento).")
+                          help="Protocolo completo: R = 100 (más lento).")
 usar_cache = st.sidebar.checkbox(
     "Usar resultados en caché (CSV)", value=True,
     help="Si existen fig52_replicas.csv, validacion_HE2_corregida.csv y "
@@ -96,7 +96,7 @@ if ejecutar:
             origen_he1 = "caché CSV"
         st.session_state.he1_fig52 = res52
 
-        st.write("⚡ H.E.1b: piloto documentado del PDF.")
+        st.write("⚡ H.E.1b: piloto de referencia.")
         st.session_state.he1_mcnemar = resultado_piloto_pdf()
         st.session_state.he1_params = {"n_points": n_points, "n_rep": n_rep,
                                        "origen": origen_he1}
@@ -163,7 +163,7 @@ if he1_run:
     _frac = float((_rep["dB"] <= _rep["cota_teorema"] + 1e-9).mean())
     he1a_ok = _frac == 1.0
     he1a_val = f"{_frac:.3f}"
-    # H.E.1c: denominador del PDF (18) = 7 nubes × 3 dimensiones menos toro.
+    # H.E.1c: denominador de referencia (18) = 7 nubes × 3 dimensiones menos toro.
     _qe_full = rango_fiabilidad(_rep)
     _qe = _qe_full[~_qe_full["nube"].isin(["toro"])].copy()
     _n_sost = int((_qe["estado"] == "se sostiene").sum())
@@ -230,7 +230,7 @@ if he1_run and he2_run:
         estabilidad_ok = bool(
             he1a_ok is True and he2b_ok is True and (he1c_ok is True or he1c_acotada)
         )
-    # Cláusula B: ventaja comparativa. El piloto del PDF es no concluyente.
+    # Cláusula B: ventaja comparativa. El piloto de referencia es no concluyente.
     comparativa_ok = (he1b_ok is True) if he1b_ok is not None else None
     if estabilidad_ok is True and comparativa_ok is True:
         hg_estado = "sostenida"
@@ -355,7 +355,7 @@ clausulas = pd.DataFrame([
         "Evidencia": "Medido",
         "Estado": ("sostenida" if comparativa_ok else
                    "no concluyente" if comparativa_ok is False else "sin datos"),
-        "Lectura": "piloto documentado del PDF: 0,950 vs 0,925, McNemar no significativo",
+        "Lectura": "piloto de referencia: 0,950 vs 0,925, McNemar no significativo",
     },
     {
         "Cláusula": "Eficiencia estructural SIMP (no pertenece a H.G.)",
@@ -372,7 +372,7 @@ if hg_estado == "sostenida":
 elif hg_estado == "parcial":
     st.warning(
         "### H.G. — MEDIDO · PARCIAL / CONDICIONADA — la cláusula de estabilidad se sostiene con alcance, "
-        "pero la ventaja comparativa es **no concluyente** en el piloto del PDF. "
+        "pero la ventaja comparativa es **no concluyente** en el piloto de referencia. "
         "No corresponde declararla corroborada ni refutada."
     )
 elif hg_estado == "no sostenida":
@@ -469,7 +469,7 @@ methodology_expander("📖 Protocolo y compuertas — H.G.", [
         "| Ítem | Se mide | Criterio | Evidencia |\n"
         "|---|---|---|---|\n"
         "| H.E.1a | $d_B \\le 2\\,d_H$ | 100 % de réplicas | Fig. 5.2(b) |\n"
-        "| H.E.1b | TDA vs euclidiano | McNemar $p < 0.05$; piloto PDF no concluyente | Tabla 5.5 |\n"
+        "| H.E.1b | TDA vs euclidiano | McNemar $p < 0.05$; piloto de referencia no concluyente | Tabla 5.5 |\n"
         "| H.E.1c | $q^*$ y caída $<50\\,\\%$ | banda $\\le 0.10$ | Fig. 5.2(a) |\n"
         "| H.E.2a | reducción de compliance | $\\ge 15\\,\\%$ vs placa p=1 (fuera de H.G.) | Fig. 5.4(b) |\n"
         "| H.E.2b | $\\beta_1$ invariante | malla, $p$, $r_{\\min}$ + Euler≡GUDHI | Figs. 5.5–5.7 |\n"

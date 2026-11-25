@@ -651,7 +651,7 @@ def methodology_expander(title, content_items, page_name):
                 st.markdown(text)
 
         st.markdown("---")
-        st.caption("Trazabilidad con el Cap. IV del documento.")
+        st.caption("Trazabilidad con el protocolo experimental.")
 
 
 # ═══════════════════════════════════════════════════════════════

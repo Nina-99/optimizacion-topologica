@@ -64,7 +64,7 @@ graph TD
     Prep --> Opt
 ```
 
-### Núcleo computacional (fragmento para defensa)
+### Núcleo computacional (SIMP + TDA)
 
 Este es el tramo que une SIMP con TDA. Está abreviado desde `optimization/metric_simp.py` y `core/betti2d.py`; las funciones completas viven en esos archivos.
 
@@ -106,7 +106,7 @@ dgm0, dgm1 = diagramas_campo(self.rho_tilde_final.reshape((self.ney, self.nex)))
 - El doble cómputo tiene modos de fallo independientes —Euler con 8-conectividad y homología cúbica GUDHI— y el código **se detiene** si discrepan.
 - El diagrama de persistencia se calcula sobre `f = 1 − ρ̃` para que el Teorema 2.1 (`d_B ≤ ‖f−g‖∞`) aplique al campo, no sobre un grid ya binarizado.
 
-En una frase para la defensa: **“el software no solo calcula β₁; primero construye el campo físico con un filtro compacto, resuelve el FEM, actualiza por OC con la restricción de volumen correcta y recién después lee la topología con dos métodos independientes y un diagrama de persistencia del campo.”**
+En síntesis: **“el software no solo calcula β₁; primero construye el campo físico con un filtro compacto, resuelve el FEM, actualiza por OC con la restricción de volumen correcta y recién después lee la topología con dos métodos independientes y un diagrama de persistencia del campo.”**
 
 ---
 
@@ -285,7 +285,7 @@ Para comparar original vs réplica: `python scripts/comparar_figuras.py`.
 ### Modo 4: Reconstrucción headless de figuras (entregable E3)
 
 Genera las figuras 5.1–5.7 del Cap. V **sin Streamlit**, por script, desde los
-protocolos o CSV, con los ejes y escalas del documento (salida en `data/figuras/`):
+protocolos o CSV, con los ejes y escalas del protocolo (salida en `data/figuras/`):
 
 ```bash
 # Caso 1 (TDA): calibración, tasa de acierto, cota por réplica y cota 2q

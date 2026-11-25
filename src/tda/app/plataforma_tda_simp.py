@@ -237,8 +237,8 @@ with cols[3]:
     st.page_link("pages/4_Ejemplo_Viga_1D_vs_2D.py", label="🧪 Abrir Ejemplo", width='stretch')
 
 
-# ── Núcleo computacional (fragmento para defensa) ──
-with st.expander("🔬 Núcleo computacional — fragmento para defensa", expanded=False):
+# ── Núcleo computacional (SIMP + TDA) ──
+with st.expander("🔬 Núcleo computacional — SIMP + TDA", expanded=False):
     st.markdown(
         "El tramo que une SIMP con TDA: filtro de densidad, FEM, sensibilidad "
         "adjunta, actualización OC y doble cómputo topológico."

@@ -1,12 +1,12 @@
 """Página 2: H.E.2 — Optimización SIMP.
 
-Presenta la validación en el ORDEN del documento:
+Presenta la validación en el orden del protocolo:
   1. H.E.2a — eficiencia estructural (Tabla 5.6; Figuras 5.4(a) y 5.4(b))
   2. H.E.2b — estabilidad del descriptor topológico (Figuras 5.5, 5.6 y 5.7;
      doble cómputo β₀/β₁)
   3. Veredicto H.E.2 (Tabla 5.6 + síntesis)
 
-Constantes del documento:
+Constantes del protocolo:
   - Viga en voladizo; malla base 60×30 (§3.4.1); fV = 0.5; p = 3; rmin = 2.4.
   - H.E.2a: (c_unif − c_bin)/c_unif ≥ 0.15 (referente = placa p=1; binario al u_V).
   - H.E.2b: β₁(Ω_sólido) invariante frente a malla (rmin escalado), p ∈ {2,3,4}
@@ -38,7 +38,7 @@ from tda.app.theme import (
     methodology_expander, page_header,
 )
 
-# ── Constantes del documento ─────────────────────────────────────────
+# ── Constantes del protocolo ─────────────────────────────────────────
 FV = 0.5
 P_DEFECTO = 3
 RMIN_DEFECTO = 2.4
@@ -113,7 +113,7 @@ penal = st.sidebar.number_input("Factor de penalización (p)", value=float(P_DEF
                                 help="Variable independiente. p = 3 es el estándar SIMP (H.E.2).")
 rmin = st.sidebar.number_input("Radio de filtro (rmin, elementos)", value=RMIN_DEFECTO,
                                min_value=1.0, max_value=5.0, step=0.1, key="simp_rmin",
-                               help="Variable interviniente. Rango del documento [1.5, 4.0].")
+                               help="Variable interviniente. Rango recomendado [1.5, 4.0].")
 
 with st.sidebar.expander("⚙️ Parámetros de ejecución", expanded=False):
     max_iter = st.slider("Iteraciones máximas", 100, 500, 300, key="simp_max_iter")
@@ -220,7 +220,7 @@ if ejecutar_simp:
 
 
 # ══════════════════════════════════════════════════════════════════════
-# RENDERIZADO (orden del documento: H.E.2a → H.E.2b → veredicto)
+# RENDERIZADO (orden del protocolo: H.E.2a → H.E.2b → veredicto)
 # ══════════════════════════════════════════════════════════════════════
 _HE2_KEYS = [
     "simp_rho_final", "simp_rho_tilde_final", "simp_nex", "simp_ney",

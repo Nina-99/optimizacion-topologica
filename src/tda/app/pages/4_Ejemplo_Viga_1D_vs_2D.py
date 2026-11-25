@@ -749,7 +749,7 @@ elif modo == "📋 Informe de Ingeniería":
         f"**t** = {espesor_mm:.1f} mm  ·  **malla** = {nelx}×{nely}  ·  "
         f"f_V = {volfrac:.2f}, p = {penal:.0f}, r_min = {rmin:.1f}"
     )
-    st.caption("Unidades SI (m, N, Pa, kg). Cada resultado se conecta con la hipótesis del documento "
+    st.caption("Unidades SI (m, N, Pa, kg). Cada resultado se conecta con la hipótesis de la investigación "
                "(H.E.2a: reducción ≥ 15 % vs placa p=1; H.E.2b: β₁ estable + doble cómputo).")
 
     if st.button("▶ Ejecutar caso real y generar informe", type="primary", key="btn_informe"):
