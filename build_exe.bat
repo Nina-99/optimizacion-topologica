@@ -68,6 +68,21 @@ if not exist "%REQUIREMENTS%" (
     pause
     exit /b 1
 )
+if not exist "src\tda\analysis\estados.py" (
+    echo [ERROR] Falta src\tda\analysis\estados.py (vocabulario de estados).
+    pause
+    exit /b 1
+)
+if not exist "src\tda\visualization\leyendas.py" (
+    echo [ERROR] Falta src\tda\visualization\leyendas.py (leyendas de figuras).
+    pause
+    exit /b 1
+)
+if not exist "src\tda\app\pages\3_H.G._Hipotesis_General.py" (
+    echo [ERROR] Falta la pagina H.G. en src\tda\app\pages.
+    pause
+    exit /b 1
+)
 echo  OK - Archivos del proyecto encontrados
 echo.
 
@@ -107,7 +122,7 @@ if %errorlevel% neq 0 (
 
 REM 4b. ripser sin persim
 echo  [4b] Instalando ripser (sin dependencias)...
-uv pip install ripser --no-deps --python %VENV_PYTHON%
+uv pip install "ripser==0.6.15" --no-deps --python %VENV_PYTHON%
 if %errorlevel% neq 0 (
     echo [ERROR] No se pudo instalar ripser.
     pause
@@ -186,7 +201,7 @@ if exist "OTopologica.ico" (
     set ICON_OPT=--icon OTopologica.ico
 )
 
-%VENV_DIR%\Scripts\streamlit-desktop-app build %APP_SCRIPT% --name %APP_NAME% --pyinstaller-options --onefile !ICON_OPT! --noconfirm --collect-all matplotlib.backends --collect-all streamlit --collect-all plotly --collect-data matplotlib --copy-metadata streamlit --hidden-import matplotlib.backends.backend_pdf --hidden-import matplotlib.backends.backend_agg --hidden-import matplotlib.font_manager --hidden-import ripser --hidden-import gudhi --hidden-import gudhi.rips_complex --hidden-import gudhi.simplex_tree --hidden-import numpy.f2py --hidden-import sklearn.cluster --hidden-import sklearn.metrics --hidden-import sklearn.decomposition --hidden-import scipy.sparse --hidden-import scipy.sparse.linalg --hidden-import scipy.spatial.distance --hidden-import pandas --hidden-import matplotlib.patches --hidden-import io --hidden-import tda.app.download_utils --hidden-import tda.core.topology --hidden-import tda.core.betti2d --hidden-import tda.core.metric --hidden-import tda.optimization.metric_simp --hidden-import tda.optimization.beam_optimizer --add-data "!MPL_DATA_PATH!;matplotlib/mpl-data" --add-data "src\tda;tda" --add-data "src\tda\app\pages;pages" --add-data "src\img;img" --paths src
+%VENV_DIR%\Scripts\streamlit-desktop-app build %APP_SCRIPT% --name %APP_NAME% --pyinstaller-options --onefile !ICON_OPT! --noconfirm --collect-all matplotlib.backends --collect-all streamlit --collect-all plotly --collect-data matplotlib --copy-metadata streamlit --hidden-import matplotlib.backends.backend_pdf --hidden-import matplotlib.backends.backend_agg --hidden-import matplotlib.font_manager --hidden-import ripser --hidden-import gudhi --hidden-import gudhi.rips_complex --hidden-import gudhi.simplex_tree --hidden-import numpy.f2py --hidden-import sklearn.cluster --hidden-import sklearn.metrics --hidden-import sklearn.decomposition --hidden-import scipy.sparse --hidden-import scipy.sparse.linalg --hidden-import scipy.spatial.distance --hidden-import pandas --hidden-import matplotlib.patches --hidden-import io --hidden-import tda.app.download_utils --hidden-import tda.app.theme --hidden-import tda.core.topology --hidden-import tda.core.betti2d --hidden-import tda.core.fem --hidden-import tda.analysis.estados --hidden-import tda.analysis.stability --hidden-import tda.analysis.calibracion --hidden-import tda.analysis.estabilidad_dimensional --hidden-import tda.analysis.truncamiento --hidden-import tda.processing.preprocessing --hidden-import tda.processing.sampling --hidden-import tda.simulation.he_protocols --hidden-import tda.simulation.pipeline --hidden-import tda.visualization.figuras --hidden-import tda.visualization.leyendas --hidden-import tda.optimization.metric_simp --hidden-import tda.optimization.beam_optimizer --add-data "!MPL_DATA_PATH!;matplotlib/mpl-data" --add-data "src\tda;tda" --add-data "src\tda\app\pages;pages" --add-data "src\img;img" --paths src
 
 if !errorlevel! neq 0 (
     echo.
