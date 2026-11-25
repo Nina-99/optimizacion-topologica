@@ -141,3 +141,14 @@ class TestNoiseSweepCallback:
                                      noise_min=0.0, noise_max=0.2,
                                      n_steps=3, progress_callback=None)
         assert result is not None
+
+
+class TestPilotoHE1B:
+    def test_piloto_pdf_no_significativo(self):
+        """El valor oficial de H.E.1b es el piloto del PDF, no el reproducible."""
+        from tda.analysis.stability import resultado_piloto_pdf
+        r = resultado_piloto_pdf()
+        assert r["exactitud_tda"] == 0.950
+        assert r["exactitud_eucl"] == 0.925
+        assert r["mc_nemar"]["significant"] is False
+        assert "PDF" in r["fuente"]

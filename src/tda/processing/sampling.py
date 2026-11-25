@@ -237,7 +237,7 @@ def add_gaussian_noise(points: np.ndarray, q: float) -> np.ndarray:
     return points + np.random.normal(0, sigma, points.shape)
 
 
-def apply_random_affine(points: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def apply_random_affine(points: np.ndarray, rng=None) -> Tuple[np.ndarray, np.ndarray]:
     """Aplica una transformación afín aleatoria invertible: Y = X·Aᵀ + b.
 
     Ref: §9.4.3 (Limitaciones) — la deformación afín es un homeomorfismo
@@ -255,12 +255,13 @@ def apply_random_affine(points: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         A: Matriz de transformación (D, D) invertible.
     """
     d = points.shape[1]
+    rng = np.random if rng is None else rng
     # Generar matriz cercana a identidad (invertible con probabilidad 1)
-    A = np.eye(d) + 0.3 * np.random.randn(d, d)
+    A = np.eye(d) + 0.3 * rng.standard_normal((d, d))
     # Verificar que sea invertible (determinante no nulo)
     while abs(np.linalg.det(A)) < 0.1:
-        A = np.eye(d) + 0.3 * np.random.randn(d, d)
-    b = 0.5 * np.random.randn(d)
+        A = np.eye(d) + 0.3 * rng.standard_normal((d, d))
+    b = 0.5 * rng.standard_normal(d)
     Y = points @ A.T + b
     return Y, A
 

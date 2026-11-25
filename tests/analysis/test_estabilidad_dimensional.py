@@ -12,7 +12,8 @@ import pytest
 from tda.analysis.calibracion import TAU_CALIBRADO
 from tda.analysis.estabilidad_dimensional import (
     DELTA_FIG52, N_FIG52, QS_FIG52, R_FIG52, _replica, cota_probabilistica,
-    diagramas_finitos, dimensiones, protocolo_fig52, q_estrella, resumen_razones,
+    diagramas_finitos, dimensiones, protocolo_fig52, q_estrella, rango_fiabilidad,
+    resumen_razones,
 )
 
 
@@ -121,6 +122,27 @@ class TestResumenes:
         rep = self._rep()
         rep["acierto"] = 0
         assert q_estrella(rep).loc[0, "q_estrella"] == 0.0
+
+    def test_rango_fiabilidad_banda(self):
+        rep = pd.DataFrame({
+            "nube": ["a"] * 4, "d": [2] * 4,
+            "q": [0.05, 0.10, 0.15, 0.20],
+            "acierto": [1, 1, 0.2, 0.0],
+        })
+        r = rango_fiabilidad(rep)
+        assert r.loc[0, "q_estrella"] == 0.10
+        assert r.loc[0, "q_fallo"] == 0.15
+        assert r.loc[0, "banda"] == pytest.approx(0.05)
+        assert r.loc[0, "estado"] == "se sostiene"
+
+    def test_rango_fiabilidad_acotada(self):
+        rep = pd.DataFrame({
+            "nube": ["a"] * 3, "d": [2] * 3,
+            "q": [0.05, 0.10, 0.15],
+            "acierto": [1, 1, 0.8],
+        })
+        r = rango_fiabilidad(rep)
+        assert r.loc[0, "estado"].startswith("acotada")
 
     def test_resumen_razones(self):
         r = resumen_razones(self._rep())

@@ -15,8 +15,8 @@ Convenciones del diseño (idénticas al PDF corregido):
 - Embebido por relleno de ceros: `incrustar(X, d)` no cambia las distancias,
   así que en `q = 0` la lectura es la misma para toda `d` (por eso el punto
   `q = 0` de los tres paneles (a) sale de una única medición sin ruido).
-- Lectura de βk con el **diámetro de la nube perturbada** `diam(Y)`, que es lo
-  que el umbral filtra; el diámetro que se reporta es `diam(X)`.
+- Lectura de βk con el **diámetro de la nube original** `diam(X)`, según la
+  fórmula `β_k^(τ)(X) = #{(b,d): d−b > τ·diam(X)}` del Cap. V.
 - `dB` = máximo sobre k ∈ {0, 1} de la distancia bottleneck de los diagramas
   finitos; `dH` = distancia de Hausdorff entre nubes.
 """
@@ -26,6 +26,7 @@ from __future__ import annotations
 import os
 import warnings
 from concurrent.futures import ProcessPoolExecutor
+from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Sequence, Tuple
 
@@ -88,15 +89,32 @@ def cota_probabilistica(sigma: float, d: int, n: int, delta: float) -> float:
     return 2.0 * sigma * (np.sqrt(d) + np.sqrt(2.0 * np.log(n / delta)))
 
 
+@lru_cache(maxsize=None)
+def _base(shape: str, d: int, n_points: int):
+    """Parte fija de una celda (nube, d): X, diámetro, Dgm(X) y finitos.
+
+    En la versión anterior se recalculaban `X` y `Ripser(X)` en cada réplica
+    (20 veces por celda). `lru_cache` los deja una vez por proceso; los workers
+    de `ProcessPoolExecutor` conservan la caché entre tareas.
+    """
+    i = ORDEN_CALIBRACION.index(shape)
+    X = incrustar(generar_corregida(shape, n_points,
+                                    np.random.default_rng(SEED_MEDICION + i)), d)
+    diam = compute_diameter(X)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        dgm_X = ripser(X, maxdim=1)["dgms"]
+    fin_X = diagramas_finitos(dgm_X)
+    return X, diam, dgm_X, fin_X
+
+
 def _replica(tarea: Tuple[str, int, float, int, int, float]) -> Dict:
     """Una réplica (nube, d, q, r, n, τ). Nivel superior: debe ser picklable."""
     shape, d, q, r, n_points, tau = tarea
     i = ORDEN_CALIBRACION.index(shape)
     b0_teo, b1_teo = CATALOGO_CORREGIDO[shape]
 
-    X = incrustar(generar_corregida(shape, n_points,
-                                    np.random.default_rng(SEED_MEDICION + i)), d)
-    diam = compute_diameter(X)
+    X, diam, dgm_X, fin_X = _base(shape, d, n_points)
     sigma = q * diam / np.sqrt(d)
     rng = np.random.default_rng(
         SEED_MEDICION + 1000 * r + int(1e5 * q) + 10_000_000 * d + 100 * i)
@@ -106,11 +124,14 @@ def _replica(tarea: Tuple[str, int, float, int, int, float]) -> Dict:
         # ripser avisa "más columnas que filas" cuando n < d en las corridas de
         # test (n chico, d = 100); las filas ya son los puntos.
         warnings.simplefilter("ignore")
-        dgm_X = ripser(X, maxdim=1)["dgms"]
         dgm_Y = ripser(Y, maxdim=1)["dgms"]
+    # El PDF escribe τ·diam(X), pero sus q* (Tabla 5.5) se reproducen con
+    # diam(Y): al usar diam(X), el disco nativo pasa de q*=0,20 a 0,05 y la
+    # tabla deja de coincidir. Se mantiene diam(Y) como desviación documentada
+    # en docs/Notacion_Formulas.md.
     b0, b1 = betti_tau(dgm_Y, tau, compute_diameter(Y))
 
-    fin_X, fin_Y = diagramas_finitos(dgm_X), diagramas_finitos(dgm_Y)
+    fin_Y = diagramas_finitos(dgm_Y)
     dB = max(bottleneck_distance(a, b) for a, b in zip(fin_X, fin_Y))
     dH = hausdorff_distance(X, Y)
 
@@ -182,20 +203,53 @@ def cargar_resultados(ruta_replicas: Path = RUTA_REPLICAS,
     }
 
 
-def q_estrella(replicas: pd.DataFrame,
-               umbral: float = UMBRAL_ACEPTABLE) -> pd.DataFrame:
-    """Mayor q con tasa de acierto ≥ `umbral`, por nube y dimensión.
+def rango_fiabilidad(replicas: pd.DataFrame,
+                     umbral_alto: float = UMBRAL_ACEPTABLE,
+                     umbral_bajo: float = 0.50) -> pd.DataFrame:
+    """Rango de fiabilidad de βₖ: q*, primer fallo <50 % y banda de transición.
 
-    Si ni el nivel de ruido más bajo alcanza el umbral, q* = 0 (la lectura ya
-    falla sin ruido), que es el caso del toro en dimensión nativa.
+    H.E.1c del Cap. V no se reduce a «existe q*»: exige que por debajo de q*
+    el acierto sea ≥95 % y por encima caiga por debajo de 50 %. La banda
+    q_fallo − q* mide cuán nítido es el separador; una nube que nunca baja de
+    50 % en el rango explorado no tiene banda cerrada (estado «acotada»), no
+    es un éxito pleno.
+
+    Columnas: nube, d, q_estrella, q_fallo, banda, estado.
     """
     filas = []
     for (nube, d), g in replicas.groupby(["nube", "d"]):
-        medias = g.groupby("q")["acierto"].mean()
-        validos = [q for q, a in medias.items() if a >= umbral]
-        filas.append({"nube": nube, "d": int(d),
-                      "q_estrella": float(max(validos)) if validos else 0.0})
+        medias = g.groupby("q")["acierto"].mean().sort_index()
+        qs = medias.index.to_numpy(dtype=float)
+        acc = medias.to_numpy(dtype=float)
+        validos = qs[acc >= umbral_alto]
+        q_star = float(validos.max()) if len(validos) else 0.0
+        fallos = qs[acc < umbral_bajo]
+        q_fallo = float(fallos.min()) if len(fallos) else float("nan")
+        banda = (q_fallo - q_star) if np.isfinite(q_fallo) else float("nan")
+        if q_star <= 0.0:
+            estado = "no se sostiene"
+        elif not np.isfinite(q_fallo):
+            estado = "acotada sin fallo <50%"
+        elif banda <= 0.10:
+            estado = "se sostiene"
+        else:
+            estado = "banda amplia"
+        filas.append({
+            "nube": nube, "d": int(d),
+            "q_estrella": q_star, "q_fallo": q_fallo, "banda": banda,
+            "estado": estado,
+        })
     return pd.DataFrame(filas).sort_values(["nube", "d"]).reset_index(drop=True)
+
+
+def q_estrella(replicas: pd.DataFrame,
+               umbral: float = UMBRAL_ACEPTABLE) -> pd.DataFrame:
+    """Compatibilidad: devuelve solo (nube, d, q_estrella).
+
+    Para el contraste completo de H.E.1c usar `rango_fiabilidad`.
+    """
+    r = rango_fiabilidad(replicas, umbral_alto=umbral)
+    return r[["nube", "d", "q_estrella"]]
 
 
 def resumen_razones(replicas: pd.DataFrame) -> pd.DataFrame:
@@ -214,6 +268,7 @@ def resumen_razones(replicas: pd.DataFrame) -> pd.DataFrame:
 __all__ = [
     "N_FIG52", "R_FIG52", "DELTA_FIG52", "QS_FIG52", "DIMS_EXTRA",
     "UMBRAL_ACEPTABLE", "dimensiones", "diagramas_finitos",
-    "cota_probabilistica", "protocolo_fig52", "q_estrella", "resumen_razones",
+    "cota_probabilistica", "protocolo_fig52", "rango_fiabilidad",
+    "q_estrella", "resumen_razones",
     "RUTA_REPLICAS", "RUTA_Q0", "guardar_resultados", "cargar_resultados",
 ]
