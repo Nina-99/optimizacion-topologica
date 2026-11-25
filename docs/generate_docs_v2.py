@@ -95,7 +95,7 @@ def generate_user_manual():
     doc.add_paragraph(
         "El botón «Calibrar τ» computa los 7 diagramas del patrón de oro una sola vez "
         "y evalúa 20 valores de τ: cuenta cuántas nubes reciben la lectura β₁ correcta. "
-        "La franja verde marca la ventana de acierto total 7/7; τ = 0.15 (valor usado "
+        "La franja verde marca la ventana de acierto total 7/7; τ = 0.175 (valor usado "
         "en todo el sistema) cae dentro de ella."
     )
     _shot(doc, "H_E_1_1.png", "Figura 3. Figura 5.1 — Curva de calibración de τ con ventana 7/7.")
@@ -103,12 +103,12 @@ def generate_user_manual():
     doc.add_paragraph(
         "La Figura 5.2(a) muestra la tasa de acierto de βₖ por nivel de ruido: la lectura "
         "escalar deja de ser fiable fuera de su régimen de validez (H.E.1c). La Figura 5.3 "
-        "contrasta la distancia bottleneck normalizada contra la cota 2q por nube y nivel; "
+        "contrasta la distancia bottleneck normalizada contra la cota probabilística por nube y nivel; "
         "la Figura 5.2(b) verifica la cota dB = 2dH réplica por réplica con su región prohibida."
     )
     _shot(doc, "H_E_1_2_1.png", "Figura 4. Figura 5.2(a) — Tasa de acierto de βₖ por ruido.")
     _shot(doc, "H_E_1_2_2.png", "Figura 5. Datos para la Figura 5.2(a) y hallazgo del régimen de validez.")
-    _shot(doc, "H_E_1_3_1.png", "Figura 6. Figura 5.3 — Bottleneck normalizada vs cota 2q.")
+    _shot(doc, "H_E_1_3_1.png", "Figura 6. Figura 5.3 — Bottleneck normalizada vs cota probabilística.")
     _shot(doc, "H_E_1_3_2.png", "Figura 7. Veredicto H.E.1a y datos de la Figura 5.3.")
     doc.add_heading("4.3 Clasificación, McNemar y Tabla 5.5", level=2)
     doc.add_paragraph(
@@ -127,7 +127,7 @@ def generate_user_manual():
     doc.add_heading("5. Módulo H.E.2 — Optimización SIMP", level=1)
     doc.add_paragraph(
         "Optimización topológica 2D con SIMP y evaluación topológica post hoc. Valida "
-        "H.E.2a (reducción ≥ 40 % vs diseño uniforme) y H.E.2b (β₁ invariante). "
+        "H.E.2a (reducción ≥ 15 % del binarizado vs placa p=1) y H.E.2b (β₁ invariante en el voladizo; MBB como falsación). "
         "Incluye Figuras 5.4 a 5.7 con epígrafes del documento, Tabla 5.6 dinámica y "
         "doble cómputo de Betti: característica de Euler del complejo cúbico "
         "(χ = V−E+F, β₁ = β₀−χ) vs homología cúbica persistente (GUDHI)."
@@ -147,14 +147,14 @@ def generate_user_manual():
     _shot(doc, "H_E_2_2_2.png", "Figura 16. Figura 5.4(a) — Densidad continua vs diseño binarizado.")
     doc.add_heading("5.2 Barrido multi-configuración (H.E.2b)", level=2)
     doc.add_paragraph(
-        "El barrido corre 12–13 configuraciones (malla, p, rmin). Las Figuras 5.5 y 5.6 "
+        "El barrido corre 19 configuraciones (6 rmin del voladizo, p, 3 mallas y 6 rmin del MBB). Las Figuras 5.5 y 5.6 "
         "verifican invariancia: compliance y grisura vs p (con β₁ anotado por punto), "
         "compliance y β₁ vs número de elementos. El veredicto final combina H.E.2a y H.E.2b."
     )
     _shot(doc, "H_E_2_3.png", "Figura 17. Métricas, exportación y barrido multi-configuración.")
     _shot(doc, "H_E_2_4_1.png", "Figura 18. Datos y Figura 5.5 — Barrido del factor de penalización.")
     _shot(doc, "H_E_2_4_2.png", "Figura 19. Datos y Figura 5.6 — Barrido de malla.")
-    _shot(doc, "H_E_2_4_3.png", "Figura 20. Barrido de rmin (5 valores).")
+    _shot(doc, "H_E_2_4_3.png", "Figura 20. Barrido de rmin (6 valores, voladizo y MBB).")
     _shot(doc, "H_E_2_4_4.png", "Figura 21. Veredicto H.E.2 y plan de acción del módulo.")
     doc.add_page_break()
 
@@ -225,7 +225,7 @@ def generate_technical_doc():
     doc.add_heading("2.1 Homología persistente", level=2)
     doc.add_paragraph(
         "Ripser (complejos Vietoris-Rips) para nubes; GUDHI (complejos cúbicos) para "
-        "mallas. Lectura βk = (β₀, β₁) con umbral relativo τ·diam(X); τ = 0.15 "
+        "mallas. Lectura βk = (β₀, β₁) con umbral relativo τ·diam(X); τ = 0.175 "
         "calibrado contra el patrón de oro de 7 nubes (Figura 5.1)."
     )
     _shot(doc, "H_E_1_1.png", "Figura 2. Calibración de τ contra el patrón de oro de 7 nubes.")
@@ -242,7 +242,7 @@ def generate_technical_doc():
         "Dominio con elementos unitarios (Lx = nex, Ly = ney), material y carga "
         "normalizados (E₀ = 1, F = 1), malla 60×30, fV = 0.5, p = 3, rmin = 2.4. "
         "Esta configuración reproduce los valores del Capítulo 5: c_uniforme = 316.34, "
-        "c_sólido = 39.54, c_SIMP ≈ 75.5 y β₁ = 3."
+        "c_sólido = 39.54, c_SIMP ≈ 74.6, c_bin ≈ 63.0 y β₁ = 3."
     )
     _shot(doc, "H_E_2_1_1.png", "Figura 4. Compliance vs referentes (Tabla 5.6).")
 
@@ -251,7 +251,7 @@ def generate_technical_doc():
         "Motor Q4 (fem.py): ensamble, solver, sensibilidades y criterio de optimalidad "
         "(OC) con filtro de DENSIDAD rmin (ρ̃ = H·ρ/Hs). Optimización p = 3, fV = 0.5, "
         "material/carga normalizados (E₀ = 1, F = 1), mallas rectangulares "
-        "(40×20, 80×40, 120×60) con rmin escalado (1.6/3.2/4.8)."
+        "(60×30, 120×60, 180×90) con rmin físico constante (2.4/4.8/7.2)."
     )
     _shot(doc, "H_E_2_2_2.png", "Figura 5. Campo continuo vs sólido binarizado.")
     _shot(doc, "H_E_2_4_1.png", "Figura 6. Barrido p con grisura y β₁ anotado.")
@@ -275,8 +275,8 @@ def generate_technical_doc():
     doc.add_heading("6. Hallazgos Principales", level=1)
     doc.add_paragraph(
         "La lectura escalar βₖ deja de ser fiable fuera de su régimen (tasa ≈ 0 en "
-        "q ≥ 0.15); rigen H.E.1a (cota 2q), H.E.1b (McNemar) y H.E.1c (q* delimitado). "
-        "H.E.2a: reducción ≈ 76.4 % vs uniforme (≥ 40 % exigido). H.E.2b: β₁ = 3 "
+        "q ≥ 0.15); rigen H.E.1a (dB ≤ 2dH), H.E.1b (McNemar) y H.E.1c (q* delimitado). "
+        "H.E.2a: reducción ≈ 20.2 % vs placa p=1 (≥ 15 % exigido), η = 0.666. H.E.2b: β₁ = 3 "
         "invariante frente a malla, penalización p ∈ {2,3,4} y rmin ∈ [1.5, 4.0]."
     )
     add_note(doc, "Los valores entre paréntesis corresponden a corridas de referencia "

@@ -174,6 +174,8 @@ La forma `dB ≤ 2dH` se cumple en el **100 %** de las réplicas (lo que el docu
 
 ## Item 12 — H.E.1b: clasificador euclidiano de referencia y veredicto
 
+> **SUPERADO por el Item 37.** La decisión vigente es que **prevalece el PDF**: H.E.1b queda como piloto no concluyente (0,950 vs 0,925). El protocolo reproducible se conserva como evidencia exploratoria, sin cambiar el veredicto documentado.
+
 **Antes:** el Cap. V / Tabla 5.5 reportan exactitud 0.950 (TDA) vs 0.925 (euclidiano), McNemar **no significativo** → H.E.1b = ×. El documento no especifica la forma exacta del clasificador euclidiano (solo que es "espectro PCA + inercia de k-medias + dispersión radial").
 
 **Después:** el clasificador euclidiano se define como vecino-más-cercano sobre el descriptor compuesto **[espectro PCA, inercia de k-medias, dispersión radial]**, entrenado en muestras **limpias** y evaluado bajo deformación afín. Con el método fiel, la medición (n=400, 200/clase, semilla 42) da **TDA ≈ 0.905 vs Eucl ≈ 0.550**, McNemar p < 0.001 → **H.E.1b se sostiene** (el descriptor topológico supera significativamente al euclidiano).
@@ -750,16 +752,168 @@ Items 25 y 26 quedan superados; los PNG `fig53a_forma_documento.png` y
 
 ---
 
+## Item 36 — Caso 2 alineado con el Cap. V corregido (H.E.2a/H.E.2b)
+
+**Qué se hizo:** se eliminó la validación con la formulación anterior (≥40 % contra el uniforme penalizado) y se implementó el protocolo del PDF:
+
+- **H.E.2a:** placa uniforme `p=1`, diseño binarizado al umbral `u_V` que conserva el volumen, compliance del binario con material 0/1 y cota inferior convexa `M*` (`p=1`, sin filtro). Se agrega la eficiencia relativa `η = (c_unif − c_bin)/(c_unif − c_ast)` y el criterio **≥15 %**.
+- **H.E.2b:** mallas `60×30 / 120×60 / 180×90` con `r_min` físico constante (`2,4 / 4,8 / 7,2`), seis radios `r_min` (incluido `3,5`) y viga MBB `120×40` como falsación.
+- **Topología:** Método A con **8-conectividad** (cuadrados cerrados), doble cómputo bloqueante (si Euler ≠ GUDHI se aborta) y diagrama H₁ de la **filtración por subniveles** de `f=1−ρ̃`, no del grid binario.
+- **Umbral:** `u_V` se calcula para conservar `f_V`; el barrido de la Fig. 5.7 usa `u ∈ [0,025; 0,975]`.
+
+**Verificación (corrida completa, `experiment_simp`):**
+
+- Base 60×30: `c_unif=79,09`; `c_bin=63,08`; `c_ast=55,15`; reducción `20,24 %`; `η=0,669`; `u_V=0,556`; `β₁=3`; persistencia mínima de los tres agujeros `0,914` (PDF: `20,2 %`, `0,666`, `0,554`, `0,905`).
+- Mallas: `β₁=3` en 60×30, 120×60 y 180×90; `c_bin=63,08 / 62,75 / 62,80` (PDF: `63,12 / 62,68 / 62,77`).
+- `r_min`: `β₁=3` en los seis radios del voladizo.
+- MBB: `β₁=9, 8, 8, 7, 2, 2` (PDF: `9, 8, 8, 6, 2, 2`); la meseta no es constante, que es el veredicto del Cap. V.
+- `p`: `β₁=3` para `p=2,3,4`; `p=1` da `β₁=0`.
+
+**Archivos:** `simulation/he_protocols.py`, `simulation/experiment_simp.py`, `optimization/metric_simp.py`, `core/betti2d.py`, `app/pages/2_H.E.2_*`, `app/pages/3_H.G._*`, `visualization/figuras.py`.
+
+---
+
+## Item 37 — H.E.1b y H.E.1c: protocolo completo
+
+**H.E.1b.** Se reemplazó el clasificador de juguete por el protocolo del Cap. III:
+- 200 muestras por clase (400 pares), catálogo corregido disco/anillo;
+- transformación afín aleatoria con RNG reproducible;
+- descriptor TDA = vector de persistencias H₁ normalizadas + β₀/β₁;
+- descriptor euclidiano = espectro PCA + inercia de k-medias, **sin dispersión radial** (la fuga que el propio Cap. V señala);
+- `RandomForest` con validación cruzada estratificada de 5 particiones, mismas particiones para ambos;
+- McNemar sobre predicciones emparejadas.
+
+**Decisión: el PDF prevalece.** El valor oficial de H.E.1b es el piloto documentado: **0,950 vs 0,925, McNemar no significativo → no concluyente**. La app lo carga desde `resultado_piloto_pdf()` y H.G. no se declara corroborada por esta vía.
+
+**Protocolo reproducible (exploratorio):** con el clasificador y la CV corregidos, el experimento actual da `1,000 ± 0,000` vs `0,750 ± 0,061` (`p ≈ 1,5e-23`). Se conserva en `comparar_tda_vs_euclidiano` y en la casilla «protocolo reproducible» de H.E.1, pero **no reemplaza** el resultado del PDF. Esta diferencia queda documentada como limitación de reproducibilidad del piloto, no como cambio de veredicto.
+
+**H.E.1c.** `estabilidad_dimensional.rango_fiabilidad` calcula ahora:
+- `q_estrella` = mayor q con acierto ≥ 0,95;
+- `q_fallo` = primer q con acierto < 0,50;
+- `banda = q_fallo − q_estrella` y estado (`se sostiene`, `acotada sin fallo <50%`, `no se sostiene`).
+
+Sobre `fig52_replicas.csv`, con el denominador del PDF (18 = 7 nubes × 3 dimensiones menos el toro): **12** combinaciones con banda ≤ 0,10, **3** acotadas sin llegar a <50 % (disco, esfera y gaussiana en dimensión nativa) y **3** sin lectura fiable (dos círculos). El toro se reporta aparte (3 combinaciones, q*=0). El veredicto correcto es **H.E.1c acotada**, no «se sostiene» a secas.
+
+---
+
+## Item 38 — Réplica y justificación de `8.Figuras/`
+
+**Qué se hizo:** `scripts/replicar_figuras.py` regenera las ocho figuras del Cap. V en `data/figuras/replica/` y escribe `valores.csv`. El detalle figura→función→dato→valor está en `docs/Replica_Figuras.md`.
+
+- Se implementó `fig_58_rmin_falsacion`, que no existía.
+- El barrido H.E.2 guarda `beta1_u05`: la Fig. 5.8 usa `u = 0,5`, no `u_V`. Con esa convención la MBB reproduce `9, 8, 8, 6, 2, 2`.
+- `fig_54a_diseno` volvió al panel único con contorno `u_V` del PDF; `fig_54b_historial` rotula iteraciones y convergencia.
+- `fig_56_malla` ya no hardcodea `β₁ = 3`; usa el dato.
+
+**Estado:** 5.1, 5.2, 5.3 y 5.8 coinciden; 5.4–5.7 coinciden en los valores que sostienen el veredicto. La Fig. 5.4(b) del PDF dice 139 iteraciones y la réplica converge en 89, sin cambiar `c_unif/c_bin/c_ast`, `u_V` ni `β₁`.
+
+---
+
+## Item 39 — Notación, fórmulas y leyendas de figuras
+
+**Notación/fórmulas:** `docs/Notacion_Formulas.md` mapea los símbolos del Cap. II a variables del código y audita cada ecuación:
+
+- `(2.7)` y `(2.9)` se corrigieron en `core/fem.py`: ahora `E_e = E_min + ρ_e^p(E−E_min)` y `∂M/∂ρ_e = −p ρ_e^{p−1}(E−E_min) u_e^T K₀ u_e`, en lugar de `max(ρ,ρ_min)^p`.
+- `(2.10)`, `η`, `u_V`, `grisura`, cota probabilística y bottleneck están implementados y coinciden.
+- Queda documentada la desviación `diam(X)` vs `diam(Y)` en H.E.1c: se mantiene `diam(Y)` para no alterar los `q*` del PDF.
+- H.E.1b sigue el piloto del PDF; el protocolo reproducible queda como evidencia exploratoria.
+
+**Leyendas:** `src/tda/visualization/leyendas.py` centraliza las leyendas breves de las Figs. 5.1–5.8. La app las muestra con `st.caption` y `scripts/replicar_figuras.py` las exporta a `data/figuras/replica/leyendas.csv`.
+
+---
+
+## Item 40 — H.G. reformulada según §1.5 y veredicto por cláusulas
+
+**Qué se corrigió:** la página H.G. usaba un texto distinto al §1.5 y calculaba `all(H.E.1a, H.E.1b, H.E.1c, H.E.2a, H.E.2b)`, incluyendo H.E.2a (eficiencia) y exigiendo H.E.1b como condición universal.
+
+**Ahora:**
+
+- Se usa el texto literal de la hipótesis general del §1.5.
+- Se separan las dos cláusulas:
+  - **A. Estabilidad/verificabilidad** de `β_k` bajo `q ≤ q*`: H.E.1a + H.E.1c + H.E.2b. H.E.1c acotada sostiene la cláusula **con alcance**, no la refuta.
+  - **B. Ventaja comparativa**: H.E.1b. El piloto del PDF es **no concluyente**.
+- H.E.2a se reporta como **informativa y fuera de H.G.**
+- El veredicto es tri-estado: `sostenida`, `parcial/condicionada`, `no sostenida`.
+- Se eliminó la conjunción `all(...)`.
+
+**Veredicto con los datos actuales:** H.G. **parcial/condicionada** (A sostenida con alcance; B no concluyente). Se generó `data/veredicto_HG.csv`, `data/veredicto_HG.png` y `docs/Veredicto_HG.md` con la lectura por cláusulas: H.E.1a `1.000`; H.E.1c `12` con banda, `3` acotadas, `3` sin `q*` sobre 18; toro aparte (3); H.E.2b voladizo `β₁=3`; H.E.1b `0,950 vs 0,925`, `p=0,3173`; H.E.2a `20,24 %`, `η=0,669` (fuera de H.G.).
+
+---
+
+## Item 41 — Vocabulario de estados: Medido / Concluyente / No concluyente
+
+**Qué se corrigió:** el software usaba `✅ CUMPLE / ❌ NO CUMPLE` y `✓ / ×`, reduciendo todo a binario. El Cap. V distingue:
+
+- **Estado de la evidencia:** `Medido` / `Proyectado`.
+- **Veredicto:** `Se sostiene`, `Acotada`, `No concluyente`, `No se sostiene`.
+- **Concluyente:** solo cuando el contraste decide con el criterio prefijado.
+
+**Implementación:** `src/tda/analysis/estados.py` centraliza el vocabulario. Las páginas H.E.1, H.E.2 y H.G. muestran ahora etiquetas compuestas:
+
+- `Medido · Concluyente · Se sostiene`.
+- `Medido · No concluyente`.
+- `Medido · Acotada`.
+
+**H.G.:** la tabla 5.9 usa `Estado` + `Veredicto` textuales; las cláusulas A/B se leen por separado. H.E.2a se mantiene informativa y fuera de H.G.
+
+**Artefacto:** `data/veredicto_HG.csv/png` y `docs/Veredicto_HG.md` usan la misma taxonomía.
+
+---
+
+## Item 42 — Caché de H.G. y de `Dgm(X)` en H.E.1
+
+**Qué se hizo:**
+
+- `H.G.` tiene una casilla **«Usar resultados en caché (CSV)»** activa por defecto. Si existen `fig52_replicas.csv`, `validacion_HE2_corregida.csv` y `barrido_HE2b.csv`, el veredicto se construye en segundos; si no, corre el protocolo completo.
+- Se eliminó de H.G. la calibración y el truncamiento, que no alimentan el veredicto.
+- `estabilidad_dimensional._base` usa `lru_cache` por `(nube, d, n_points)`: `X`, `diam(X)`, `Dgm(X)` y los diagramas finitos se calculan una vez por worker.
+
+**Medición:** H.E.1 con 84 réplicas paralelas pasó de **31,7 s a 19,8 s** (≈38 % menos). La extrapolación a 1 680 réplicas baja de ~10,5 min a ~6,6 min. H.G. con caché pasa de ~25 min a segundos.
+
+---
+
+## Item 43 — Fix de estado compartido H.G. → H.E.2
+
+**Bug:** H.G. marcaba `simp_optimized = True` sin guardar `simp_rho_final` ni el resto de claves de diseño. Al abrir H.E.2, la página asumía que existían y lanzaba `AttributeError: st.session_state has no attribute "simp_rho_final"`.
+
+**Corrección:**
+
+- H.G. ahora usa `hg_simp_ready`, una bandera propia, y **no** marca `simp_optimized`.
+- H.E.2 solo renderiza si `simp_optimized` está activo **y** existen todas las claves de diseño (`rho_final`, `rho_tilde_final`, malla, historial, etc.).
+- La landing consulta `simp_optimized or hg_simp_ready` para el semáforo de H.E.2.
+
+**Verificación:** `AppTest` de H.E.2 con `simp_optimized=True` pero sin `simp_rho_final` ya no lanza excepción; H.G. con caché sigue funcionando.
+
+---
+
+## Item 44 — H.G. reconoce H.E.2 y estados tri-estado en el semáforo
+
+**Bug observado:** después de correr H.E.2, H.G. mostraba H.E.2 en gris y H.G. «sin datos», porque H.G. solo miraba `hg_simp_ready` (bandera propia) y no `simp_optimized` (bandera de H.E.2).
+
+**Corrección:**
+
+- `he2_run = hg_simp_ready or simp_optimized`.
+- Auto-carga de H.E.1 desde `fig52_replicas.csv` al abrir H.G., para que el semáforo no quede a medias si H.E.1 ya está en caché.
+- Semáforo con chips tri-estado:
+  - H.E.1b `NC` (ámbar), no `×`.
+  - H.E.1c `≈` cuando es acotada.
+  - H.G. `parcial ≈` o `incompleta …` según falten cláusulas.
+- Si H.E.2 está completo pero H.E.1 no, H.G. muestra `incompleta`, no «sin datos».
+
+**Verificación:** `AppTest` con `simp_optimized=True`, `simp_reduccion=20.24` y barrido completo muestra H.E.2a ✓, H.E.2b ✓ y H.G. parcial; sin excepciones.
+
+---
+
 ## Resumen de trazabilidad (software → tesis)
 
 | Hipótesis | Función | Dato | Figura |
 |---|---|---|---|
 | H.E.1a | `estabilidad_dimensional.protocolo_fig52` | `data/figuras/fig52_replicas.csv` | 5.2(b–c), 5.3(b) |
 | Artefacto del truncamiento | `truncamiento.analisis_truncamiento` | `data/figuras/fig53_truncamiento.csv` | 5.3(a) |
-| H.E.1b | `stability.comparar_tda_vs_euclidiano` | — | Tabla 5.5 |
-| H.E.1c | `estabilidad_dimensional.protocolo_fig52` / `q_estrella` | `data/figuras/fig52_replicas.csv` | 5.2(a1–a3) |
+| H.E.1b | `stability.resultado_piloto_pdf` (valor oficial del PDF) | `data/he1b_piloto_pdf.csv` | Tabla 5.5 |
+| H.E.1c | `estabilidad_dimensional.rango_fiabilidad` (q*, q_fallo, banda) | `data/figuras/fig52_replicas.csv` | 5.2(a1–a3) |
 | Calibración τ | `analysis.calibracion.calibrar_c0` / `tau_estrella` | `data/figuras/fig51_calibracion_C0.csv` | 5.1 |
-| H.E.2a | `metric_simp` + `experiment_simp` | `data/validacion_HE2_corregida.csv` | 5.4(a–b), Tabla 5.6 |
-| H.E.2b | `barrido_he2` + `fig_55`–`57` | `barrido_HE2b.csv` | 5.5(a–b), 5.6(a–b), 5.7(a–c) |
+| H.E.2a | `he_protocols.metricas_he2a` + `MetricaTDA_SIMP.compliance_densidad` | `data/validacion_HE2_corregida.csv` | 5.4(a–b), Tabla 5.6 |
+| H.E.2b | `he_protocols.barrido_he2` + `fig_55`–`57` | `data/barrido_HE2b.csv` | 5.5(a–b), 5.6(a–b), 5.7(a–c) |
 | Doble cómputo β | `betti2d.betti_doble_computo` | — | 5.4(a) |
 | Reconstrucción de figuras | `visualization.figuras` (E3) | `data/figuras/*.png`, `*.csv` | 5.1–5.7 |

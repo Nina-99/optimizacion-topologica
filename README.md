@@ -1,4 +1,4 @@
-# TDA-SIMP: Framework de Análisis Topológico de Datos aplicado a la Optimización Estructural
+# Aplicación de la estructura topológica a problemas complejos de ingeniería: evaluación post hoc del número de Betti persistente como descriptor estable en TDA y SIMP
 
 Este repositorio implementa un marco metodológico y computacional que unifica el **Análisis Topológico de Datos (TDA)** y la **Optimización Estructural** a través del método **SIMP** (Solid Isotropic Material with Penalization). Desarrollado bajo un paradigma cuantitativo y positivista, el framework permite estudiar la evolución de invariantes topológicos en procesos de optimización y analizar la robustez y estabilidad de descriptores algebraico-topológicos frente al ruido.
 
@@ -63,6 +63,50 @@ graph TD
     Opt -.-> |Densidades de Elementos| Topo
     Prep --> Opt
 ```
+
+### Núcleo computacional (fragmento para defensa)
+
+Este es el tramo que une SIMP con TDA. Está abreviado desde `optimization/metric_simp.py` y `core/betti2d.py`; las funciones completas viven en esos archivos.
+
+```python
+# 1. Filtro de densidad: ρ̃ = Hρ/Hs. Es el operador compacto que
+#    regulariza el problema continuo y fija la escala física de r_min.
+rho_tilde = self.filtrar_densidad(self.rho)
+
+# 2. FEM: E_e = E_min + ρ_e^p (E − E_min), luego K(ρ̃) U = F.
+K = ensamblar_K_global(rho_tilde, self.DOFS, self.n_dof, self.K0, self.p)
+U = resolver_FEM(K, self.F, self.fixed, self.n_dof)
+
+# 3. Compliance y sensibilidad: ∂M/∂ρ_e = −p ρ_e^(p−1)(E−E_min) u_eᵀ K₀ u_e.
+c, dc = calcular_compliance_sensibilidades(U, rho_tilde, self.DOFS, self.K0, self.p)
+dc_filt = self.filtrar_densidad(dc)  # regla de la cadena del filtro
+
+# 4. Actualización OC. La restricción de volumen se impone sobre ρ̃,
+#    no sobre la densidad cruda ρ.
+rho = actualizar_OC(self.rho, dc_filt, self.f_V,
+                    rho_vol_fn=self.filtrar_densidad)
+
+# 5. Binarización que conserva volumen + doble cómputo topológico.
+u_v, _ = self.umbral_volumen()
+grid = self.rho_tilde_final.reshape((self.ney, self.nex)) >= u_v
+res = betti_doble_computo(grid)          # Euler 8-conexo + GUDHI cúbico
+if not res["concordancia"]:
+    raise RuntimeError("Indicador topológico inválido")
+
+# 6. Persistencia del CAMPO f = 1 − ρ̃, no del grid binario.
+dgm0, dgm1 = diagramas_campo(self.rho_tilde_final.reshape((self.ney, self.nex)))
+```
+
+**Qué defender con este fragmento:**
+
+- Cada bloque corresponde a una fórmula del Cap. II: `(2.7)` interpolación SIMP, `(2.9)` sensibilidad adjunta, `(2.10)` cota convexa.
+- El filtro no es cosmético: es el operador compacto que da existencia al problema continuo y hace que `r_min` deba escalarse con la malla.
+- La restricción de volumen se evalúa sobre `ρ̃`, que es la densidad física; si se evalúa sobre `ρ` cruda, el volumen fabricable no se conserva.
+- `u_v` se calcula para conservar `f_V`, no se fija a `0.5`.
+- El doble cómputo tiene modos de fallo independientes —Euler con 8-conectividad y homología cúbica GUDHI— y el código **se detiene** si discrepan.
+- El diagrama de persistencia se calcula sobre `f = 1 − ρ̃` para que el Teorema 2.1 (`d_B ≤ ‖f−g‖∞`) aplique al campo, no sobre un grid ya binarizado.
+
+En una frase para la defensa: **“el software no solo calcula β₁; primero construye el campo físico con un filtro compacto, resuelve el FEM, actualiza por OC con la restricción de volumen correcta y recién después lee la topología con dos métodos independientes y un diagrama de persistencia del campo.”**
 
 ---
 
@@ -130,7 +174,7 @@ Se recomienda el uso de **[uv](https://docs.astral.sh/uv/)** como gestor de paqu
 ### Requisitos del Sistema
 
 * **Sistema Operativo:** Linux / macOS / Windows
-* **Python:** 3.10 o superior (entorno validado en Python 3.12)
+* **Python:** 3.11 o superior (entorno validado en Python 3.12)
 * **Gestor de paquetes:** `uv` ([instalación](https://docs.astral.sh/uv/getting-started/installation/))
 
 ### Método rápido — Script automatizado
@@ -162,7 +206,7 @@ uv venv .venv
 uv pip install -r requirements.txt
 
 # 3. Instalar ripser sin dependencias problemáticas
-uv pip install ripser --no-deps
+uv pip install "ripser==0.6.15" --no-deps
 
 # 4. Instalar paquete local (para imports from tda.*)
 uv pip install -e .
@@ -217,15 +261,28 @@ uv run streamlit run src/tda/app/plataforma_tda_simp.py
 streamlit run src/tda/app/plataforma_tda_simp.py
 ```
 
-Una vez ejecutado, abra el navegador web en la direccion indicada por la consola (usualmente `http://localhost:8501`). La interfaz interactiva contiene 3 módulos:
+Una vez ejecutado, abra el navegador web en la direccion indicada por la consola (usualmente `http://localhost:8501`). La interfaz interactiva contiene 4 módulos:
 
 1. **H.E.1 — Robustez TDA vs Euclidianos:** Genera nubes de puntos sintéticas (esfera, toro) con ruido gaussiano, ejecuta K-Means y valida la estabilidad de invariantes topológicos ($\beta_0$, $\beta_1$) frente a descriptores euclidianos. Incluye Figura 5.1 (calibración de $\tau$), Figura 5.2(a) (tasa de acierto de $\beta_k$), Figura 5.2(b) (cota réplica por réplica), Figura 5.3 (cota $2q$ por nivel de ruido), test de McNemar, Tabla 5.5 del Caso 1 y estimación de q*.
 
-2. **H.E.2 — Optimización SIMP:** Optimización topológica 2D con SIMP y evaluación topológica *post hoc* del diseño resultante ($\beta_0$, $\beta_1$), con barrido multi-configuración ($r_{\min}$, $p$, malla). Valida H.E.2a (reducción ≥40% vs uniforme) y H.E.2b ($\beta_1$ invariante). Incluye Figuras 5.4–5.7 con sus datos, Tabla 5.6 dinámica y doble cómputo de Betti (característica de Euler $\chi$ vs GUDHI).
+2. **H.E.2 — Optimización SIMP:** Optimización topológica 2D con SIMP y evaluación topológica *post hoc* del diseño resultante ($\beta_0$, $\beta_1$), con barrido multi-configuración ($r_{\min}$, $p$, malla y viga MBB). Valida H.E.2a (reducción ≥15% del binarizado vs placa p=1, cota convexa y eficiencia η) y H.E.2b ($\beta_1$ invariante en el voladizo, meseta medida en MBB). Incluye Figuras 5.4–5.7 con sus datos, Tabla 5.6 dinámica y doble cómputo de Betti (característica de Euler $\chi$ con 8-conectividad vs GUDHI).
 
-3. **Ejemplo Viga 1D vs 2D:** Laboratorio interactivo con 3 modos de carga (Voladizo-Puntual, Articulado-Central, Voladizo-Distribuida), optimizacion analitica 1D, SIMP 2D con animacion, barrido de penalizacion, comparacion lado a lado y exportacion STL del diseno binario.
+3. **H.G. — Hipótesis General:** Síntesis de los veredictos H.E.1a/b/c y H.E.2a/b. Solo declara H.G. corroborada si todas las hipótesis específicas se sostienen (incluida H.E.1b).
 
-### Modo 3: Reconstrucción headless de figuras (entregable E3)
+4. **Ejemplo Viga 1D vs 2D:** Laboratorio interactivo con 3 modos de carga (Voladizo-Puntual, Articulado-Central, Voladizo-Distribuida), optimizacion analitica 1D, SIMP 2D con animacion, barrido de penalizacion, comparacion lado a lado y exportacion STL del diseno binario.
+
+### Modo 3: Réplica y justificación de las figuras de `8.Figuras/`
+
+```bash
+python scripts/replicar_figuras.py
+```
+
+Genera `data/figuras/replica/fig5_*.png` y `data/figuras/replica/valores.csv`.
+La trazabilidad figura → función → dato → valor está en `docs/Replica_Figuras.md`
+y la notación/fórmulas en `docs/Notacion_Formulas.md`.
+Para comparar original vs réplica: `python scripts/comparar_figuras.py`.
+
+### Modo 4: Reconstrucción headless de figuras (entregable E3)
 
 Genera las figuras 5.1–5.7 del Cap. V **sin Streamlit**, por script, desde los
 protocolos o CSV, con los ejes y escalas del documento (salida en `data/figuras/`):

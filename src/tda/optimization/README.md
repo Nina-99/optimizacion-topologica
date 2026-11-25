@@ -41,7 +41,7 @@ Una vez finalizada la optimizacion, las densidades filtradas (rho_e > 0.5) se ma
 
 Este modulo es la piedra angular para la validacion de la **Hipotesis Especifica H.E.2**:
 
-- **H.E.2a:** Reduccion >=40% vs diseno uniforme de igual volumen (rho = fV).
+- **H.E.2a:** Reducción ≥15% del diseño binarizado (u_V) vs placa uniforme p=1; se reporta M* y η.
 - **H.E.2b:** beta_1(omega_solido) es invariante bajo malla y r_min (descriptivo, no prescriptivo).
 - Hallazgo 1: El teorema de estabilidad (Cohen-Steiner) NO protege a beta_k — acota bottleneck, no beta_k a escala fija.
 

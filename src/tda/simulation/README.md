@@ -17,7 +17,7 @@ Las simulaciones se dividen en dos vertientes principales:
 Este módulo unifica la generación de datos y la recolección de estadísticas para la validación formal de las dos hipótesis de la tesis:
 
 - **H.E.1:** Mediante `run_tda_experiment`, se evalúa la estabilidad topológica de $\beta_1$ en $T^2$ frente a perturbaciones controladas (demostrando que se mantiene próximo a 2 a pesar de la inyección de ruido).
-- **H.E.2:** Mediante `run_headless_experiment`, se comprueba empíricamente que la compliance se reduce más de un 40% y que la topología resultante respeta el límite $\beta_1 \leq 2$.
+- **H.E.2:** Mediante `run_headless_experiment`, se comprueba que el diseño binarizado reduce la compliance ≥15% frente a la placa p=1, que β₁ es invariante en el voladizo y se mide la meseta de r_min en la viga MBB.
 
 ## Entradas y Salidas de las Funciones
 

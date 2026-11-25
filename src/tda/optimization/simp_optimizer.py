@@ -34,8 +34,9 @@ Estos parámetros controlan el comportamiento numérico del optimizer y pueden v
 para explorar el espacio de soluciones dentro del marco teórico de la tesis:
 
 • max_iter = 100  (iteraciones máximas del bucle SIMP)
-  — Valor por defecto del optimizer. Aumentar a 200-300 puede mejorar la convergencia
-    y acercarse a la reducción de compliance objetivo del 40% (H.E.2).
+  — Valor por defecto del optimizer solo por compatibilidad. El protocolo vigente
+    (Cap. V) usa max_iter = 300 y el criterio de H.E.2a es ≥ 15 % del binarizado
+    frente a la placa p = 1; este módulo legacy mide otra formulación.
 • min_iter = 10  (iteraciones mínimas antes de convergencia check)
   — Evita detenerse prematuramente.
 • tol_c = 1e-4  (toleraancia de cambio de compliance)
