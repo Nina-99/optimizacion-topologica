@@ -46,6 +46,23 @@ RMIN_RANGO = [1.5, 2.0, 2.4, 3.0, 3.5, 4.0]  # H.E.2b: rmin ∈ [1.5, 4.0]
 P_RANGO = [1, 2, 3, 4]                       # Fig. 5.5: p ∈ {1,2,3,4}
 REDUCCION_MIN = 0.15                         # H.E.2a: ≥ 15 % vs placa p=1
 
+
+@st.cache_resource(show_spinner=False)
+def _sim_cache(nex, ney, penal, rmin, max_iter, fV, E, Fmag, t):
+    """Corrida SIMP + TDA + referentes, reutilizable por configuración."""
+    m = corrida_simp(nex, ney, penal, rmin, E=E, Fmag=Fmag, fV=fV, t=t,
+                     max_iter=max_iter, Lx=float(nex), Ly=float(ney))
+    met = metricas_he2a(m, fV=fV, max_iter=max_iter)
+    return m, met
+
+
+@st.cache_data(show_spinner=False)
+def _barrido_cache(dominio, nex, ney, penal, rmin, fV, E, Fmag, t, max_iter):
+    """Barrido multi-configuración reutilizable (sin callback de UI)."""
+    return barrido_he2(dominio, nex, ney, penal, rmin, E=E, Fmag=Fmag,
+                       fV=fV, t=t, max_iter=max_iter)
+
+
 export_settings_ui()
 apply_mpl_theme()
 st.set_page_config(page_title="H.E.2 — Optimización SIMP", layout="wide", page_icon="🏗️")
@@ -117,6 +134,10 @@ rmin = st.sidebar.number_input("Radio de filtro (rmin, elementos)", value=RMIN_D
 
 with st.sidebar.expander("⚙️ Parámetros de ejecución", expanded=False):
     max_iter = st.slider("Iteraciones máximas", 100, 500, 300, key="simp_max_iter")
+    usar_cache_he2 = st.checkbox(
+        "Usar caché de simulación", value=True,
+        help="Reutiliza la corrida base y el barrido para la misma malla, p, r_min e iteraciones.",
+    )
     st.caption("Config canónica fija del Cap. V — no editable, para preservar la reproducibilidad: "
                "E₀ = 1, F = 1, espesor = 1, elementos unitarios (Lx = nex, Ly = ney).")
 E_acero, F_carga, espesor = 1.0, 1.0, 1.0
@@ -135,25 +156,17 @@ if ejecutar_simp:
     dims = malla_opcion.split(" ")[0].split("x")
     nelx, nely = int(dims[0]), int(dims[1])
 
-    nnx = nelx + 1
-    n_dof = 2 * nnx * (nely + 1)
-    idx_izq = np.arange(0, nely + 1) * nnx
-    dofs_fijos = np.sort(np.concatenate([2 * idx_izq, 2 * idx_izq + 1]))
-    node_load = (nely // 2) * nnx + nelx
-    F = np.zeros(n_dof)
-    F[2 * node_load + 1] = -F_carga
-
-    m = MetricaTDA_SIMP(nex=nelx, ney=nely, E=E_acero, nu=0.3,
-                        Lx=float(nelx), Ly=float(nely), t=espesor,
-                        f_V=volfrac, p=penal, r_min=rmin, max_iter=max_iter)
-    m.definir_problema(F, dofs_fijos)
-    with st.spinner("Optimizando SIMP..."):
-        m.optimizar(verbose=False)
-    with st.spinner("Analizando topología (TDA)..."):
-        m.fase_tda(verbose=False)
-
-    with st.spinner("Calculando referente físico, binario y cota convexa..."):
-        met = metricas_he2a(m, fV=volfrac, max_iter=max_iter)
+    if usar_cache_he2:
+        with st.spinner("Cargando simulación (caché si existe)..."):
+            m, met = _sim_cache(nelx, nely, penal, rmin, max_iter, volfrac,
+                                E_acero, F_carga, espesor)
+    else:
+        with st.spinner("Optimizando SIMP..."):
+            m = corrida_simp(nelx, nely, penal, rmin, E=E_acero,
+                             Fmag=F_carga, fV=volfrac, t=espesor,
+                             max_iter=max_iter, Lx=float(nelx), Ly=float(nely))
+        with st.spinner("Calculando referente físico, binario y cota convexa..."):
+            met = metricas_he2a(m, fV=volfrac, max_iter=max_iter)
 
     c_base = float(m.c_hist[0])          # uniforme penalizado p=3 (referente histórico)
     c_unif = met["c_unif"]               # placa física p=1
@@ -360,16 +373,25 @@ if _he2_ready:
     if st.button("▶ Ejecutar barrido (H.E.2b)", type="secondary", key="sweep_btn"):
         with st.status("🏗️ Ejecutando barrido multi-configuración (H.E.2b)...", expanded=True) as status:
             st.write("🔄 Evaluando efecto de la penalización (p), mallas y r_min...")
-            bar = st.progress(0)
+            if usar_cache_he2:
+                st.write("⚡ Usando caché si la configuración ya fue calculada.")
+                sweep_results, mallas_2d = _barrido_cache(
+                    dominio, nex_, ney_, penal_val, rmin_val, volfrac,
+                    E_acero, F_carga, espesor, max_iter,
+                )
+            else:
+                bar = st.progress(0)
 
-            def _cb(i, n, label):
-                bar.progress(i / n)
-                st.write(f"⚙️ {label} ({i}/{n})")
+                def _cb(i, n, label):
+                    bar.progress(i / n)
+                    st.write(f"⚙️ {label} ({i}/{n})")
 
-            sweep_results, mallas_2d = barrido_he2(dominio, nex_, ney_, penal_val, rmin_val,
-                                        E=E_acero, Fmag=F_carga, fV=volfrac, t=espesor,
-                                        max_iter=max_iter, progress_cb=_cb)
-            bar.progress(1.0)
+                sweep_results, mallas_2d = barrido_he2(
+                    dominio, nex_, ney_, penal_val, rmin_val,
+                    E=E_acero, Fmag=F_carga, fV=volfrac, t=espesor,
+                    max_iter=max_iter, progress_cb=_cb,
+                )
+                bar.progress(1.0)
             status.update(label="✅ Barrido completado con éxito", state="complete", expanded=False)
 
         st.session_state.sweep_results = sweep_results
