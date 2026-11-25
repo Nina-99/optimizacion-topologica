@@ -9,11 +9,12 @@ Esta clase NO incluye visualización (matplotlib/plotly) — solo computación.
 Los datos de resultados se exponen como atributos para que la capa de UI
 (Streamlit, CLI, etc.) los renderice como corresponda.
 
-Convergencia (Perfil §9.4.4):
+Convergencia (Cap. III §3.4.4):
   Δc/c < 10⁻⁴  Y  Δρ_max < 10⁻²
 
-Binarización TDA (Perfil §8.4):
-  Ω_sólido = {e : ρ̃_e ≥ 1/2}  (densidad FILTRADA, no cruda)
+Binarización TDA (Cap. V §5.5.4):
+  Ω_sólido = {e : ρ̃_e ≥ u_V}, con u_V el umbral que conserva el volumen.
+  La densidad es la FILTRADA (ρ̃), no la cruda.
 """
 
 import time
@@ -25,10 +26,11 @@ from tda.core.fem import (
     ensamblar_K_global,
     resolver_FEM,
     calcular_compliance_sensibilidades,
-    filtrar_sensibilidades,
     actualizar_OC,
 )
-from tda.core.betti2d import betti_doble_computo, diagramas_gudhi
+from tda.core.betti2d import (
+    betti_doble_computo, diagramas_campo, persistencia_minima,
+)
 
 
 class MetricaTDA_SIMP:
@@ -51,7 +53,8 @@ class MetricaTDA_SIMP:
     def __init__(self, nex, ney, E=1.0, nu=0.3,
                  Lx=None, Ly=None, t=1.0,
                  f_V=0.5, p=3, r_min=2.4,
-                 tol_c=1e-4, tol_rho=1e-2, max_iter=200):
+                 tol_c=1e-4, tol_rho=1e-2, max_iter=300,
+                 usar_filtro=True):
         """
         Inicializa la geometría, el material y los parámetros del algoritmo.
 
@@ -66,13 +69,18 @@ class MetricaTDA_SIMP:
         p       : float  Factor de penalización SIMP (p ≥ 3)
         r_min   : float  Radio del filtro de densidad (en unidades de elemento)
         tol_c   : float  Tolerancia de convergencia de compliance (Perfil §9.4.4: 10⁻⁴)
-        tol_rho : float  Tolerancia de convergencia de densidad (Perfil §9.4.4: 10⁻²)
+        tol_rho : float  Tolerancia de convergencia de densidad (Cap. III §3.4.4: 10⁻²)
         max_iter: int    Número máximo de iteraciones SIMP
+        usar_filtro: bool  Si es False, resuelve el problema sin filtro de densidad.
+                           Se usa para la cota inferior convexa M* (p = 1, sin filtro)
+                           de la Proposición 2.3 del Cap. II.
         """
 
         # ── Geometría de la malla ─────────────────────────────────────────────
         self.nex   = nex
         self.ney   = ney
+        self.E     = float(E)
+        self.nu    = float(nu)
         self.Lx    = Lx if Lx is not None else float(nex)
         self.Ly    = Ly if Ly is not None else float(ney)
         self.dx    = self.Lx / nex
@@ -90,6 +98,7 @@ class MetricaTDA_SIMP:
         self.tol_c   = tol_c
         self.tol_rho = tol_rho
         self.max_iter = max_iter
+        self.usar_filtro = bool(usar_filtro)
 
         # ── Matriz elemental K_0 ──────────────────────────────────────────────
         self.K0 = calcular_K_elemental(E, nu, self.dx, self.dy, self.t)
@@ -225,7 +234,9 @@ class MetricaTDA_SIMP:
             #   El filtro es el operador de rango finito (compacto) que
             #   garantiza existencia de mínimo; la densidad FÍSICA que entra
             #   al ensamble FEM es la filtrada ρ̃ (no la cruda ρ).
-            rho_tilde = self.filtrar_densidad(self.rho)
+            #   Para M* (p = 1, sin filtro) se usa ρ directamente.
+            rho_tilde = (self.filtrar_densidad(self.rho)
+                         if self.usar_filtro else self.rho.copy())
 
             # Paso 2: Ensamble K(ρ̃)
             K = ensamblar_K_global(rho_tilde, self.DOFS, self.n_dof, self.K0, self.p)
@@ -238,12 +249,17 @@ class MetricaTDA_SIMP:
                 U, rho_tilde, self.DOFS, self.K0, self.p
             )
 
-            # Paso 5: Filtrar sensibilidades (Algoritmo 2, paso 13):
-            #   d̂c = H·dc/Hs
-            dc_filt = self.filtrar_densidad(dc)
+            # Paso 5: Regla de la cadena del filtro de densidad (Alg. 2, paso 13):
+            #   d̂c = H·dc/Hs. Sin filtro, la sensibilidad es la directa.
+            dc_filt = self.filtrar_densidad(dc) if self.usar_filtro else dc
 
-            # Paso 6: Actualizar densidades de diseño con OC
-            rho_nuevo = actualizar_OC(self.rho, dc_filt, self.f_V)
+            # Paso 6: Actualizar densidades de diseño con OC.
+            #   La restricción de volumen se impone sobre la densidad FÍSICA
+            #   (ρ̃), que es la que ocupa volumen; no sobre ρ cruda.
+            rho_nuevo = actualizar_OC(
+                self.rho, dc_filt, self.f_V,
+                rho_vol_fn=self.filtrar_densidad if self.usar_filtro else None,
+            )
 
             # Paso 7: Medir convergencia (Perfil §9.4.4:
             #   Δc/c < 10⁻⁴  Y  Δρ_max < 10⁻²)
@@ -275,7 +291,8 @@ class MetricaTDA_SIMP:
                 break
 
         self.rho_final = self.rho.copy()
-        self.rho_tilde_final = self.filtrar_densidad(self.rho).copy()
+        self.rho_tilde_final = (self.filtrar_densidad(self.rho).copy()
+                                if self.usar_filtro else self.rho.copy())
         self.c_final   = self.c_hist[-1]
         self.t_simp    = time.time() - t0
 
@@ -287,11 +304,84 @@ class MetricaTDA_SIMP:
         return self
 
 
-    def fase_tda(self, verbose=True):
+    def umbral_volumen(self, f_V=None, rho=None):
+        """Umbral de binarización que mejor conserva la fracción de volumen.
+
+        El Cap. V usa u_V (u = 0,554 en el diseño base), no u = 0,5: un umbral
+        fijo cambia el volumen y, con él, la compliance del diseño fabricable.
+        Se elige el umbral sobre los valores únicos de ρ̃ cuyo conteo de sólidos
+        queda más cerca de f_V·N_e. Devuelve (umbral, fracción_volumen).
+        """
+        rho = np.asarray(self.rho_tilde_final if rho is None else rho, dtype=float).ravel()
+        f_V = self.f_V if f_V is None else float(f_V)
+        n = rho.size
+        k = int(round(f_V * n))
+        if k <= 0:
+            return float(np.max(rho) + 1e-12), 0.0
+        if k >= n:
+            return float(np.min(rho) - 1e-12), 1.0
+
+        mejores = None
+        for u in np.unique(rho)[::-1]:
+            count = int(np.sum(rho >= u))
+            if mejores is None or abs(count - k) < abs(mejores[1] - k):
+                mejores = (float(u), count)
+            if count == k:
+                break
+        u, count = mejores
+
+        # Si hay empates que impiden el conteo exacto, elegir el umbral
+        # adyacente que deje el volumen más próximo (sin salir de [min,max]).
+        if count != k:
+            candidatos = []
+            if count > k:
+                vals = np.unique(rho)
+                pos = int(np.searchsorted(-vals, -u))
+                if pos + 1 < len(vals):
+                    candidatos.append(float(vals[::-1][pos + 1]))
+            else:
+                vals = np.unique(rho)
+                pos = int(np.searchsorted(vals, u))
+                if pos > 0:
+                    candidatos.append(float(vals[pos - 1]))
+            for c in candidatos:
+                cc = int(np.sum(rho >= c))
+                if abs(cc - k) < abs(count - k):
+                    u, count = c, cc
+        return float(u), float(count / n)
+
+    def binaria(self, umbral=None):
+        """Máscara booleana (ney, nex) del sólido binarizado."""
+        if umbral is None:
+            umbral, _ = self.umbral_volumen()
+        return self.rho_tilde_final.reshape((self.ney, self.nex)) >= float(umbral)
+
+    def compliance_densidad(self, rho, p=None, filtrar=False):
+        """Compliance de un campo de densidades arbitrario.
+
+        `p=1` y `filtrar=False` evalúan el material físico 0/1 del diseño
+        fabricable; es la métrica con la que el Cap. V compara c_bin y c_unif.
+        """
+        rho = np.asarray(rho, dtype=float).ravel()
+        if rho.size != self.N_e:
+            raise ValueError(f"rho debe tener {self.N_e} elementos, no {rho.size}")
+        if filtrar:
+            rho = self.filtrar_densidad(rho)
+        p = self.p if p is None else float(p)
+        K = ensamblar_K_global(rho, self.DOFS, self.n_dof, self.K0, p)
+        U = resolver_FEM(K, self.F, self.fixed, self.n_dof)
+        c, _ = calcular_compliance_sensibilidades(U, rho, self.DOFS, self.K0, p)
+        return float(c)
+
+    def fase_tda(self, verbose=True, umbral=None):
         """
         Ejecuta la FASE 3 (análisis topológico): doble cómputo de β₀, β₁
-        (Método A = Euler 4-conexo, Método B = GUDHI cubical).
-        La concordancia de ambos métodos valida el indicador.
+        (Método A = Euler 8-conexo, Método B = GUDHI cubical).
+        La concordancia de ambos métodos valida el indicador; si discrepan,
+        se levanta RuntimeError (compuerta bloqueante F2 del Cap. IV).
+
+        `umbral=None` usa el umbral que conserva el volumen u_V. Para el
+        barrido de la Figura 5.7 se pasa explícitamente cada u.
 
         Retorna
         ───────
@@ -301,25 +391,45 @@ class MetricaTDA_SIMP:
 
         t1 = time.time()
 
-        # 3.1 Grid binario del diseño (§8.4/§8.5: Ω_sólido = {e : ρ̃e ≥ 1/2})
-        # IMPORTANTE: usar ρ̃ (densidad filtrada), NO ρ crudo
-        grid_bool = self.rho_tilde_final.reshape((self.ney, self.nex)) >= 0.5
+        # 3.1 Grid binario del diseño: Ω_sólido = {e : ρ̃_e ≥ u_V}
+        if umbral is None:
+            umbral, _ = self.umbral_volumen()
+        self.umbral_binarizacion = float(umbral)
+        grid_bool = self.rho_tilde_final.reshape((self.ney, self.nex)) >= self.umbral_binarizacion
+        self.fraccion_volumen_binarizada = float(grid_bool.mean())
 
-        # 3.2 Doble cómputo de β₀, β₁ (§8.5: Método A + Método B)
+        # 3.2 Doble cómputo de β₀, β₁ (Método A + Método B)
         resultado = betti_doble_computo(grid_bool, verbose=verbose)
         self.beta0 = resultado["beta0_euler"]  # Euler como primario
         self.beta1 = resultado["beta1_euler"]
         self._betti_concordancia = resultado["concordancia"]
         self._betti_detalle = resultado  # para auditoría
 
-        # 3.3 Diagramas de persistencia (para visualización en tabs)
-        self.dgm0, self.dgm1 = diagramas_gudhi(grid_bool)
+        if not self._betti_concordancia:
+            self.t_tda = time.time() - t1
+            raise RuntimeError(
+                "Indicador topológico inválido: Euler y GUDHI discrepan "
+                f"(β₀={resultado['beta0_euler']}/{resultado['beta0_gudhi']}, "
+                f"β₁={resultado['beta1_euler']}/{resultado['beta1_gudhi']}). "
+                "Compuerta F2: detener antes de contrastar H.E.2b."
+            )
+
+        # 3.3 Diagramas de persistencia del CAMPO (f = 1 − ρ̃), no del grid
+        #     binario. Es el objeto que respalda la Figura 5.7(c) y la cota
+        #     de persistencia del Teorema 2.1.
+        self.dgm0, self.dgm1 = diagramas_campo(
+            self.rho_tilde_final.reshape((self.ney, self.nex))
+        )
+        self.persistencia_min_h1 = persistencia_minima(self.dgm1, k=self.beta1)
 
         self.t_tda = time.time() - t1
 
         if verbose:
             conc = "✓" if self._betti_concordancia else "✗"
+            print(f"  u_V = {self.umbral_binarizacion:.3f} | "
+                  f"volumen = {self.fraccion_volumen_binarizada:.3f}")
             print(f"  β₀ = {self.beta0} | β₁ = {self.beta1} | Concordancia {conc}")
+            print(f"  Persistencia mínima H₁ = {self.persistencia_min_h1:.3f}")
             print(f"  Tiempo TDA: {self.t_tda:.3f}s")
         return self.beta1
 
@@ -338,6 +448,9 @@ class MetricaTDA_SIMP:
             "rho_tilde_hist": self.rho_tilde_hist if self.rho_tilde_hist else None,
             "beta0": self.beta0,
             "beta1": self.beta1,
+            "umbral_binarizacion": getattr(self, "umbral_binarizacion", None),
+            "fraccion_volumen_binarizada": getattr(self, "fraccion_volumen_binarizada", None),
+            "persistencia_min_h1": getattr(self, "persistencia_min_h1", None),
             "dgm0": getattr(self, "dgm0", None),
             "dgm1": getattr(self, "dgm1", None),
             "betti_concordancia": getattr(self, "_betti_concordancia", None),

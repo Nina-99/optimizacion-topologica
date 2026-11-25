@@ -95,7 +95,7 @@ def calcular_K_elemental(E=1.0, nu=0.3, dx=1.0, dy=1.0, t=1.0):
     return K0
 
 
-def ensamblar_K_global(rho, DOFS, nd, K0, p, rho_min=1e-3):
+def ensamblar_K_global(rho, DOFS, nd, K0, p, rho_min=1e-3, Emin=1e-9):
     """
     Ensambla la matriz de rigidez global K(ρ) usando la ley SIMP:
         E_e(ρ_e) = max(ρ_e, ρ_min)^p · E_0
@@ -110,12 +110,15 @@ def ensamblar_K_global(rho, DOFS, nd, K0, p, rho_min=1e-3):
     K0     : ndarray (8, 8)      Matriz de rigidez elemental
     p      : float               Exponente de penalización SIMP
     rho_min: float               Densidad mínima de regularización
+    Emin: float                  Módulo de Young del material void (Eq. 2.7)
 
     Retorna
     ───────
     K : scipy.sparse.csc_matrix  Matriz de rigidez global (nd × nd)
     """
-    Ee = np.maximum(rho, rho_min) ** p
+    # Eq. (2.7): E_e(ρ_e) = E_min + ρ_e^p (E − E_min), con E = 1.
+    rho_e = np.clip(rho, 0.0, 1.0)
+    Ee = Emin + rho_e ** p * (1.0 - Emin)
     ii = np.repeat(DOFS, 8, axis=1).reshape(-1)
     jj = np.tile(DOFS, (1, 8)).reshape(-1)
     vv = (Ee[:, None, None] * K0[None, :, :]).reshape(-1)
@@ -147,7 +150,7 @@ def resolver_FEM(K, F, fixed, nd):
     return U
 
 
-def calcular_compliance_sensibilidades(U, rho, DOFS, K0, p, rho_min=1e-3):
+def calcular_compliance_sensibilidades(U, rho, DOFS, K0, p, rho_min=1e-3, Emin=1e-9):
     """
     Calcula la compliance c(ρ) y las sensibilidades ∂c/∂ρ_e.
 
@@ -162,6 +165,7 @@ def calcular_compliance_sensibilidades(U, rho, DOFS, K0, p, rho_min=1e-3):
     K0    : ndarray (8, 8)    Matriz de rigidez elemental
     p     : float             Exponente de penalización SIMP
     rho_min: float            Densidad mínima
+    Emin: float               Módulo del material void (Eq. 2.7/2.9)
 
     Retorna
     ───────
@@ -170,9 +174,11 @@ def calcular_compliance_sensibilidades(U, rho, DOFS, K0, p, rho_min=1e-3):
     """
     Ue = U[DOFS]
     energia_e = (Ue @ K0 * Ue).sum(axis=1)
-    re = np.maximum(rho, rho_min)
-    c = float(np.sum(re**p * energia_e))
-    dc = -p * re**(p - 1) * energia_e
+    re = np.clip(rho, 0.0, 1.0)
+    # Eq. (2.9): ∂M/∂ρ_e = −p ρ_e^{p−1} (E − E_min) u_e^T K_0 u_e.
+    factor = (1.0 - Emin)
+    c = float(np.sum((Emin + re**p * factor) * energia_e))
+    dc = -p * re**(p - 1) * factor * energia_e
     return c, dc
 
 
@@ -199,7 +205,8 @@ def filtrar_sensibilidades(dc, rho, H, eps=1e-30):
     return numerador / denominador
 
 
-def actualizar_OC(rho, dc_filt, f_V, move=0.2, eta=0.5, rho_min=1e-3):
+def actualizar_OC(rho, dc_filt, f_V, move=0.2, eta=0.5, rho_min=1e-3,
+                  rho_vol_fn=None):
     """
     Actualiza las densidades por el Criterio de Optimalidad (OC).
 
@@ -214,6 +221,9 @@ def actualizar_OC(rho, dc_filt, f_V, move=0.2, eta=0.5, rho_min=1e-3):
     move    : float           Límite de movimiento por iteración
     eta     : float           Amortiguamiento
     rho_min : float           Densidad mínima
+    rho_vol_fn : callable, opcional
+        Función que aplica el filtro de densidad para evaluar la restricción
+        de volumen sobre la densidad física ρ̃. Si es None, se usa ρ cruda.
 
     Retorna
     ───────
@@ -228,7 +238,8 @@ def actualizar_OC(rho, dc_filt, f_V, move=0.2, eta=0.5, rho_min=1e-3):
             np.maximum(rho_min, rho - move),
             np.minimum(1.0, rho + move)
         )
-        if rho_nuevo.mean() > f_V:
+        rho_eval = rho_vol_fn(rho_nuevo) if rho_vol_fn is not None else rho_nuevo
+        if rho_eval.mean() > f_V:
             l_lo = lm
         else:
             l_hi = lm

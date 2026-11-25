@@ -56,15 +56,15 @@ class TestInit:
         assert np.all(H <= 2.4)
 
     def test_default_tolerance(self):
-        """tol_c y tol_rho por defecto deben ser 1e-4 y 1e-2 (Perfil §9.4.4)."""
+        """tol_c y tol_rho por defecto deben ser 1e-4 y 1e-2 (Cap. III §3.4.4)."""
         m = MetricaTDA_SIMP(nex=2, ney=2)
         assert m.tol_c == 1e-4
         assert m.tol_rho == 1e-2
 
     def test_default_max_iter(self):
-        """max_iter por defecto debe ser 200."""
+        """max_iter por defecto debe ser 300."""
         m = MetricaTDA_SIMP(nex=2, ney=2)
-        assert m.max_iter == 200
+        assert m.max_iter == 300
 
     def test_cx_cy_shape(self):
         """cx y cy deben tener (N_e,)."""
@@ -272,3 +272,14 @@ class TestFiltrarDensidad:
         # rho_tilde_final debe existir y tener shape correcto
         assert m.rho_tilde_final is not None
         assert m.rho_tilde_final.shape == (4,)
+
+
+class TestUmbralVolumen:
+    def test_umbral_conserva_fraccion(self):
+        """u_V debe dejar exactamente (o lo más cerca posible) f_V·N_e sólidos."""
+        m = MetricaTDA_SIMP(nex=2, ney=2)
+        m.rho_tilde_final = np.array([0.1, 0.2, 0.8, 0.9])
+        u, vol = m.umbral_volumen(f_V=0.5)
+        assert 0.2 < u <= 0.8
+        assert vol == 0.5
+        assert m.binaria(u).sum() == 2

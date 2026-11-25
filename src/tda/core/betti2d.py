@@ -1,8 +1,13 @@
 """Cálculo de β₀ y β₁ del diseño SIMP por dos vías independientes.
 
 Implementa el Instrumento del §8.5 del Perfil y la §2.2 de la metodología:
-  Método A — Característica de Euler (conteo celular + etiquetado 4-conexo)
+  Método A — Característica de Euler (conteo celular + etiquetado 8-conexo)
   Método B — Homología cúbica persistente (GUDHI CubicalComplex)
+
+La convención es la del Cap. IV (Algoritmo 3 y Proposición 4.1): los cuadrados
+cerrados que comparten un vértice están conectados, de modo que β₀ se cuenta con
+8-conectividad. Usar 4-conectividad en el sólido parte un anillo diagonal en
+ocho componentes y produce agujeros fantasma.
 
 La coincidencia de ambos métodos valida el indicador antes de usarlo
 para contrastar H.E.2b.
@@ -10,6 +15,7 @@ para contrastar H.E.2b.
 Referencias:
   - Perfil §8.5: "Instrumento para el cálculo de β₁: homología cúbica"
   - Perfil §7.3: χ = V − E + F, H₂ = 0 en R² → β₁ = β₀ − χ
+  - Cap. IV, Algoritmo 3 y Proposición 4.1 (8-conectividad del sólido)
   - metodologia_implementacion §2.2: Método A y B
   - Listing 1 de la metodología: betti_cubico()
 """
@@ -68,10 +74,15 @@ def _conteo_celular(S):
 def betti_euler(S):
     """Método A: β₀ y β₁ por característica de Euler.
 
-    Procedimiento (§8.5):
-      1. β₀ por etiquetado de componentes 4-conexas (ndimage.label)
+    Procedimiento (§8.5, Algoritmo 3):
+      1. β₀ por etiquetado de componentes 8-conexas (ndimage.label)
       2. χ = V − E + F por conteo celular del complejo cúbico
       3. Como Ω ⊂ R² implica H₂ = 0:  β₁ = β₀ − χ
+
+    La 8-conectividad es la que induce la unión de cuadrados cerrados: dos
+    celdas que comparten solo un vértice siguen siendo una sola componente.
+    Con 4-conectividad, una configuración diagonal se parte en dos y χ deja de
+    corresponder al complejo cúbico.
 
     Parámetros
     ──────────
@@ -86,10 +97,8 @@ def betti_euler(S):
     if not S.any():
         return 0, 0
 
-    # β₀: etiquetado de componentes 4-conexas
-    estructura = np.array([[0, 1, 0],
-                           [1, 1, 1],
-                           [0, 1, 0]], dtype=bool)
+    # β₀: etiquetado de componentes 8-conexas (cuadrados cerrados).
+    estructura = np.ones((3, 3), dtype=bool)
     _, beta0 = ndimage.label(S, structure=estructura)
 
     # Característica de Euler
@@ -185,6 +194,68 @@ def diagramas_gudhi(S):
     dgm0 = np.array(dgm0_list) if dgm0_list else np.empty((0, 2))
     dgm1 = np.array(dgm1_list) if dgm1_list else np.empty((0, 2))
     return dgm0, dgm1
+
+
+def diagramas_campo(rho, maxdim=1):
+    """Diagramas de persistencia de la filtración por subniveles de f = 1 − ρ.
+
+    Es el objeto de la Figura 5.7(c) del Cap. V: no se persiste el grid ya
+    binarizado (donde todo agujero tendría persistencia 1), sino el campo de
+    densidades. El rasgo es real si sobrevive a lo largo de la filtración por
+    umbrales; esa persistencia es la que permite acotar qué perturbaciones
+    pueden borrarlo (Teorema 2.1).
+
+    Parámetros
+    ----------
+    rho : ndarray (ny, nx) o (N_e,)  Campo de densidades ρ* (o ρ̃*).
+    maxdim : int  Dimensión máxima de homología (1 para β₁).
+
+    Retorna
+    -------
+    tuple de ndarray (n_k, 2)  Diagramas H₀,…,H_maxdim con [nacimiento, muerte].
+    """
+    try:
+        import gudhi
+    except ImportError:
+        raise ImportError("gudhi >= 3.13 requerido")
+
+    rho = np.asarray(rho, dtype=float)
+    grid = 1.0 - rho
+    cc = gudhi.CubicalComplex(top_dimensional_cells=grid)
+    cc.compute_persistence()
+
+    dgms = [[] for _ in range(maxdim + 1)]
+    for dim, (b, d) in cc.persistence():
+        if 0 <= dim <= maxdim:
+            dgms[dim].append([float(b), float(d)])
+    return tuple(
+        np.asarray(d, dtype=float).reshape(-1, 2) if d else np.empty((0, 2))
+        for d in dgms
+    )
+
+
+def persistencia_minima(dgm, finitas=True, k=None):
+    """Persistencia mínima (muerte − nacimiento) de un diagrama.
+
+    Con `k=None` devuelve el mínimo de todas las barras. Con `k>0` selecciona
+    las `k` barras más persistentes (los agujeros estructurales que el diseño
+    declara) y devuelve el mínimo de esas; es la lectura del Cap. V
+    («los tres agujeros tienen persistencia mínima 0,905»). Las barras cortas
+    de ruido no deben diluir ese mínimo.
+    """
+    d = np.asarray(dgm, dtype=float).reshape(-1, 2)
+    if d.size == 0:
+        return 0.0
+    if finitas:
+        d = d[np.isfinite(d[:, 1])]
+    if d.size == 0:
+        return 0.0
+    pers = np.sort(d[:, 1] - d[:, 0])[::-1]
+    if k is not None:
+        pers = pers[:max(int(k), 0)]
+        if pers.size == 0:
+            return 0.0
+    return float(np.min(pers))
 
 
 def betti_doble_computo(S, verbose=False):
