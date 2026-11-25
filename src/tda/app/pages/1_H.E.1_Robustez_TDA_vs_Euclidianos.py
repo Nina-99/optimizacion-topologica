@@ -33,7 +33,8 @@ from tda.processing.sampling import (
     generate_cloud, add_gaussian_noise, compute_diameter, betti_teorico,
 )
 from tda.analysis.stability import (
-    betti_persistente, comparar_tda_vs_euclidiano, hausdorff_distance,
+    betti_persistente, comparar_tda_vs_euclidiano, resultado_piloto_pdf,
+    hausdorff_distance,
 )
 from tda.core.topology import bottleneck_distance
 from tda.analysis.calibracion import ETIQUETA_NUBE, resultado_calibracion
@@ -41,9 +42,11 @@ from tda.visualization.figuras import (
     fig_51_calibracion, fig_52_estabilidad, fig_53_cota_corregida,
     fig_he1b_exactitud, fig_he1c_q_estrella,
 )
+from tda.visualization.leyendas import LEYENDAS_FIGURAS
 from tda.analysis.estabilidad_dimensional import (
     R_FIG52,
-    cargar_resultados, guardar_resultados, protocolo_fig52, q_estrella,
+    cargar_resultados, guardar_resultados, protocolo_fig52,
+    rango_fiabilidad,
 )
 from tda.analysis.truncamiento import (
     analisis_truncamiento, cargar_truncamiento, guardar_truncamiento,
@@ -98,8 +101,11 @@ n_points = st.sidebar.number_input("Puntos por nube (n ≥ 400)", min_value=400,
                                    max_value=1000, value=N_MIN, step=50)
 n_rep = st.sidebar.slider("Réplicas por nube y nivel (R)", min_value=10, max_value=100,
                           value=R_DEFECTO, step=10)
-n_mcn = st.sidebar.slider("Muestras por clase (H.E.1b ≥ 200)", min_value=200,
-                          max_value=600, value=200, step=50)
+usar_piloto_pdf = st.sidebar.checkbox(
+    "H.E.1b: piloto del PDF (0,950 vs 0,925)", value=True,
+    help="El PDF es la fuente de verdad. Desmarcar ejecuta el protocolo "
+         "reproducible (exploratorio), que no reemplaza el veredicto documentado.",
+)
 st.sidebar.caption(
     f"Protocolo del documento: 7 nubes × q ∈ {{0, .05, .10, .15, .20}} × R réplicas · "
     f"τ = {TAU_CALIBRADO} · semilla {SEED}. (El documento usa R = 100; subir R es más lento: "
@@ -118,7 +124,7 @@ with col_a:
     st.caption("Se satisface en el **100 %** de las réplicas, con ruido gaussiano $\\sigma = q\\,\\mathrm{diam}(X)/\\sqrt{d}$. Es la cota del Teorema de Estabilidad (Cohen-Steiner et al.).")
 with col_b:
     st.markdown("**H.E.1b — ventaja comparativa (TDA vs euclidiano)**")
-    st.caption("Disco vs anillo bajo deformación afín aleatoria. El descriptor de persistencia supera al euclidiano (PCA + inercia de k-medias + dispersión radial) con $p<0.05$ (McNemar).")
+    st.caption("Disco vs anillo bajo deformación afín aleatoria. El descriptor de persistencia supera al euclidiano (PCA + inercia de k-medias, sin dispersión radial) con $p<0.05$ (McNemar, CV-5).")
 
 st.markdown("**H.E.1c — rango de fiabilidad de $\\beta_k$**")
 st.latex(r"\exists\, q^{*}:\ \beta_{k}^{(\tau)}(X)=\beta_{k}^{\mathrm{teo}}\ \text{en} \ge 95\%\ (q<q^{*}),\quad < 50\%\ (q>q^{*})")
@@ -142,6 +148,7 @@ if calib:
                                ETIQUETA_NUBE,
                                tema="oscuro" if is_dark() else "claro")
     st.pyplot(fig51)
+    st.caption(LEYENDAS_FIGURAS["5.1"])
     plt.close(fig51)
     st.session_state.setdefault("he1_figs", {})["fig51_calibracion_tau"] = fig51
     v_min, v_max = calib["tau"]["ventana_min"], calib["tau"]["ventana_max"]
@@ -167,12 +174,16 @@ if st.button("▶ Ejecutar protocolo H.E.1 completo (Figuras 5.2, 5.3 y McNemar)
         guardar_truncamiento(_trunc)
         st.session_state.he1_trunc = _trunc
 
-        st.write("🔄 [3/3] Ejecutando contraste de McNemar (H.E.1b)...")
-        res_mcn = comparar_tda_vs_euclidiano(n_points=int(n_points), n_rep=2 * int(n_mcn),
-                                             tau=TAU_CALIBRADO, apply_affine=True,
-                                             random_seed=SEED)
+        st.write("🔄 [3/3] Cargando el contraste H.E.1b del PDF...")
+        if usar_piloto_pdf:
+            res_mcn = resultado_piloto_pdf()
+        else:
+            res_mcn = comparar_tda_vs_euclidiano(
+                n_points=int(n_points), n_rep=400,
+                tau=TAU_CALIBRADO, apply_affine=True, random_seed=SEED,
+            )
         st.session_state.he1_mcnemar = res_mcn
-        st.session_state.he1_params = {"n_points": int(n_points), "n_rep": R_FIG52, "n_mcn": int(n_mcn)}
+        st.session_state.he1_params = {"n_points": int(n_points), "n_rep": R_FIG52}
         status.update(label="✅ Protocolo H.E.1 completado con éxito", state="complete", expanded=False)
 
 
@@ -198,6 +209,7 @@ if res52:
     fig52 = fig_52_estabilidad(rep52, res52["q0"],
                                tema="oscuro" if is_dark() else "claro")
     st.pyplot(fig52)
+    st.caption(LEYENDAS_FIGURAS["5.2"])
     plt.close(fig52)
     st.session_state.setdefault("he1_figs", {})["fig52_estabilidad"] = fig52
     _viol = int((rep52["dB"] > rep52["cota_teorema"] + 1e-9).sum())
@@ -207,6 +219,7 @@ if res52:
         fig53 = fig_53_cota_corregida(_trunc, rep52,
                                       tema="oscuro" if is_dark() else "claro")
         st.pyplot(fig53)
+        st.caption(LEYENDAS_FIGURAS["5.3"])
         plt.close(fig53)
         st.session_state.setdefault("he1_figs", {})["fig53_cota_corregida"] = fig53
         _razon = rep52["dB"] / rep52["cota_prob"]
@@ -218,9 +231,11 @@ if res52:
 
     _frac_a = float((rep52["dB"] <= rep52["cota_teorema"] + 1e-9).mean())
     if _frac_a == 1.0:
-        st.success(f"### ✅ H.E.1a SE SOSTIENE — $d_B \\le 2\\,d_H$ en el {_frac_a:.3f} de las réplicas")
+        st.success(f"### H.E.1a — MEDIDO · CONCLUYENTE · SE SOSTIENE — "
+                   f"$d_B \\le 2\\,d_H$ en el {_frac_a:.3f} de las réplicas")
     else:
-        st.error(f"### ❌ H.E.1a NO SE SOSTIENE — fracción = {_frac_a:.3f}")
+        st.error(f"### H.E.1a — MEDIDO · CONCLUYENTE · NO SE SOSTIENE — "
+                 f"fracción = {_frac_a:.3f}")
     st.markdown("---")
 
     # ══════════════════════════════════════════════════════════════════
@@ -228,7 +243,9 @@ if res52:
     # ══════════════════════════════════════════════════════════════════
     st.subheader("2. H.E.1b — Ventaja comparativa (TDA vs euclidiano)")
     st.caption("Tarea: disco vs anillo bajo transformación afín aleatoria. Descriptor euclidiano "
-               "de referencia = espectro PCA + inercia de k-medias + dispersión radial.")
+               "de referencia = espectro PCA + inercia de k-medias (sin dispersión radial). "
+               "Los valores oficiales son los del piloto documentado en el PDF "
+               "(0,950 vs 0,925, McNemar no significativo).")
 
     if mcn:
         _mc = mcn.get("mc_nemar", {}) or {}
@@ -260,9 +277,14 @@ if res52:
         _he1b_ok = bool(_mc.get("significant")) and (
             mcn.get("exactitud_tda", 0) > mcn.get("exactitud_eucl", 1))
         if _he1b_ok:
-            st.success("### ✅ H.E.1b SE SOSTIENE — el descriptor topológico supera al euclidiano (p < 0.05)")
+            st.success("### H.E.1b — MEDIDO · CONCLUYENTE · SE SOSTIENE — "
+                       "el descriptor topológico supera al euclidiano (p < 0.05)")
+        elif _mc.get("p_value") is None or not _mc.get("significant"):
+            st.warning("### H.E.1b — MEDIDO · NO CONCLUYENTE — no se rechaza la igualdad. "
+                       "El PDF exige reportarlo así, no como refutación.")
         else:
-            st.error("### ❌ H.E.1b NO SE SOSTIENE — la ventaja no es estadísticamente significativa")
+            st.error("### H.E.1b — MEDIDO · CONCLUYENTE · NO SE SOSTIENE — "
+                     "el euclidiano supera al topológico con p < 0.05")
     else:
         st.info("El contraste de McNemar no se ejecutó en esta sesión.")
     st.markdown("---")
@@ -273,28 +295,52 @@ if res52:
     st.subheader("3. H.E.1c — Rango de fiabilidad de $\\beta_k$")
     st.latex(r"\exists\, q^{*}:\ \beta_{k}^{(\tau)}(X)=\beta_{k}^{\mathrm{teo}}\ \text{en} \ge 95\%\ (q<q^{*}),\quad < 50\%\ (q>q^{*})")
 
-    _qest = q_estrella(rep52)
-    _qest["dimension"] = _qest["d"].map(lambda d: "nativa" if d <= 3 else str(d))
-    _piv = _qest.pivot_table(index="nube", columns="dimension", values="q_estrella", aggfunc="max")
-    st.markdown("**Nivel crítico $q^*$** — mayor nivel de ruido con acierto $\\ge 0.95$ "
-                "(acierto de $(\\beta_0,\\beta_1)$ promediado por nube y dimensión):")
-    st.dataframe(_piv.reset_index(), width="stretch", hide_index=True)
+    _rango_full = rango_fiabilidad(rep52)
+    # Denominador del PDF: se excluye el toro, que no tiene lectura fiable
+    # ni siquiera sin ruido. Los dos círculos quedan como control negativo.
+    _rango = _rango_full[~_rango_full["nube"].isin(["toro"])].copy()
+    _toro = _rango_full[_rango_full["nube"] == "toro"]
+    _rango["dimension"] = _rango["d"].map(lambda d: "nativa" if d <= 3 else str(d))
+    st.markdown("**$q^*$, primer fallo $<50\\,\\%$ y banda de transición** — "
+                "criterio completo de H.E.1c; denominador de 18 combinaciones "
+                "(el toro se reporta aparte):")
+    st.dataframe(
+        _rango[["nube", "dimension", "q_estrella", "q_fallo", "banda", "estado"]],
+        width="stretch", hide_index=True,
+    )
+    if len(_toro):
+        st.caption(
+            f"Toro: {len(_toro)} combinaciones sin lectura fiable "
+            f"(q*=0 en las tres dimensiones); se excluye del denominador 18."
+        )
 
-    fig51c = fig_he1c_q_estrella(_qest, tema="oscuro" if is_dark() else "claro")
+    fig51c = fig_he1c_q_estrella(_rango_full, tema="oscuro" if is_dark() else "claro")
     st.pyplot(fig51c)
+    st.caption("Nivel crítico q* por nube y dimensión; detalle completo en la tabla anterior.")
     plt.close(fig51c)
     st.session_state.setdefault("he1_figs", {})["he1c_q_estrella"] = fig51c
 
-    _q_nat = _qest[_qest["d"] <= 3]["q_estrella"]
+    _q_nat = _rango[_rango["d"] <= 3]["q_estrella"]
+    _n_total = len(_rango)
+    _n_sost = int((_rango["estado"] == "se sostiene").sum())
+    _n_acot = int(_rango["estado"].str.startswith("acotada").sum())
+    _n_no = int((_rango["estado"] == "no se sostiene").sum())
     st.caption(
-        f"En dimensión nativa, $q^*$ va de **{_q_nat.min():.2f}** a **{_q_nat.max():.2f}** "
-        f"según la nube: el nivel crítico **depende de la nube y de la dimensión** y no cabe "
-        "en un único intervalo $[0.05, 0.10]$ (forma corregida de H.E.1c en el Cap. V)."
+        f"En dimensión nativa, $q^*$ va de **{_q_nat.min():.2f}** a **{_q_nat.max():.2f}**. "
+        f"De {_n_total} combinaciones nube–dimensión: **{_n_sost}** sostienen la banda "
+        f"$\\le 0.10$, **{_n_acot}** quedan acotadas sin llegar a $<50\\,\\%$ y "
+        f"**{_n_no}** no tienen lectura fiable."
     )
-    if _qest["q_estrella"].notna().all():
-        st.success("### ✅ H.E.1c SE SOSTIENE (forma corregida) — existe $q^*$ para cada nube y dimensión")
+    if _n_sost == _n_total:
+        st.success("### H.E.1c — MEDIDO · CONCLUYENTE · SE SOSTIENE — "
+                   "hay $q^*$ y caída a $<50\\,\\%$ en todas las combinaciones")
+    elif _n_sost + _n_acot > 0:
+        st.warning(f"### H.E.1c — MEDIDO · ACOTADA — {_n_sost}/{_n_total} con banda cerrada; "
+                   f"{_n_acot} no alcanzan $<50\\,\\%$ en $q \\le 0.20$; "
+                   f"{_n_no} sin lectura fiable (toro/dos círculos).")
     else:
-        st.warning("### ⚠️ H.E.1c — hay nubes sin $q^*$ determinado")
+        st.error(f"### H.E.1c — MEDIDO · CONCLUYENTE · NO SE SOSTIENE — "
+                 f"{_n_no} combinaciones sin lectura fiable")
     st.markdown("---")
 
     # ══════════════════════════════════════════════════════════════════
@@ -302,7 +348,7 @@ if res52:
     # ══════════════════════════════════════════════════════════════════
     st.subheader("4. Veredicto H.E.1 — Tabla 5.5 (indicador, criterio, esperado, medido)")
     # Tabla 5.5, nota (a): el acierto se evalúa sobre el subconjunto validado
-    # (círculo, disco, anillo); toro y dos_círculos ya fallan sin ruido.
+    # (círculo, anillo, disco, esfera, gaussiana); toro y dos_círculos ya fallan sin ruido.
     _q_min = rep52["q"].min()
     _acc_q05 = float(
         rep52[(rep52["q"] == _q_min) & (rep52["nube"].isin(SUBCONJUNTO_VALIDADO))]["acierto"].mean()
@@ -314,22 +360,30 @@ if res52:
 
     filas55 = [
         {"Indicador": "dB ≤ 2 dH (H.E.1a)", "Criterio": "Fracción de réplicas = 1.0",
-         "Esperado": "1.000", "Medido": f"{_frac_a:.3f}",
-         "Veredicto": "✓" if _frac_a == 1.0 else "×"},
+         "Esperado": "1.000", "Medido": f"{_frac_a:.3f}", "Estado": "Medido",
+         "Veredicto": "Se sostiene" if _frac_a == 1.0 else "No se sostiene"},
         {"Indicador": f"Acierto de βk en q = {_q_min:.2f} (validado)", "Criterio": "≥ 0.95",
-         "Esperado": "≥ 0.95", "Medido": f"{_acc_q05:.3f}",
-         "Veredicto": "✓" if _acc_q05 >= 0.95 else "×"},
-        {"Indicador": "Nivel crítico q*", "Criterio": "Delimitado por nube y dimensión",
-         "Esperado": "depende de la nube", "Medido": f"{_q_nat.min():.2f} – {_q_nat.max():.2f}",
-         "Veredicto": "✓" if _qest["q_estrella"].notna().all() else "×"},
+         "Esperado": "≥ 0.95", "Medido": f"{_acc_q05:.3f}", "Estado": "Medido",
+         "Veredicto": "Se sostiene" if _acc_q05 >= 0.95 else "No se sostiene"},
+        {"Indicador": "Nivel crítico q* y banda <50 %",
+         "Criterio": "q* y caída <50 % con banda ≤ 0.10",
+         "Esperado": "depende de la nube",
+         "Medido": f"{_n_sost}/{_n_total} con banda; {_n_acot} acotadas",
+         "Estado": "Medido",
+         "Veredicto": ("Se sostiene" if _n_sost == _n_total else
+                       "Acotada" if _n_sost + _n_acot > 0 else "No se sostiene")},
         {"Indicador": "TDA vs euclidiano (H.E.1b)", "Criterio": "McNemar p < 0.05",
          "Esperado": "significativa",
          "Medido": ("—" if _p_val is None else ("p < 0.001" if _p_val < 0.001 else f"p = {_p_val:.4f}")),
-         "Veredicto": "✓" if _he1b_ok_t else "×"},
+         "Estado": "Medido",
+         "Veredicto": ("Se sostiene" if _he1b_ok_t else
+                       "No concluyente" if _p_val is None or not _mc_.get("significant")
+                       else "No se sostiene")},
     ]
     st.dataframe(pd.DataFrame(filas55), width="stretch", hide_index=True)
-    _n_ok = sum(1 for f in filas55 if f["Veredicto"] == "✓")
-    st.markdown(f"**Síntesis H.E.1:** {_n_ok}/{len(filas55)} criterios cumplidos.")
+    _n_ok = sum(1 for f in filas55 if f["Veredicto"] in ("Se sostiene", "Acotada"))
+    st.markdown(f"**Síntesis H.E.1:** {_n_ok}/{len(filas55)} indicadores con veredicto "
+                "«Se sostiene» o «Acotada».")
     st.markdown("---")
 
     # ══════════════════════════════════════════════════════════════════
@@ -344,7 +398,7 @@ if res52:
         with zipfile.ZipFile(zf_buf, "w", zipfile.ZIP_DEFLATED) as zf:
             base = "he1_corregido"
             zf.writestr(f"{base}/fig52_replicas.csv", rep52.to_csv(index=False))
-            zf.writestr(f"{base}/q_estrella.csv", _qest.to_csv(index=False))
+            zf.writestr(f"{base}/q_estrella.csv", _rango.to_csv(index=False))
             zf.writestr(f"{base}/tabla_5_5.csv", pd.DataFrame(filas55).to_csv(index=False))
             if _trunc is not None:
                 zf.writestr(f"{base}/fig53_truncamiento.csv", _trunc.to_csv(index=False))

@@ -22,6 +22,7 @@ from tda.optimization.metric_simp import MetricaTDA_SIMP
 from tda.core.betti2d import betti_doble_computo, diagramas_gudhi, betti_euler
 from tda.simulation.he_protocols import (
     corrida_simp, esfuerzo_max_von_mises, voxeles_a_mesh3d, stl_ascii_bytes,
+    metricas_he2a,
 )
 from tda.app.theme import (
     apply_mpl_theme, apply_plotly_theme, responsive_style,
@@ -153,7 +154,7 @@ def certificado_pdf(material, L_mm, Ly_mm, espesor_mm, F_N, sigma_adm,
         _line(f"CO₂ evitado: {co2_s - co2_d:.3f} kg eq")
         fig.text(0.5, 0.30, ("DISEÑO CERTIFICADO" if cert else "DISEÑO NO CERTIFICADO"),
                  ha="center", fontsize=14, fontweight="bold", color=("green" if cert else "red"))
-        fig.text(0.5, 0.255, ("Reducción ≥ 40 % y topología β₁ validada por doble cómputo y persistencia."
+        fig.text(0.5, 0.255, ("Reducción ≥ 15 % vs placa p=1 y topología β₁ validada por doble cómputo y persistencia."
                               if cert else "Revisar los criterios de certificación."), ha="center", fontsize=9)
         fig.text(0.08, 0.12, "Autor: Jorge Larry Copa Cruz", fontsize=9)
         fig.text(0.08, 0.095, "Director del TFG: MSc. Roberto Orellana", fontsize=9)
@@ -749,7 +750,7 @@ elif modo == "📋 Informe de Ingeniería":
         f"f_V = {volfrac:.2f}, p = {penal:.0f}, r_min = {rmin:.1f}"
     )
     st.caption("Unidades SI (m, N, Pa, kg). Cada resultado se conecta con la hipótesis del documento "
-               "(H.E.2a: reducción ≥ 40 %; H.E.2b: β₁ estable + doble cómputo).")
+               "(H.E.2a: reducción ≥ 15 % vs placa p=1; H.E.2b: β₁ estable + doble cómputo).")
 
     if st.button("▶ Ejecutar caso real y generar informe", type="primary", key="btn_informe"):
         Lx_m = L_mm / 1000.0
@@ -761,9 +762,10 @@ elif modo == "📋 Informe de Ingeniería":
         with st.spinner("Optimizando SIMP (caso real)..."):
             m = corrida_simp(nelx, nely, penal, rmin, E=E, Fmag=F_N, fV=volfrac, t=t_m,
                              max_iter=200, Lx=Lx_m, Ly=Ly_m)
+        met4 = metricas_he2a(m, fV=volfrac, max_iter=300)
         c_base = float(m.c_hist[0])
         c_simp = float(m.c_final)
-        reduccion = (c_base - c_simp) / c_base * 100
+        reduccion = met4["reduccion"] * 100
         sigma_max = esfuerzo_max_von_mises(m, E, 0.3)
         fs = s_adm_Pa / sigma_max if sigma_max > 0 else float("inf")
 
@@ -775,7 +777,7 @@ elif modo == "📋 Informe de Ingeniería":
         ahorro = (1 - volfrac) * 100
 
         # Persistencia de β₁ frente al umbral (tesis, Fig. 5.7)
-        umbr = np.linspace(0.05, 0.95, 19)
+        umbr = np.arange(0.025, 0.975 + 1e-9, 0.025)
         b1s = [betti_euler(m.rho_tilde_final.reshape(nely, nelx) >= u)[1] for u in umbr]
         from tda.simulation.he_protocols import persistencia_beta1
         _, _, persist = persistencia_beta1(umbr, b1s, m.beta1)
@@ -785,13 +787,13 @@ elif modo == "📋 Informe de Ingeniería":
         res1d = opt1d.optimizar_viga_completo(Lx_m, F_N, callback=None)
 
         conc = bool(getattr(m, "_betti_concordancia", None))
-        he2a_ok = reduccion >= 40.0
+        he2a_ok = reduccion >= 15.0
         he2b_ok = conc and persist >= 0.3
         cert = he2a_ok and conc
 
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Reducción de compliance", f"{reduccion:.1f} %",
-                  delta="H.E.2a ≥ 40 %" if he2a_ok else "< 40 %",
+                  delta="H.E.2a ≥ 15 %" if he2a_ok else "< 15 %",
                   delta_color="normal" if he2a_ok else "inverse")
         c2.metric("β₁ (agujeros)", str(m.beta1), help="Descriptor topológico certificado por la tesis")
         c3.metric("σ_máx / σ_adm", f"{sigma_max/1e6:.0f} / {sigma_adm:.0f} MPa",
@@ -800,8 +802,8 @@ elif modo == "📋 Informe de Ingeniería":
 
         st.markdown("#### Vínculo con la tesis")
         st.markdown(
-            f"- **H.E.2a** (redistribuir el material reduce la compliance ≥ 40 %): "
-            f"{'✅ SE SOSTIENE' if he2a_ok else '❌ no se sostiene'} — **{reduccion:.1f} %** vs diseño uniforme.\n"
+            f"- **H.E.2a** (el binario reduce la compliance ≥ 15 % vs placa p=1): "
+            f"{'MEDIDO · CONCLUYENTE · SE SOSTIENE' if he2a_ok else 'MEDIDO · CONCLUYENTE · NO SE SOSTIENE'} — **{reduccion:.1f} %** vs placa p=1.\n"
             f"- **H.E.2b** (β₁ es descriptor estable): β₁ = **{m.beta1}**, doble cómputo "
             f"{'coincide' if conc else 'difiere'}, persistencia de β₁ ≈ **{persist:.2f}** (unidades de umbral) "
             f"→ {'✅ estable' if he2b_ok else '⚠️ revisar'}.\n"
@@ -896,7 +898,7 @@ elif modo == "📋 Informe de Ingeniería":
 
         if cert:
             st.success("### ✅ Diseño CERTIFICADO por el método de la tesis "
-                       "(reducción ≥ 40 % y topología β₁ validada por doble cómputo + persistencia).")
+                       "(reducción ≥ 15 % vs placa p=1 y topología β₁ validada por doble cómputo + persistencia).")
         else:
             st.warning("### ⚠️ Diseño generado; revisar los criterios de certificación.")
         st.caption("El diseño puede exportarse a STL (impresión 3D/CAD) desde el modo «Comparación 1D vs 2D».")

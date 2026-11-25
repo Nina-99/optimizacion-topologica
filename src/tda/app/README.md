@@ -1,4 +1,4 @@
-# Modulo de Aplicacion — Plataforma TDA-SIMP
+# Módulo de aplicación — Aplicación de la estructura topológica a problemas complejos de ingeniería
 
 Este modulo implementa la interfaz grafica interactiva del proyecto utilizando Streamlit. La plataforma se estructura como una landing page con navegacion a 3 modulos especializados, cada uno alineado con los objetivos cientificos de la investigacion.
 
@@ -32,13 +32,13 @@ Validacion de la Hipotesis Especifica H.E.1: la homologia persistente proporcion
 
 ### 2. H.E.2 — Optimizacion SIMP
 
-Validación de la Hipótesis Específica H.E.2: SIMP logra reducción ≥40% y $\beta_1$ invariante (evaluación topológica post hoc).
+Validación de la Hipótesis Específica H.E.2: SIMP logra reducción ≥15% del binarizado frente a la placa p=1 y $\beta_1$ invariante en el voladizo (evaluación topológica post hoc).
 
 - Optimización topológica 2D con SIMP (algoritmo OC).
 - **Barrido multi-configuración:** $r_{\min}$, $p$ y malla (rectangular 2:1 o cuadrada).
 - **Figuras 5.4–5.7** con epígrafes del documento y sus datos (compliance, grisura, $\beta_1$, fracción de volumen).
 - **Tabla 5.6** dinámica (compliance vs referentes) y **doble cómputo** de Betti: característica de Euler $\chi$ vs homología cúbica (GUDHI).
-- Validación H.E.2a (reducción ≥40% vs uniforme) y H.E.2b ($\beta_1$ invariante, descriptivo).
+- Validación H.E.2a (reducción ≥15% vs placa p=1, cota convexa y eficiencia) y H.E.2b ($\beta_1$ invariante en el voladizo; meseta medida en MBB).
 - Incluye convergencia, diagramas de persistencia y exportación ZIP con PNG de cada gráfico.
 
 ### 3. Ejemplo Viga 1D vs 2D

@@ -1,4 +1,4 @@
-"""Utilidades de theming para la app Streamlit TDA-SIMP.
+"""Utilidades de theming para la aplicación Streamlit de la tesis.
 
 Soporte de modo oscuro/claro con componentes adaptables.
 Incluye: tipografía custom, cards premium, progress por fases, badges.

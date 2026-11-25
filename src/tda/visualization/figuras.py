@@ -505,29 +505,34 @@ def fig_he1c_q_estrella(qest, tema: str = "claro"):
 # CASO 2 — SIMP (Figuras 5.4, 5.5, 5.6, 5.7)
 # ═══════════════════════════════════════════════════════════════════
 
-def fig_54a_diseno(rho_2d, binaria_2d, beta0, beta1, nx, ny, p=None, fv=None, rmin=None):
-    """Figura 5.4(a) — Densidad continua (izq) y diseño binarizado (der).
+def fig_54a_diseno(rho_2d, binaria_2d, beta0, beta1, nx, ny, p=None, fv=None,
+                   rmin=None, u_v=None):
+    """Figura 5.4(a) — diseño convergido con el contorno del umbral u_V.
 
-    Decisión del autor (Item 22): se conservan los DOS paneles (a diferencia del
-    PDF, que muestra solo ρ*), por ser más informativos — se ve de dónde sale β₁.
-    Se añade la línea de parámetros del PDF (p, fV, rmin, β₀, β₁).
+    Replica la forma del PDF: un solo mapa de densidad ρ*, con la curva de
+    nivel u_V en naranja. `binaria_2d` se conserva en la firma por
+    compatibilidad, pero el contorno se calcula desde ρ*.
     """
-    fig, axes = plt.subplots(1, 2, figsize=(9, 3.6))
-    im0 = axes[0].imshow(rho_2d, cmap="gray_r", vmin=0, vmax=1, origin="lower",
-                         extent=[0, nx, 0, ny], aspect="equal", interpolation="nearest")
-    axes[0].set_title("densidad continua ρ*")
-    fig.colorbar(im0, ax=axes[0], fraction=0.046, label="ρ")
-    axes[1].imshow(binaria_2d, cmap="gray_r", vmin=0, vmax=1, origin="lower",
+    rho_2d = np.asarray(rho_2d, dtype=float)
+    fig, ax = plt.subplots(figsize=(7.4, 3.7))
+    im = ax.imshow(rho_2d, cmap="gray_r", vmin=0, vmax=1, origin="lower",
                    extent=[0, nx, 0, ny], aspect="equal", interpolation="nearest")
-    axes[1].set_title(f"Ω(sólido)  β₀={beta0}, β₁={beta1}")
-    for ax in axes:
-        ax.set_xlabel("elementos x")
-        ax.set_ylabel("elementos y")
+    if u_v is None:
+        u_v = 0.5
+    ax.contour(np.linspace(0.5, nx - 0.5, nx),
+               np.linspace(0.5, ny - 0.5, ny),
+               rho_2d, levels=[float(u_v)], colors=[_NARANJA], linewidths=1.4)
+    ax.set_xlabel("elementos x")
+    ax.set_ylabel("elementos y")
+    sub = ""
     if p is not None and fv is not None and rmin is not None:
-        sub = f"p = {p:g}, fV = {fv:g}, rmin = {rmin:g}   |   β₀ = {beta0}, β₁ = {beta1}"
-    else:
-        sub = f"β₀ = {beta0}, β₁ = {beta1}"
-    fig.suptitle("Figura 5.4(a) — Distribución de material del diseño convergido\n" + sub)
+        sub = f": p = {p:g}, f_V = {fv:g}, r_min = {rmin:g}"
+    ax.set_title(
+        f"(a) Diseño convergido{sub}\n"
+        f"β₀ = {beta0}, β₁ = {beta1}  (contorno naranja: umbral u_V = {u_v:.3f})",
+        loc="left", fontsize=10, weight="bold",
+    )
+    fig.colorbar(im, ax=ax, fraction=0.035, label="ρ")
     fig.tight_layout()
     return fig
 
@@ -561,7 +566,8 @@ def fig_54b_historial(c_hist, c_uniforme, c_final, n_iter_max=300, converged=Tru
             color=_VERDE, fontsize=9)
     ax.set_xlabel("iteración")
     ax.set_ylabel("compliance c(ρ)")
-    ax.set_title("(b) Convergencia")
+    ax.set_title(f"(b) Convergencia: {len(c_hist)} iteraciones, "
+                 f"{'convergido' if converged else 'no convergido'}")
     fig.tight_layout()
     return fig
 
@@ -650,7 +656,13 @@ def fig_56_malla(df_mesh, mallas_2d: list | None = None):
         ax.text(0.5, 0.5, "(a) Diseños convergidos no provistos", ha="center", va="center")
         ax.axis("off")
 
-    fig.text(0.05, 0.94, "(a) Diseños convergidos: β₁ = 3 en las resoluciones evaluadas", fontsize=10, weight="bold")
+    _betas = [int(x.get("beta1", -1)) for x in mallas_2d] if mallas_2d else (
+        [int(v) for v in df_mesh["beta1"].tolist()] if "beta1" in df_mesh.columns else []
+    )
+    _b_txt = (f"β₁ = {_betas[0]}" if len(set(_betas)) == 1
+              else f"β₁ = {sorted(set(_betas))}")
+    fig.text(0.05, 0.94, f"(a) Diseños convergidos: {_b_txt} en las resoluciones evaluadas",
+             fontsize=10, weight="bold")
 
     # ── (b) compliance frente a la malla ─────────────────────────────
     ax2 = fig.add_subplot(gs[1, :])
@@ -707,8 +719,10 @@ def fig_57_umbral(umbrales, b0s, b1s, vfs, u_umbral=0.554, dgm1=None):
     ax_a.text(u_umbral + 0.02, 3.2, f"u_V = {_coma(round(u_umbral, 3))}", fontsize=8.5)
     
     # Sombra de la meseta estable
+    _b_moda = max(set(b1s.tolist()), key=b1s.tolist().count) if len(b1s) else 0
     ax_a.axvspan(0.05, 0.90, color=_AZUL, alpha=0.12, lw=0)
-    ax_a.text(0.35, 0.35, "meseta β₁ = 3 en todo el rango medido u ≤ 0,900", fontsize=8, color=TXT)
+    ax_a.text(0.35, 0.35, f"meseta β₁ = {_b_moda} en el rango medido u ≤ 0,900",
+              fontsize=8, color=TXT)
 
     ax_a.set_ylabel("número de Betti")
     ax_a.set_title("(a) Números de Betti frente al umbral de binarización")
@@ -738,11 +752,15 @@ def fig_57_umbral(umbrales, b0s, b1s, vfs, u_umbral=0.554, dgm1=None):
     ax_c.plot([0, 1], [0, 1], color=TXT2, lw=1.2)
     ax_c.fill_between([0, 1], [0.91, 1], [1, 1], color=_AZUL, alpha=0.15, lw=0)
     
+    _pmin = 0.91
     if dgm1 is not None and len(dgm1) > 0:
         d1 = np.asarray(dgm1, dtype=float)
         d1 = d1[np.isfinite(d1[:, 1])]
         if len(d1) > 0:
             ax_c.scatter(d1[:, 0], d1[:, 1], s=40, color=_AZUL, marker="D", zorder=3)
+            _p = np.sort(d1[:, 1] - d1[:, 0])[::-1]
+            if len(_p) >= 3:
+                _pmin = float(_p[2])
     else:
         # Puntos de ejemplo estructurales (los 3 agujeros con persistencia ≥ 0.91)
         ax_c.scatter([0.02, 0.05, 0.08], [0.99, 1.0, 1.0], s=50, color=_AZUL, marker="D", zorder=3)
@@ -755,7 +773,7 @@ def fig_57_umbral(umbrales, b0s, b1s, vfs, u_umbral=0.554, dgm1=None):
 
     ax_c.set_xlabel("nacimiento  (f = 1 − ρ)")
     ax_c.set_ylabel("muerte")
-    ax_c.set_title("(c) Diagrama H₁ del campo: persistencia mínima 0,91")
+    ax_c.set_title(f"(c) Diagrama H₁ del campo: persistencia mínima {_coma(_pmin, 3)}")
     ax_c.set_xlim(-0.02, 1.02)
     ax_c.set_ylim(-0.02, 1.05)
     ax_c.xaxis.set_major_formatter(FuncFormatter(lambda v, p: _coma(v)))
@@ -763,6 +781,79 @@ def fig_57_umbral(umbrales, b0s, b1s, vfs, u_umbral=0.554, dgm1=None):
 
     fig.tight_layout()
     return fig
+
+
+def fig_58_rmin_falsacion(df_voladizo, df_mbb):
+    """Figura 5.8 — β₁ frente a r_min: voladizo vs viga MBB (falsación).
+
+    Usa β₁ leído con el umbral fijo u = 0,5, que es la convención con la que
+    el PDF reporta 9, 8, 8, 6, 2, 2 para la MBB. Los círculos abiertos marcan
+    corridas que agotaron el tope de iteraciones.
+    """
+    fig, ax = plt.subplots(figsize=(7.2, 4.6))
+
+    def _leer(df):
+        y = df["beta1_u05"] if "beta1_u05" in df.columns else df["beta1"]
+        return df["rmin"].to_numpy(dtype=float), y.to_numpy(dtype=int)
+
+    for df, nombre, color, marker in [
+        (df_voladizo, "voladizo (60×30)", _AZUL, "o"),
+        (df_mbb, "MBB (120×40)", _NARANJA, "s"),
+    ]:
+        if df is None or len(df) == 0:
+            continue
+        x, y = _leer(df)
+        ax.plot(x, y, "-", color=color, marker=marker, lw=1.8, ms=8, label=nombre)
+        for xi, yi in zip(x, y):
+            ax.text(xi, yi + 0.22, f"{int(yi)}", ha="center", va="bottom", fontsize=9)
+        if "converged" in df.columns:
+            mal = df[~df["converged"].astype(bool)]
+            if len(mal):
+                xm, ym = _leer(mal)
+                ax.scatter(xm, ym, s=150, facecolors="none", edgecolors=_ROJO,
+                           linewidths=1.6, zorder=5)
+
+    ax.set_xlabel("radio del filtro  r_min  (elementos)")
+    ax.set_ylabel("β₁ del binarizado  (umbral u = 0,5)")
+    ax.set_title("Invariancia de β₁ frente a r_min: voladizo frente a viga MBB")
+    ax.set_xticks([1.5, 2.0, 2.4, 3.0, 3.5, 4.0])
+    ax.set_xticklabels(["1,5", "2", "2,4", "3", "3,5", "4"])
+    ax.set_ylim(0, max(10, int(max(ax.get_ylim()[1], 10))))
+    ax.grid(True, alpha=0.3, linestyle="--")
+    ax.legend(fontsize=8, loc="upper right")
+    ax.text(0.02, 0.02, "○ corrida no convergida (tope de 300 iteraciones)",
+            transform=ax.transAxes, fontsize=7.5, color=_ROJO)
+    fig.tight_layout()
+    return fig
+
+
+def _run_he1(n_points: int, n_rep: int):
+    """Corrida H.E.1 para la reconstrucción headless (Fig. 5.1–5.3)."""
+    from tda.simulation.he_protocols import protocolo_he1
+    return protocolo_he1(n_points, [0.0, 0.05, 0.10, 0.15, 0.20], n_rep)
+
+
+def _run_he2(nex: int, ney: int):
+    """Corrida H.E.2 y barrido de umbral para la reconstrucción headless."""
+    import numpy as np
+    from tda.core.betti2d import betti_euler
+    from tda.simulation.he_protocols import (
+        FV, P_DEFECTO, RMIN_DEFECTO, barrido_he2, corrida_simp,
+    )
+
+    m = corrida_simp(nex, ney, P_DEFECTO, RMIN_DEFECTO, fV=FV, max_iter=300)
+    df_sweep, _ = barrido_he2("Rectangular", nex, ney, P_DEFECTO, RMIN_DEFECTO,
+                              fV=FV, max_iter=300)
+    umbrales = np.arange(0.025, 0.975 + 1e-9, 0.025)
+    b0s, b1s, vfs = [], [], []
+    S0 = m.rho_tilde_final.reshape(ney, nex)
+    for u in umbrales:
+        S = S0 >= u
+        b0, b1 = betti_euler(S)
+        b0s.append(b0)
+        b1s.append(b1)
+        vfs.append(float(S.mean()))
+    return m, df_sweep, umbrales, b0s, b1s, vfs
 
 
 def main():
@@ -823,12 +914,14 @@ def main():
         nex, ney = (int(v) for v in args.malla.lower().split("x"))
         print(f"[H.E.2] malla {nex}x{ney}...")
         m, df_sweep, umbrales, b0s, b1s, vfs = _run_he2(nex, ney)
-        binaria = (m.rho_tilde_final.reshape(ney, nex) >= 0.5).astype(float)
-        c_unif = float(m.c_hist[0]); c_fin = float(m.c_final)
+        binaria = m.binaria(m.umbral_binarizacion).astype(float)
+        c_unif = m.compliance_densidad(np.full(m.N_e, m.f_V), p=1.0, filtrar=False)
+        c_fin = float(m.c_final)
         df_p = df_sweep[df_sweep["Config"].str.startswith("p=")]
         df_mesh = df_sweep[df_sweep["Config"].str.startswith("malla")]
         fig_54a_diseno(m.rho_tilde_final.reshape(ney, nex), binaria, m.beta0, m.beta1,
-                       nex, ney, p=P_DEFECTO, fv=FV, rmin=RMIN_DEFECTO
+                       nex, ney, p=P_DEFECTO, fv=FV, rmin=RMIN_DEFECTO,
+                       u_v=m.umbral_binarizacion
                        ).savefig(OUT_DIR / "fig54a_diseno.png", dpi=300)
         fig_54b_historial(m.c_hist, c_unif, c_fin,
                           n_iter_max=300, converged=bool(m.converged)
@@ -837,9 +930,17 @@ def main():
             fig_55_penalizacion(df_p).savefig(OUT_DIR / "fig55_penalizacion.png", dpi=300)
         if len(df_mesh):
             fig_56_malla(df_mesh).savefig(OUT_DIR / "fig56_malla.png", dpi=300)
-        fig_57_umbral(umbrales, b0s, b1s, vfs).savefig(OUT_DIR / "fig57_umbral.png", dpi=300)
+        fig_57_umbral(umbrales, b0s, b1s, vfs, u_umbral=m.umbral_binarizacion,
+                      dgm1=m.dgm1).savefig(OUT_DIR / "fig57_umbral.png", dpi=300)
+        df_vol = df_sweep[df_sweep["Caso"] == "voladizo"]
+        df_mbb = df_sweep[df_sweep["Caso"] == "mbb"]
+        if len(df_vol) and len(df_mbb):
+            fig_58_rmin_falsacion(
+                df_vol[df_vol["Config"].str.startswith("rmin=")],
+                df_mbb[df_mbb["Config"].str.startswith("mbb_rmin=")],
+            ).savefig(OUT_DIR / "fig58_rmin_falsacion.png", dpi=300)
         df_sweep.to_csv(OUT_DIR / "he2_barrido.csv", index=False)
-        hechos += ["54a", "54b", "55", "56", "57"]
+        hechos += ["54a", "54b", "55", "56", "57", "58"]
 
     print(f"\nFiguras + CSV exportados en: {OUT_DIR}")
     print("Generadas:", ", ".join(hechos))
