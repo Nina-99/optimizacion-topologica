@@ -1,6 +1,6 @@
 # Réplica y justificación de las figuras de `8.Figuras/`
 
-Este documento justifica cada figura del Capítulo V a partir de su **función generadora**, su **archivo de datos** y los **valores que la sostienen**. La carpeta `8.Figuras/` es la referencia visual; `data/figuras/replica/` contiene la réplica reproducible y `data/figuras/replica/valores.csv` el libro de valores.
+Este documento justifica cada figura del Capítulo V a partir de su **función generadora**, su **archivo de datos** y los **valores que la sostienen**. La carpeta local `8.Figuras/` es la referencia visual (no versionada); `data/figuras/replica/` contiene la réplica reproducible y `data/figuras/replica/valores.csv` el libro de valores.
 
 ## Cómo se replica
 

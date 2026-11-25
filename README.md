@@ -271,7 +271,9 @@ Una vez ejecutado, abra el navegador web en la direccion indicada por la consola
 
 4. **Ejemplo Viga 1D vs 2D:** Laboratorio interactivo con 3 modos de carga (Voladizo-Puntual, Articulado-Central, Voladizo-Distribuida), optimizacion analitica 1D, SIMP 2D con animacion, barrido de penalizacion, comparacion lado a lado y exportacion STL del diseno binario.
 
-### Modo 3: Réplica y justificación de las figuras de `8.Figuras/`
+### Modo 3: Réplica y justificación de las figuras de referencia
+
+`8.Figuras/` es material local de referencia y no se versiona; los artefactos reproducibles quedan en `data/figuras/replica/`.
 
 ```bash
 python scripts/replicar_figuras.py
