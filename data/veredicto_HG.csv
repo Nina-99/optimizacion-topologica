@@ -1,0 +1,4 @@
+Cláusula,Hipótesis,Evidencia,Estado,Valor
+A. Estabilidad/verificabilidad de β_k bajo q ≤ q*,H.E.1a + H.E.1c + H.E.2b,Medido,SOSTENIDA CON ALCANCE,H.E.1a 1.000; H.E.1c 12 banda/3 acotadas/3 sin q*; toro aparte (3 combinaciones); H.E.2b voladizo β₁=3
+B. Ventaja frente a descriptores euclidianos,H.E.1b,Medido,NO CONCLUYENTE,0.950 vs 0.925; McNemar p=0.3173
+Eficiencia estructural SIMP (fuera de H.G.),H.E.2a,Medido,INFORMATIVA,reducción 20.24 %; η=0.669
