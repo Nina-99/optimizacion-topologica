@@ -22,17 +22,24 @@ from tda.processing.sampling import (
 from tda.analysis.calibracion import TAU_CALIBRADO
 from tda.analysis.stability import betti_persistente, hausdorff_distance
 from tda.core.topology import bottleneck_distance
+from tda.core.betti2d import betti_euler
 from tda.optimization.metric_simp import MetricaTDA_SIMP
 
 CATALOGO = ["circulo", "disco", "anillo", "dos_circulos", "toro", "esfera", "gaussiana"]
-SUBCONJUNTO_VALIDADO = ["circulo", "disco", "anillo"]   # Tabla 5.5, nota (a)
+SUBCONJUNTO_VALIDADO = [
+    "circulo", "anillo", "disco", "esfera", "gaussiana",
+]   # Tabla 5.5, nota (a): nubes con lectura correcta sin ruido
 Q_LEVELS = [0.0, 0.05, 0.10, 0.15, 0.20]
 SEED = 42
 FV = 0.5
 P_DEFECTO = 3
 RMIN_DEFECTO = 2.4
-RMIN_RANGO = [1.5, 2.0, 2.4, 3.0, 4.0]
+RMIN_RANGO = [1.5, 2.0, 2.4, 3.0, 3.5, 4.0]   # Cap. III §3.4.1
 P_RANGO = [1, 2, 3, 4]
+# Mallas del Cap. V §5.5.3: la misma viga 60×30 refinada, con r_min físico
+# constante (2,4; 4,8; 7,2 en unidades de elemento).
+MALLAS_HE2 = [(60, 30), (120, 60), (180, 90)]
+MBB_NELX, MBB_NELY = 120, 40                    # media viga MBB por simetría
 
 
 def bottleneck_cota(dgm_X, dgm_Y, maxdim=1):
@@ -119,24 +126,107 @@ def calibrar_tau(n_points, seed=None):
     return curva.index.values.astype(float), curva.values.astype(int)
 
 
-def corrida_simp(nelx, nely, p, r_min, E=1.0, Fmag=1.0, fV=FV, t=1.0,
-                 max_iter=300, Lx=None, Ly=None):
-    """Corre SIMP+TDA para una configuración (elementos unitarios por defecto)."""
+def condiciones_carga(caso, nelx, nely, Fmag=1.0):
+    """Condiciones de contorno del Cap. III §3.4.1 / Anexo 1 §3.
+
+    - ``voladizo``: borde izquierdo empotrado (u_x = u_y = 0); carga puntual
+      vertical en el centro del borde derecho.
+    - ``mbb``: media viga MBB por simetría; borde izquierdo con simetría
+      (u_x = 0), apoyo vertical en la esquina inferior derecha y carga puntual
+      vertical en la esquina superior izquierda.
+
+    Devuelve ``(F, dofs_fijos, nodo_carga)``.
+    """
     nnx = nelx + 1
     n_dof = 2 * nnx * (nely + 1)
-    idx_izq = np.arange(0, nely + 1) * nnx
-    dofs = np.sort(np.concatenate([2 * idx_izq, 2 * idx_izq + 1]))
-    node = (nely // 2) * nnx + nelx
     F = np.zeros(n_dof)
-    F[2 * node + 1] = -Fmag
+
+    if caso == "voladizo":
+        idx_izq = np.arange(0, nely + 1) * nnx
+        dofs = np.sort(np.concatenate([2 * idx_izq, 2 * idx_izq + 1]))
+        nodo = (nely // 2) * nnx + nelx
+        F[2 * nodo + 1] = -Fmag
+        return F, dofs, nodo
+
+    if caso == "mbb":
+        # Simetría en x = 0: u_x = 0 en todo el borde izquierdo.
+        idx_izq = np.arange(0, nely + 1) * nnx
+        dofs = 2 * idx_izq
+        # Apoyo vertical en la esquina inferior derecha (ey = 0, ex = nelx).
+        nodo_apoyo = nelx
+        dofs = np.append(dofs, 2 * nodo_apoyo + 1)
+        dofs = np.sort(np.unique(dofs).astype(int))
+        # Carga vertical descendente en la esquina superior izquierda.
+        nodo = nely * nnx
+        F[2 * nodo + 1] = -Fmag
+        return F, dofs, nodo
+
+    raise ValueError(f"caso de carga desconocido: {caso!r} (use 'voladizo' o 'mbb')")
+
+
+def corrida_simp(nelx, nely, p, r_min, E=1.0, Fmag=1.0, fV=FV, t=1.0,
+                 max_iter=300, Lx=None, Ly=None, caso="voladizo",
+                 usar_filtro=True, analizar_tda=True):
+    """Corre SIMP+TDA para una configuración (elementos unitarios por defecto)."""
+    F, dofs, _ = condiciones_carga(caso, nelx, nely, Fmag)
     m = MetricaTDA_SIMP(nex=nelx, ney=nely, E=E, nu=0.3,
                         Lx=float(Lx if Lx is not None else nelx),
                         Ly=float(Ly if Ly is not None else nely),
-                        t=t, f_V=fV, p=p, r_min=r_min, max_iter=max_iter)
+                        t=t, f_V=fV, p=p, r_min=r_min, max_iter=max_iter,
+                        usar_filtro=usar_filtro)
     m.definir_problema(F, dofs)
     m.optimizar(verbose=False)
-    m.fase_tda(verbose=False)
+    if analizar_tda:
+        m.fase_tda(verbose=False)
     return m
+
+
+def cota_inferior_convexa(m, max_iter=300):
+    """Cota inferior convexa M* (Proposición 2.3): p = 1, sin filtro.
+
+    Parte del mismo problema, material y condiciones de contorno que `m`.
+    No se analiza la topología: M* es un referente de compliance.
+    """
+    c = MetricaTDA_SIMP(
+        nex=m.nex, ney=m.ney, E=m.E, nu=m.nu, Lx=m.Lx, Ly=m.Ly, t=m.t,
+        f_V=m.f_V, p=1.0, r_min=m.r_min, max_iter=max_iter,
+        usar_filtro=False,
+    )
+    c.definir_problema(m.F, m.fixed)
+    c.optimizar(verbose=False)
+    return c
+
+
+def metricas_he2a(m, fV=None, max_iter=300):
+    """Métricas de H.E.2a con el referente físico del Cap. V.
+
+    Devuelve un dict con:
+      - ``u_v``: umbral que conserva el volumen;
+      - ``c_unif``: placa uniforme p = 1, ρ ≡ f_V;
+      - ``c_bin``: diseño binarizado, material 0/1 (p = 1);
+      - ``c_ast``: cota inferior convexa (p = 1, sin filtro);
+      - ``reduccion``: (c_unif − c_bin)/c_unif;
+      - ``eficiencia``: (c_unif − c_bin)/(c_unif − c_ast).
+    """
+    fV = m.f_V if fV is None else float(fV)
+    u_v, volumen = m.umbral_volumen(fV)
+    binaria = (m.rho_tilde_final.reshape((m.ney, m.nex)) >= u_v)
+    c_unif = m.compliance_densidad(np.full(m.N_e, fV), p=1.0, filtrar=False)
+    c_bin = m.compliance_densidad(binaria.astype(float).ravel(), p=1.0, filtrar=False)
+    m_ast = cota_inferior_convexa(m, max_iter=max_iter)
+    c_ast = m_ast.c_final
+    denom = c_unif - c_ast
+    return {
+        "u_v": float(u_v),
+        "volumen": float(volumen),
+        "c_unif": float(c_unif),
+        "c_bin": float(c_bin),
+        "c_ast": float(c_ast),
+        "reduccion": float((c_unif - c_bin) / c_unif) if c_unif else 0.0,
+        "eficiencia": float((c_unif - c_bin) / denom) if abs(denom) > 1e-15 else float("nan"),
+        "n_iter_ast": m_ast.n_iter,
+        "converged_ast": bool(m_ast.converged),
+    }
 
 
 def esfuerzo_max_von_mises(m, E, nu=0.3):
@@ -261,22 +351,44 @@ def persistencia_beta1(umbrales, b1s, beta1):
 
 def barrido_he2(dominio, nex, ney, penal, rmin, E=1.0, Fmag=1.0, fV=FV, t=1.0,
                 max_iter=300, progress_cb=None):
-    """Barrido multi-configuración de H.E.2b (malla con rmin escalado, p, rmin).
+    """Barrido multi-configuración de H.E.2b del Cap. V.
 
-    Devuelve una lista de dicts con las métricas por configuración.
+    Configuraciones (todas medidas):
+      - voladizo 60×30: r_min = 1,5; 2,0; 2,4; 3,0; 3,5; 4,0;
+      - voladizo 60×30: p = 1, 2, 3, 4;
+      - voladizo 60×30 / 120×60 / 180×90 con r_min físico constante
+        (2,4 / 4,8 / 7,2);
+      - viga MBB 120×40 (media viga): los mismos seis r_min, como falsación.
+
+    El argumento `dominio` se conserva por compatibilidad de la UI, pero el
+    protocolo de la tesis es siempre el voladizo 60×30 y el MBB 120×40.
+    Devuelve ``(resultados, mallas_2d)``.
     """
     configs = []
+
+    # 1) Voladizo: barrido de r_min (Cap. V §5.5.5).
     for r in RMIN_RANGO:
-        configs.append({"label": f"rmin={r}", "nelx": nex, "nely": ney, "p": int(penal), "rmin": r})
+        configs.append({"label": f"rmin={r}", "caso": "voladizo",
+                        "nelx": nex, "nely": ney, "p": int(penal), "rmin": r})
+
+    # 2) Voladizo: barrido de penalización (Fig. 5.5).
     for p_val in P_RANGO:
-        configs.append({"label": f"p={p_val}", "nelx": nex, "nely": ney, "p": p_val, "rmin": rmin})
-    # El estudio de independencia de malla (Fig. 5.6) usa el dominio CUADRADO 60×60
-    # con Ne ∈ {1600, 6400, 14400} y rmin = 2.4·(nx/60) ∈ {1.6, 3.2, 4.8}, según el documento.
-    meshes_sweep, ref_nelx, lx_s, ly_s = [(40, 40), (80, 80), (120, 120)], 60, 60.0, 60.0
-    for nelx_s, nely_s in meshes_sweep:
-        configs.append({"label": f"malla={nelx_s}x{nely_s}", "nelx": nelx_s, "nely": nely_s,
-                        "p": int(penal), "rmin": rmin * (nelx_s / ref_nelx),
-                        "lx": lx_s, "ly": ly_s, "es_malla": True})
+        configs.append({"label": f"p={p_val}", "caso": "voladizo",
+                        "nelx": nex, "nely": ney, "p": p_val, "rmin": rmin})
+
+    # 3) Independencia de malla (Fig. 5.6): misma viga física 60×30, r_min
+    #    físico constante (2,4 en unidades de la malla base de 60 elementos).
+    for nelx_s, nely_s in MALLAS_HE2:
+        configs.append({"label": f"malla={nelx_s}x{nely_s}", "caso": "voladizo",
+                        "nelx": nelx_s, "nely": nely_s,
+                        "p": int(penal), "rmin": RMIN_DEFECTO * (nelx_s / 60.0),
+                        "lx": 60.0, "ly": 30.0, "es_malla": True})
+
+    # 4) Falsación MBB 120×40 (media viga por simetría).
+    for r in RMIN_RANGO:
+        configs.append({"label": f"mbb_rmin={r}", "caso": "mbb",
+                        "nelx": MBB_NELX, "nely": MBB_NELY,
+                        "p": int(penal), "rmin": r})
 
     resultados = []
     mallas_2d = []
@@ -284,12 +396,27 @@ def barrido_he2(dominio, nex, ney, penal, rmin, E=1.0, Fmag=1.0, fV=FV, t=1.0,
         if progress_cb:
             progress_cb(i, len(configs), cfg["label"])
         m_s = corrida_simp(cfg["nelx"], cfg["nely"], cfg["p"], cfg["rmin"], E, Fmag, fV, t,
-                           max_iter, Lx=cfg.get("lx"), Ly=cfg.get("ly"))
+                           max_iter, Lx=cfg.get("lx"), Ly=cfg.get("ly"),
+                           caso=cfg["caso"])
         conc_s = getattr(m_s, "_betti_concordancia", None)
+        u_v, vol = m_s.umbral_volumen(fV)
+        c_bin = m_s.compliance_densidad(
+            m_s.binaria(u_v).astype(float).ravel(), p=1.0, filtrar=False
+        )
+        # La Fig. 5.8 del PDF lee β₁ con el umbral fijo u = 0,5; se conserva
+        # además β₁(u_V) para el contraste de invariancia del texto.
+        b0_05, b1_05 = betti_euler(
+            m_s.rho_tilde_final.reshape(cfg["nely"], cfg["nelx"]) >= 0.5
+        )
         res_item = {
-            "Config": cfg["label"], "Malla": f"{cfg['nelx']}x{cfg['nely']}",
+            "Config": cfg["label"], "Caso": cfg["caso"],
+            "Malla": f"{cfg['nelx']}x{cfg['nely']}",
             "Ne": cfg["nelx"] * cfg["nely"], "rmin": round(cfg["rmin"], 2), "p": cfg["p"],
-            "c(rho*)": round(m_s.c_final, 4), "beta0": m_s.beta0, "beta1": m_s.beta1,
+            "u_V": round(float(u_v), 4), "volumen": round(float(vol), 4),
+            "c(rho*)": round(m_s.c_final, 4), "c_binarizada": round(float(c_bin), 4),
+            "beta0": m_s.beta0, "beta1": m_s.beta1,
+            "beta0_u05": int(b0_05), "beta1_u05": int(b1_05),
+            "converged": bool(m_s.converged), "n_iter": int(m_s.n_iter),
             "grisura": round(float(np.mean(4.0 * m_s.rho_tilde_final * (1.0 - m_s.rho_tilde_final))), 4),
             "Concordancia": "Si" if conc_s else ("No" if conc_s is not None else "N/A"),
         }
@@ -300,6 +427,6 @@ def barrido_he2(dominio, nex, ney, penal, rmin, E=1.0, Fmag=1.0, fV=FV, t=1.0,
                 "Ne": cfg["nelx"] * cfg["nely"],
                 "rmin": round(cfg["rmin"], 2),
                 "beta1": m_s.beta1,
-                "rho": m_s.rho_final.reshape(cfg["nely"], cfg["nelx"]),
+                "rho": m_s.rho_tilde_final.reshape(cfg["nely"], cfg["nelx"]),
             })
     return resultados, mallas_2d

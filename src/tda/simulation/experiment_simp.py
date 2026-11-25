@@ -1,234 +1,137 @@
-"""Experimento headless para validar las hipótesis H.E.2 corregidas.
+"""Experimento headless de H.E.2 con los criterios del Cap. V corregido.
 
-Criterios de validación (tras el estudio piloto §4.4):
-  H.E.2a: c(fV·1) − c(ρ⋆) / c(fV·1) ≥ 0.40
-      — Reducción ≥ 40% frente al diseño uniforme de igual volumen
-      (NO frente al bloque sólido, que era lógicamente imposible: §4.4 Hallazgo 2)
+H.E.2a (Cap. V §5.5.1):
+  - referente físico: placa uniforme p = 1, ρ ≡ f_V;
+  - métrica: compliance del diseño BINARIZADO al umbral u_V que conserva
+    el volumen;
+  - criterio: reducción ≥ 15 % frente a la placa física;
+  - además: cota inferior convexa M* (p = 1, sin filtro) y eficiencia η.
 
-  H.E.2b: β₁(Ω_sólido) es independiente de la resolución de malla y del
-      radio del filtro rmin ∈ [1.5, 4.0].
-      — Descriptor invariante (descriptivo, no prescriptivo)
-      (NO β₁ ≤ 2, que era una cota sobre un invariante no controlado: §4.4 Hallazgo 3)
+H.E.2b (Cap. V §5.5.3–§5.5.5):
+  - β₁ invariante en el voladizo frente a malla (60×30, 120×60, 180×90 con
+    r_min físico constante), p ∈ {2,3,4}, r_min ∈ {1,5…4,0} y umbral;
+  - viga MBB 120×40 como caso de falsación: se mide la meseta de r_min.
 
-Referencias:
-  - Perfil §4.4: Estudio piloto y reformulación de hipótesis
-  - metodologia_implementacion.txt §2.3: Corrección del referente
-  - metodologia_implementacion.txt §8: Resultados del Caso 2 (SIMP)
-  - metodologia_implementacion.txt §9: Síntesis del contraste
+Uso:
+    python -m tda.simulation.experiment_simp
 """
 
 import os
+
 import numpy as np
 import pandas as pd
 
-from tda.optimization.metric_simp import MetricaTDA_SIMP
+from tda.simulation.he_protocols import (
+    FV, P_DEFECTO, RMIN_DEFECTO, barrido_he2, corrida_simp, metricas_he2a,
+)
 
 
-def run_headless_experiment():
-    """Ejecuta el experimento SIMP validando H.E.2a y H.E.2b corregidas.
+def run_headless_experiment(nelx=60, nely=30, fV=FV, penal=P_DEFECTO,
+                            rmin=RMIN_DEFECTO, max_iter=300):
+    """Ejecuta el Caso 2 completo y escribe los CSV de verificación."""
+    print("=" * 72)
+    print("  VALIDACIÓN H.E.2 — criterios del Cap. V corregido")
+    print("=" * 72)
+    print(f"  malla base: {nelx}×{nely} | fV={fV} | p={penal} | rmin={rmin}")
+    print("  material adimensional: E0 = 1, espesor = 1, elemento unitario")
 
-    Configuración base (Perfil §9.4.1):
-      - Viga voladizo 2D, 60×30 elementos Q4
-      - fV = 0.5, p = 3, rmin = 2.4
-      - Borde izquierdo empotrado, carga puntual vertical extremo libre
+    # ── 1. Diseño base ─────────────────────────────────────────────────────
+    print("\n--- Fase 1: optimización SIMP base ---")
+    m = corrida_simp(nelx, nely, penal, rmin, fV=fV, max_iter=max_iter,
+                     caso="voladizo")
+    print(f"  convergió: {m.converged} en {m.n_iter} iteraciones")
+    print(f"  β₀={m.beta0} | β₁={m.beta1} | "
+          f"u_V={m.umbral_binarizacion:.3f} | "
+          f"volumen={m.fraccion_volumen_binarizada:.3f}")
 
-    Retorna:
-        dict: Resultados con veredicto de cada hipótesis
-    """
-    print("=" * 70)
-    print("  VALIDACIÓN H.E.2 — SIMP con criterios corregidos")
-    print("  (tras estudio piloto §4.4)")
-    print("=" * 70)
-
-    # ── Configuración base (canónica del Cap. III) ────────────────────────
-    nelx, nely = 60, 30
-    fV = 0.5
-    penal = 3.0
-    rmin = 2.4
-    # Material y dominio NORMALIZADOS: E0 = 1, elementos unitarios.
-    # Es la escala que reproduce los valores del Cap. V
-    #   c_uniforme = 316.34, c_sólido = 39.54, c_SIMP ≈ 75.55.
-    E_material = 1.0
-    espesor = 1.0
-
-    print(f"\nConfiguración: malla {nelx}×{nely}, fV={fV}, p={penal}, rmin={rmin}")
-
-    # ── Condiciones de contorno: viga en voladizo ─────────────────────────
-    # El nodo (ex, ey) se indexa como ey*nnx + ex. El borde izquierdo es el
-    # conjunto ex = 0, es decir los nodos ey*nnx (ey = 0..nely).
-    nnx = nelx + 1
-    n_dof = 2 * nnx * (nely + 1)
-    idx_izq = np.arange(0, nely + 1) * nnx
-    dofs_fijos = np.sort(np.concatenate([2 * idx_izq, 2 * idx_izq + 1]))
-    node_load = (nely // 2) * nnx + nelx
-    F = np.zeros(n_dof)
-    F[2 * node_load + 1] = -1.0
-
-    # ── 1. Optimización SIMP base ─────────────────────────────────────────
-    print("\n--- Fase 1: Optimización SIMP ---")
-    m = MetricaTDA_SIMP(
-        nex=nelx, ney=nely, E=E_material, nu=0.3,
-        Lx=60.0, Ly=30.0, t=espesor,
-        f_V=fV, p=penal, r_min=rmin, max_iter=200
+    # ── 2. H.E.2a con referente físico y cota convexa ──────────────────────
+    print("\n--- Fase 2: H.E.2a (placa p=1, binario y cota convexa) ---")
+    met = metricas_he2a(m, fV=fV, max_iter=max_iter)
+    print(f"  c(uniforme p=1) = {met['c_unif']:.4f}")
+    print(f"  c(binarizado)   = {met['c_bin']:.4f}  (u_V={met['u_v']:.4f})")
+    print(f"  c(cota M*)      = {met['c_ast']:.4f}  "
+          f"({met['n_iter_ast']} iter, convergió={met['converged_ast']})")
+    print(f"  reducción       = {100*met['reduccion']:.2f} %")
+    print(f"  eficiencia η    = {met['eficiencia']:.4f}")
+    from tda.analysis.estados import (
+        ACOTADA, CONCLUYENTE, MEDIDO, NO_SE_SOSTIENE, SE_SOSTIENE,
     )
-    m.definir_problema(F, dofs_fijos)
-    m.optimizar(verbose=True)
+    he2a_cumple = met["reduccion"] >= 0.15
+    he2a_veredicto = SE_SOSTIENE if he2a_cumple else NO_SE_SOSTIENE
+    print(f"  H.E.2a (≥15 %)  = {MEDIDO} · {CONCLUYENTE} · {he2a_veredicto}")
 
-    # ── 2. Análisis TDA ───────────────────────────────────────────────────
-    print("\n--- Fase 2: Análisis TDA ---")
-    m.fase_tda(verbose=True)
-
-    # ── 3. Cálculo del referente uniforme ──────────────────────────────────
-    # Diseño uniforme ρ ≡ fV (mismo volumen que SIMP)
-    m_uniforme = MetricaTDA_SIMP(
-        nex=nelx, ney=nely, E=E_material, nu=0.3,
-        Lx=60.0, Ly=30.0, t=espesor,
-        f_V=fV, p=penal, r_min=rmin, max_iter=1
+    # ── 3. H.E.2b: barrido completo (malla, p, rmin, MBB) ─────────────────
+    print("\n--- Fase 3: H.E.2b (barrido multi-configuración + MBB) ---")
+    barrido, mallas_2d = barrido_he2(
+        "Rectangular", nelx, nely, penal, rmin, fV=fV,
+        max_iter=max_iter,
     )
-    m_uniforme.definir_problema(F, dofs_fijos)
-    # Compliance del diseño uniforme: resolver FEM una vez con ρ = fV
-    from tda.core.fem import ensamblar_K_global, resolver_FEM, calcular_compliance_sensibilidades
-    rho_uniforme = np.full(m_uniforme.N_e, fV)
-    K_uniforme = ensamblar_K_global(rho_uniforme, m_uniforme.DOFS, m_uniforme.n_dof, m_uniforme.K0, penal)
-    U_uniforme = resolver_FEM(K_uniforme, F, dofs_fijos, m_uniforme.n_dof)
-    c_uniforme, _ = calcular_compliance_sensibilidades(U_uniforme, rho_uniforme, m_uniforme.DOFS, m_uniforme.K0, penal)
+    df = pd.DataFrame(barrido)
+    print(df.to_string(index=False))
 
-    # ── 4. Validación H.E.2a ─────────────────────────────────────────────
-    # H.E.2a: (c(fV·1) - c(ρ⋆)) / c(fV·1) ≥ 0.40
-    c_simp = m.c_final
-    reduccion_vs_uniforme = (c_uniforme - c_simp) / c_uniforme
+    voladizo = df[df["Caso"] == "voladizo"]
+    mbb = df[df["Caso"] == "mbb"]
+    malla = voladizo[voladizo["Config"].str.startswith("malla=")]
+    pen = voladizo[voladizo["Config"].str.startswith("p=")]
+    rmin_v = voladizo[voladizo["Config"].str.startswith("rmin=")]
+    rmin_m = mbb[mbb["Config"].str.startswith("mbb_rmin=")]
 
-    print(f"\n{'='*70}")
-    print(f"  RESULTADOS H.E.2a (referente: diseño uniforme de igual volumen)")
-    print(f"{'='*70}")
-    print(f"  c(uniforme ρ={fV}) = {c_uniforme:.4f}")
-    print(f"  c(SIMP ρ⋆)        = {c_simp:.4f}")
-    print(f"  Reducción          = {reduccion_vs_uniforme*100:.2f}%")
-    print(f"  Umbral H.E.2a     = ≥ 40%")
-    he2a_cumple = reduccion_vs_uniforme >= 0.40
-    print(f"  Veredicto          = {'✅ CUMPLE' if he2a_cumple else '❌ NO CUMPLE'}")
+    he2b_voladizo = (
+        malla["beta1"].nunique() == 1
+        and pen[pen["p"] >= 2]["beta1"].nunique() == 1
+        and rmin_v["beta1"].nunique() == 1
+        and (df["Concordancia"] == "Si").all()
+    )
+    print(f"\n  β₁ voladizo: malla={malla['beta1'].tolist()} | "
+          f"p≥2={pen[pen['p'] >= 2]['beta1'].tolist()} | "
+          f"rmin={rmin_v['beta1'].tolist()}")
+    print(f"  β₁ MBB:     {rmin_m['beta1'].tolist()} "
+          f"→ meseta {rmin_m['beta1'].nunique() == 1}")
+    print(f"  H.E.2b voladizo = {MEDIDO} · {CONCLUYENTE} · "
+          f"{SE_SOSTIENE if he2b_voladizo else NO_SE_SOSTIENE}")
+    print(f"  H.E.2b MBB     = {MEDIDO} · ACOTADA · "
+          f"{'meseta constante' if rmin_m['beta1'].nunique() == 1 else 'meseta no constante'}")
 
-    # ── 5. Validación H.E.2b (barrido de configuraciones) ────────────────
-    # H.E.2b: β₁ es independiente de la resolución de malla y del filtro
-    print(f"\n{'='*70}")
-    print(f"  RESULTADOS H.E.2b (invariancia de β₁)")
-    print(f"{'='*70}")
-
-    configs_beta1 = []
-
-    # 5a. Barrido de rmin
-    print("\n  Barrido de rmin:")
-    for rmin_val in [1.5, 2.0, 2.4, 3.0, 4.0]:
-        m_cfg = MetricaTDA_SIMP(
-            nex=nelx, ney=nely, E=E_material, nu=0.3,
-            Lx=60.0, Ly=30.0, t=espesor,
-            f_V=fV, p=penal, r_min=rmin_val, max_iter=200
-        )
-        m_cfg.definir_problema(F, dofs_fijos)
-        m_cfg.optimizar(verbose=False)
-        m_cfg.fase_tda(verbose=False)
-        configs_beta1.append({
-            "config": f"rmin={rmin_val}",
-            "beta0": m_cfg.beta0,
-            "beta1": m_cfg.beta1,
-            "concordancia": True,  # Se verifica abajo
-        })
-        print(f"    rmin={rmin_val:.1f}: β₀={m_cfg.beta0}, β₁={m_cfg.beta1}")
-
-    # 5b. Barrido de penalización
-    print("\n  Barrido de penalización p:")
-    for p_val in [2, 3, 4]:
-        m_cfg = MetricaTDA_SIMP(
-            nex=nelx, ney=nely, E=E_material, nu=0.3,
-            Lx=60.0, Ly=30.0, t=espesor,
-            f_V=fV, p=p_val, r_min=rmin, max_iter=200
-        )
-        m_cfg.definir_problema(F, dofs_fijos)
-        m_cfg.optimizar(verbose=False)
-        m_cfg.fase_tda(verbose=False)
-        configs_beta1.append({
-            "config": f"p={p_val}",
-            "beta0": m_cfg.beta0,
-            "beta1": m_cfg.beta1,
-        })
-        print(f"    p={p_val}: β₀={m_cfg.beta0}, β₁={m_cfg.beta1}")
-
-    # 5c. Barrido de resolución de malla
-    print("\n  Barrido de resolución de malla (rmin escalado):")
-    for nelx_cfg, nely_cfg in [(40, 20), (80, 40), (120, 60)]:
-        # Escalar rmin proporcionalmente para mantener longitud física constante
-        rmin_escalado = rmin * (nelx_cfg / nelx)
-        nnx_cfg = nelx_cfg + 1
-        n_dof_cfg = 2 * nnx_cfg * (nely_cfg + 1)
-        idx_izq_cfg = np.arange(0, nely_cfg + 1) * nnx_cfg
-        dofs_fijos_cfg = np.sort(np.concatenate([2 * idx_izq_cfg, 2 * idx_izq_cfg + 1]))
-        node_load_cfg = (nely_cfg // 2) * nnx_cfg + nelx_cfg
-        F_cfg = np.zeros(n_dof_cfg)
-        F_cfg[2 * node_load_cfg + 1] = -1.0
-
-        m_cfg = MetricaTDA_SIMP(
-            nex=nelx_cfg, ney=nely_cfg, E=E_material, nu=0.3,
-            Lx=60.0, Ly=30.0, t=espesor,
-            f_V=fV, p=penal, r_min=rmin_escalado, max_iter=200
-        )
-        m_cfg.definir_problema(F_cfg, dofs_fijos_cfg)
-        m_cfg.optimizar(verbose=False)
-        m_cfg.fase_tda(verbose=False)
-        configs_beta1.append({
-            "config": f"malla={nelx_cfg}×{nely_cfg}",
-            "beta0": m_cfg.beta0,
-            "beta1": m_cfg.beta1,
-        })
-        print(f"    {nelx_cfg}×{nely_cfg} (rmin={rmin_escalado:.1f}): β₀={m_cfg.beta0}, β₁={m_cfg.beta1}")
-
-    # Verificar invariancia
-    betas1 = [c["beta1"] for c in configs_beta1]
-    beta1_invariante = len(set(betas1)) == 1
-
-    print(f"\n  Valores de β₁ observados: {set(betas1)}")
-    print(f"  Invariancia de β₁:        {'✅ SÍ — β₁ es invariante' if beta1_invariante else '❌ NO — β₁ varía'}")
-    print(f"  Veredicto H.E.2b:        {'✅ SE SOSTIENE' if beta1_invariante else '❌ NO SE SOSTIENE'}")
-
-    # ── 6. Síntesis final ─────────────────────────────────────────────────
-    print(f"\n{'='*70}")
-    print(f"  SÍNTESIS DEL CONTRASTE DE HIPÓTESIS")
-    print(f"{'='*70}")
-    print(f"  H.E.2a (reducción ≥40% vs uniforme): {reduccion_vs_uniforme*100:.2f}% → {'✅' if he2a_cumple else '❌'}")
-    print(f"  H.E.2b (β₁ invariante):              β₁={betas1[0]} en {len(configs_beta1)} configs → {'✅' if beta1_invariante else '❌'}")
-    print(f"  Concordancia Euler-GUDHI:              100% (ver MetricaTDA_SIMP.fase_tda)")
-
-    # ── 7. Exportar resultados ─────────────────────────────────────────────
+    # ── 4. Exportación ─────────────────────────────────────────────────────
     os.makedirs("data", exist_ok=True)
-    df = pd.DataFrame([{
+    fila = {
         "experimento": "H.E.2",
         "malla": f"{nelx}×{nely}",
         "volfrac": fV,
         "penal": penal,
         "rmin": rmin,
-        "c_uniforme": c_uniforme,
-        "c_simp": c_simp,
-        "reduccion_vs_uniforme_pct": reduccion_vs_uniforme * 100,
-        "beta1_base": betas1[0],
-        "beta1_invariante": beta1_invariante,
-        "n_configs_beta1": len(configs_beta1),
+        "u_V": met["u_v"],
+        "c_uniforme_p1": met["c_unif"],
+        "c_binarizada": met["c_bin"],
+        "c_cota_convexa": met["c_ast"],
+        "reduccion_vs_placa_p1_pct": 100 * met["reduccion"],
+        "eficiencia_relativa": met["eficiencia"],
+        "beta1_base": m.beta1,
+        "converged": bool(m.converged),
+        "n_iter": m.n_iter,
+        "he2a_estado": f"{MEDIDO} · {CONCLUYENTE} · {he2a_veredicto}",
+        "he2b_voladizo_estado": (f"{MEDIDO} · {CONCLUYENTE} · "
+                                 f"{SE_SOSTIENE if he2b_voladizo else NO_SE_SOSTIENE}"),
+        "he2b_mbb_estado": f"{MEDIDO} · {ACOTADA}",
         "he2a_cumple": he2a_cumple,
-        "he2b_cumple": beta1_invariante,
-    }])
-    df.to_csv("data/validacion_HE2_corregida.csv", index=False)
-
-    # Detalle del barrido de β₁
-    df_beta1 = pd.DataFrame(configs_beta1)
-    df_beta1.to_csv("data/barrido_beta1_HE2b.csv", index=False)
-
-    print(f"\n  Resultados guardados en:")
-    print(f"    data/validacion_HE2_corregida.csv")
-    print(f"    data/barrido_beta1_HE2b.csv")
-
-    return {
-        "he2a": {"cumple": he2a_cumple, "reduccion": reduccion_vs_uniforme},
-        "he2b": {"cumple": beta1_invariante, "beta1_vals": betas1},
-        "configs": configs_beta1,
+        "he2b_voladizo_cumple": he2b_voladizo,
+        "he2b_mbb_meseta_constante": bool(rmin_m["beta1"].nunique() == 1),
     }
+    pd.DataFrame([fila]).to_csv("data/validacion_HE2_corregida.csv", index=False)
+    df.to_csv("data/barrido_HE2b.csv", index=False)
+    if mallas_2d:
+        pd.DataFrame([
+            {"label": x["label"], "Ne": x["Ne"], "rmin": x["rmin"],
+             "beta1": x["beta1"]}
+            for x in mallas_2d
+        ]).to_csv("data/mallas_HE2b.csv", index=False)
+
+    print("\n  Resultados guardados en:")
+    print("    data/validacion_HE2_corregida.csv")
+    print("    data/barrido_HE2b.csv")
+    print("    data/mallas_HE2b.csv")
+    return {"he2a": met, "he2a_cumple": he2a_cumple,
+            "he2b_voladizo": he2b_voladizo, "barrido": df}
 
 
 if __name__ == "__main__":

@@ -1,2 +1,2 @@
-experimento,malla,volfrac,penal,rmin,c_uniforme,c_simp,reduccion_vs_uniforme_pct,beta1_base,beta1_invariante,n_configs_beta1,mu_alpha,he2a_cumple,he2b_cumple
-H.E.2,60×30,0.5,3.0,2.4,316.3418986631451,74.72078285557717,76.37973876639617,3,True,11,74.72078285557717,True,True
+experimento,malla,volfrac,penal,rmin,u_V,c_uniforme_p1,c_binarizada,c_cota_convexa,reduccion_vs_placa_p1_pct,eficiencia_relativa,beta1_base,converged,n_iter,he2a_cumple,he2b_voladizo_cumple,he2b_mbb_meseta_constante
+H.E.2,60×30,0.5,3,2.4,0.5564170873159732,79.08547458651466,63.07814777367139,55.146405636431226,20.24053961430331,0.668669564644346,3,True,89,True,True,False
