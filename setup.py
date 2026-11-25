@@ -9,5 +9,5 @@ setup(
     description="Proyecto de análisis topológico y optimización SIMP",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
-    python_requires=">=3.10",
+    python_requires=">=3.11",
 )

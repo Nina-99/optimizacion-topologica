@@ -86,7 +86,7 @@ if !errorlevel! neq 0 (
 
 REM Instalacion de ripser sin dependencias (para evitar persim en Windows/ARM)
 echo [INFO] Instalando ripser (sin dependencias)...
-uv pip install ripser --no-deps
+uv pip install "ripser==0.6.15" --no-deps
 if %errorlevel% neq 0 (
     echo [ERROR] No se pudo instalar ripser.
     pause

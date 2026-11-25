@@ -83,7 +83,7 @@ fi
 
 # Instalación de ripser sin dependencias (para evitar persim en Windows/ARM)
 info "Instalando ripser (sin dependencias)..."
-if ! uv pip install ripser --no-deps; then
+if ! uv pip install "ripser==0.6.15" --no-deps; then
     error "No se pudo instalar ripser."
     exit 1
 fi

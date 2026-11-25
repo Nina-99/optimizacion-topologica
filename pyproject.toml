@@ -6,10 +6,10 @@ build-backend = "setuptools.build_meta"
 name = "estructura_topologica"
 version = "0.1.0"
 description = "Proyecto de análisis topológico y optimización SIMP"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 line-length = 100
 
 [tool.ruff.lint]
