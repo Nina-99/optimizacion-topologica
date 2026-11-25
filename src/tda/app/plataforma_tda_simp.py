@@ -237,6 +237,55 @@ with cols[3]:
     st.page_link("pages/4_Ejemplo_Viga_1D_vs_2D.py", label="🧪 Abrir Ejemplo", width='stretch')
 
 
+# ── Núcleo computacional (fragmento para defensa) ──
+with st.expander("🔬 Núcleo computacional — fragmento para defensa", expanded=False):
+    st.markdown(
+        "El tramo que une SIMP con TDA: filtro de densidad, FEM, sensibilidad "
+        "adjunta, actualización OC y doble cómputo topológico."
+    )
+    st.code(
+        '''# 1. Filtro de densidad: ρ̃ = Hρ/Hs (operador compacto)
+rho_tilde = self.filtrar_densidad(self.rho)
+
+# 2. FEM: E_e = E_min + ρ_e^p (E − E_min), luego K(ρ̃) U = F
+K = ensamblar_K_global(rho_tilde, self.DOFS, self.n_dof, self.K0, self.p)
+U = resolver_FEM(K, self.F, self.fixed, self.n_dof)
+
+# 3. Compliance y sensibilidad ∂M/∂ρ_e (Eq. 2.9)
+c, dc = calcular_compliance_sensibilidades(
+    U, rho_tilde, self.DOFS, self.K0, self.p
+)
+dc_filt = self.filtrar_densidad(dc)  # regla de la cadena del filtro
+
+# 4. OC con restricción de volumen sobre ρ̃, no sobre ρ cruda
+rho = actualizar_OC(
+    self.rho, dc_filt, self.f_V, rho_vol_fn=self.filtrar_densidad
+)
+
+# 5. Binarización que conserva volumen + doble cómputo topológico
+u_v, _ = self.umbral_volumen()
+grid = self.rho_tilde_final.reshape((self.ney, self.nex)) >= u_v
+res = betti_doble_computo(grid)          # Euler 8-conexo + GUDHI
+if not res["concordancia"]:
+    raise RuntimeError("Indicador topológico inválido")
+
+# 6. Persistencia del CAMPO f = 1 − ρ̃, no del grid binario
+dgm0, dgm1 = diagramas_campo(
+    self.rho_tilde_final.reshape((self.ney, self.nex))
+)''',
+        language="python",
+    )
+    st.markdown(
+        "- Cada bloque corresponde a una fórmula del Cap. II: `(2.7)` interpolación "
+        "SIMP, `(2.9)` sensibilidad adjunta, `(2.10)` cota convexa.\n"
+        "- El filtro no es cosmético: da existencia al problema continuo y obliga a "
+        "escalar `r_min` con la malla.\n"
+        "- La restricción de volumen se evalúa sobre `ρ̃`, la densidad física.\n"
+        "- `u_V` conserva `f_V`; no se fija a `0.5`.\n"
+        "- Euler y GUDHI tienen modos de fallo independientes; si discrepan, el código se detiene.\n"
+        "- El diagrama se calcula sobre `f = 1 − ρ̃` para que aplique el Teorema 2.1."
+    )
+
 # ── Footer ──
 st.markdown("---")
 st.markdown("---")
