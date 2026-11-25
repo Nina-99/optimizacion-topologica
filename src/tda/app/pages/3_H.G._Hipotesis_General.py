@@ -390,19 +390,34 @@ st.caption("Reejecuta la configuración canónica (semilla 42) y la compara con 
            "`data/`. La igualdad demuestra que el estudio es reproducible desde cero.")
 if st.button("▶ Reproducir desde semilla y comparar con los CSV", key="btn_f6"):
     import os as _os
-    m_chk = corrida_simp(60, 30, P_DEFECTO, RMIN_DEFECTO, max_iter=200)
-    c_u2, c_s2, b1_2 = float(m_chk.c_hist[0]), float(m_chk.c_final), int(m_chk.beta1)
+    m_chk = corrida_simp(60, 30, P_DEFECTO, RMIN_DEFECTO, max_iter=300)
+    met_chk = metricas_he2a(m_chk, fV=FV, max_iter=300)
     ruta = _os.path.join("data", "validacion_HE2_corregida.csv")
     if _os.path.exists(ruta):
         dfchk = pd.read_csv(ruta)
-        c_u_csv, c_s_csv = float(dfchk["c_uniforme"].iloc[0]), float(dfchk["c_simp"].iloc[0])
+        c_u2 = float(met_chk["c_unif"])
+        c_s2 = float(met_chk["c_bin"])
+        c_a2 = float(met_chk["c_ast"])
+        eta2 = float(met_chk["eficiencia"])
+        b1_2 = int(m_chk.beta1)
+        c_u_csv = float(dfchk["c_uniforme_p1"].iloc[0])
+        c_s_csv = float(dfchk["c_binarizada"].iloc[0])
+        c_a_csv = float(dfchk["c_cota_convexa"].iloc[0])
+        eta_csv = float(dfchk["eficiencia_relativa"].iloc[0])
         b1_csv = int(dfchk["beta1_base"].iloc[0])
-        ok = abs(c_u2 - c_u_csv) < 1e-6 and abs(c_s2 - c_s_csv) < 1e-6 and b1_2 == b1_csv
+        ok = (abs(c_u2 - c_u_csv) < 1e-6
+              and abs(c_s2 - c_s_csv) < 1e-6
+              and abs(c_a2 - c_a_csv) < 1e-6
+              and abs(eta2 - eta_csv) < 1e-6
+              and b1_2 == b1_csv)
         st.dataframe(pd.DataFrame({
-            "Magnitud": ["c uniforme", "c SIMP", "β₁"],
-            "Reproducido ahora": [f"{c_u2:.6f}", f"{c_s2:.6f}", str(b1_2)],
-            "CSV del repositorio": [f"{c_u_csv:.6f}", f"{c_s_csv:.6f}", str(b1_csv)],
-            "Δ": [f"{abs(c_u2-c_u_csv):.2e}", f"{abs(c_s2-c_s_csv):.2e}", "—"],
+            "Magnitud": ["c uniforme p=1", "c binarizada", "c cota convexa", "η", "β₁"],
+            "Reproducido ahora": [f"{c_u2:.6f}", f"{c_s2:.6f}", f"{c_a2:.6f}",
+                                  f"{eta2:.6f}", str(b1_2)],
+            "CSV del repositorio": [f"{c_u_csv:.6f}", f"{c_s_csv:.6f}",
+                                    f"{c_a_csv:.6f}", f"{eta_csv:.6f}", str(b1_csv)],
+            "Δ": [f"{abs(c_u2-c_u_csv):.2e}", f"{abs(c_s2-c_s_csv):.2e}",
+                  f"{abs(c_a2-c_a_csv):.2e}", f"{abs(eta2-eta_csv):.2e}", "—"],
         }), width="stretch", hide_index=True)
         if ok:
             st.success("### ✅ Reproducido — idéntico a `data/validacion_HE2_corregida.csv` (Δ < 1e-6). "
